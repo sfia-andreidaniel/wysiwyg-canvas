@@ -40,17 +40,17 @@ class TStyle {
 	];
 
 	static $FontStyle: string[] = [
-		"",
+		"normal",
 		"italic"
 	];
 
 	static $FontWeight: string[] = [
-		"",
+		"normal",
 		"bold"
 	];
 
 	static $TextDecoration: string[] = [
-		"",
+		"none",
 		"underline"
 	];
 
@@ -61,7 +61,7 @@ class TStyle {
 	];
 	
 	static $Floats: string[] = [
-		"",
+		"none",
 		"left",
 		"right",
 		"center"

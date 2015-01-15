@@ -8,6 +8,11 @@ class HTML_Body extends TNode_Element {
 		this.style.display( 'block' );
 		this.style.width( '100%' );
 		this.style.height( '100%' );
+		this.style.fontFamily( 'Arial' );
+		this.style.fontSize( '12' );
+		this.style.fontWeight( 'normal' );
+		this.style.fontStyle( 'normal' );
+		this.style.textDecoration( 'none' );
 	}
 
 	createTextNode( textContents: string ): TNode_Text {

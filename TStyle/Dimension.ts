@@ -48,6 +48,8 @@ class TStyle_Dimension extends TStyle_Property {
 						   this.style._aspectRatio.get();
 				}
 
+			} else if ( this.style.node.parentNode ) {
+				return this.style.node.parentNode.style[ this.name ]();
 			} else {
 				return 0;
 			}

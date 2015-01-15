@@ -379,6 +379,11 @@ var HTML_Body = (function (_super) {
         this.style.display('block');
         this.style.width('100%');
         this.style.height('100%');
+        this.style.fontFamily('Arial');
+        this.style.fontSize('12');
+        this.style.fontWeight('normal');
+        this.style.fontStyle('normal');
+        this.style.textDecoration('none');
     }
     HTML_Body.prototype.createTextNode = function (textContents) {
         var node = new TNode_Text(textContents);
@@ -799,15 +804,15 @@ var TStyle = (function () {
         "Impact"
     ];
     TStyle.$FontStyle = [
-        "",
+        "normal",
         "italic"
     ];
     TStyle.$FontWeight = [
-        "",
+        "normal",
         "bold"
     ];
     TStyle.$TextDecoration = [
-        "",
+        "none",
         "underline"
     ];
     TStyle.$Display = [
@@ -816,7 +821,7 @@ var TStyle = (function () {
         "none"
     ];
     TStyle.$Floats = [
-        "",
+        "none",
         "left",
         "right",
         "center"
@@ -897,6 +902,9 @@ var TStyle_Dimension = (function (_super) {
                 else {
                     return this.style._width.get() / this.style._aspectRatio.get();
                 }
+            }
+            else if (this.style.node.parentNode) {
+                return this.style.node.parentNode.style[this.name]();
             }
             else {
                 return 0;
@@ -1119,7 +1127,36 @@ var Character = (function () {
     Character.prototype.letter = function () {
         return this.node._text[this.index];
     };
+    /* Compute the width of the character based on the
+       style of the element which contains the text
+       node */
+    Character.prototype.computeSize = function () {
+        if (!this.node.parentNode) {
+            return [0, 0];
+        }
+        else {
+            //var out: number,
+            //fontSignature: string = ( this.italic ? 'italic ' : '' ) + ( this.bold ? 'bold ' : '' ) + this.size + 'px ' + this.family
+            return null;
+        }
+    };
     return Character;
+})();
+var Character_Line = (function () {
+    function Character_Line() {
+        this.words = [];
+        this.physicalWidth = 0;
+        this.maxWidth = 0;
+        this.wordGap = 0.00;
+    }
+    return Character_Line;
+})();
+var Character_Word = (function () {
+    //<constructor> public characters: Character[];
+    function Character_Word(characters) {
+        this.characters = characters;
+    }
+    return Character_Word;
 })();
 // the layout class is responsible to render elements on the canvas.
 var Layout = (function () {
@@ -1264,17 +1301,44 @@ var Layout_BlockChar = (function (_super) {
         this.children = null;
         this.hasChars = true;
         this.layoutType = 'text';
+        this.lines = [];
     }
     Layout_BlockChar.prototype.addTextNode = function (node) {
         for (var i = 0, len = node._text.length; i < len; i++) {
             this.chars.push(new Character(node, i));
         }
     };
+    // the blockchar layout doesn't contain any sub-layouts, so
+    // no building is needed
     Layout_BlockChar.prototype.buildAhead = function () {
         if (!this.isBuilt) {
             this.isBuilt = true;
         }
     };
+    // routine to build the lines of the block.
+    // it takes in consideration the words, etc.
+    Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\s]+)?([^\s]+)/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [];
+        console.log(contents, contentsWithWords);
+        for (i = 0; i < len; i++) {
+            if (contentsWithWords[i] == contents[j]) {
+                word.push(this.chars[i]);
+                j++;
+            }
+            else {
+                if (word.length) {
+                    words.push(new Character_Word(word));
+                    word = [];
+                }
+            }
+        }
+        if (word.length) {
+            words.push(new Character_Word(word));
+        }
+        console.log(words);
+        this.lines = [];
+    };
+    // returns the text contents of block
     Layout_BlockChar.prototype.textContents = function () {
         var out = '', i = 0, len = 0;
         for (var i = 0, len = this.chars.length; i < len; i++) {
@@ -1305,6 +1369,8 @@ var Layout_BlockChar = (function (_super) {
 /// <reference path="./TStyle/String.ts" />
 /// <reference path="./TStyle/Color.ts" />
 /// <reference path="Character.ts" />
+/// <reference path="./Character/Line.ts" />
+/// <reference path="./Character/Word.ts" />
 /// <reference path="Layout.ts" />
 /// <reference path="Layout/Horizontal.ts" />
 /// <reference path="Layout/Vertical.ts" />

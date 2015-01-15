@@ -18,6 +18,9 @@
 /// <reference path="./TStyle/Color.ts" />
 
 /// <reference path="Character.ts" />
+/// <reference path="./Character/Line.ts" />
+/// <reference path="./Character/Word.ts" />
+
 /// <reference path="Layout.ts" />
 /// <reference path="Layout/Horizontal.ts" />
 /// <reference path="Layout/Vertical.ts" />

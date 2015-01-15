@@ -207,13 +207,10 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.hasLayout = function () {
         return this.style.display() == 'block' || this.style.float() != '';
     };
-    TNode_Element.prototype.createLayout = function () {
+    TNode_Element.prototype.createLayout = function (useParentLayout) {
+        if (useParentLayout === void 0) { useParentLayout = null; }
         var left = [], center = [], right = [], argIndex = 0, i, len, returnValue;
         this.evaluateLayout(left, center, right, argIndex);
-        console.log('create layout: ', this.nodeName);
-        console.log('left: ', left);
-        console.log('center: ', center);
-        console.log('right: ', right);
         switch (true) {
             case center.length == 0 && left.length == 0 && right.length == 0:
                 /* The node is empty */
@@ -235,12 +232,12 @@ var TNode_Element = (function (_super) {
                 returnValue = new Layout_Horizontal(this, left);
                 break;
             case (left.length > 0 || right.length > 0) && center.length > 0:
-                var cells;
+                var cells = [];
                 if (left.length) {
                     cells.push(left.length == 1 ? left[0] : new Layout_Horizontal(null, left));
                 }
                 if (center.length) {
-                    cells.push(new Layout_Vertical(this, center));
+                    cells.push(new Layout_Vertical(null, center));
                 }
                 if (right.length) {
                     cells.push(right.length == 1 ? right[0] : new Layout_Horizontal(null, right));
@@ -248,17 +245,13 @@ var TNode_Element = (function (_super) {
                 returnValue = new Layout_Horizontal(this, cells);
                 break;
             default:
-                throw "Unknown layout variant!";
+                throw "Unhandled layout variant!";
                 break;
         }
-        // compute ahead the layouts from the returnValue ...
-        if (returnValue.children && returnValue.children.length) {
-            for (i = 0, len = returnValue.children.length; i < len; i++) {
-                if (returnValue.children[i].node) {
-                    console.log('build layout of: ', returnValue.children[i].node.nodeName);
-                }
-            }
+        if (useParentLayout) {
+            returnValue.parent = useParentLayout;
         }
+        returnValue.buildAhead(useParentLayout);
         return returnValue;
     };
     TNode_Element.prototype.evaluateLayout = function (left, center, right, argIndex) {
@@ -293,6 +286,7 @@ var TNode_Element = (function (_super) {
                 case 'Layout_BlockChar':
                     if (currentArgIndex != oldArgIndex) {
                         lchar = new Layout_BlockChar();
+                        center.push(lchar);
                     }
                     else {
                         lchar = ((function () {
@@ -392,11 +386,18 @@ var HTML_Body = (function (_super) {
         return node;
     };
     HTML_Body.prototype.createElement = function (elementName) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
         var node;
         elementName = String(elementName || '').toLowerCase();
         switch (elementName) {
             case 'p':
                 node = new HTML_Paragraph();
+                break;
+            case 'img':
+                node = new HTML_Image(String(args[0] || '') || null);
                 break;
             default:
                 node = new TNode_Element();
@@ -417,6 +418,99 @@ var HTML_Paragraph = (function (_super) {
         this.style.width('100%');
     }
     return HTML_Paragraph;
+})(TNode_Element);
+var HTML_Image = (function (_super) {
+    __extends(HTML_Image, _super);
+    function HTML_Image(src) {
+        if (src === void 0) { src = null; }
+        _super.call(this);
+        this.node = document.createElement('img');
+        this.loaded = false; // is the image loaded successfully
+        this.error = false; // an error occured after loading
+        this.nodeName = 'img';
+        this.style.display('block');
+        (function (me) {
+            me.node.addEventListener('load', function () {
+                me.loaded = true;
+                me.error = false;
+                me.style.aspectRatio(String((me.node.width / me.node.height)));
+                if (!me.style._width.isSet && !me.style._height.isSet) {
+                    me.style.width(String(me.node.width));
+                }
+                me.fire('rebuild');
+            }, false);
+            me.node.addEventListener('erorr', function () {
+                me.loaded = true;
+                me.error = true;
+                me.fire('rebuild');
+            }, false);
+        })(this);
+        if (src !== null) {
+            this.src(src);
+        }
+    }
+    HTML_Image.prototype.src = function (source) {
+        if (source === void 0) { source = null; }
+        if (source === null) {
+            // getter
+            return this.node.getAttribute('src') || '';
+        }
+        else {
+            // setter
+            this.loaded = false;
+            this.error = false;
+            this.node.setAttribute('src', String(source || ''));
+        }
+    };
+    HTML_Image.prototype.width = function (size) {
+        if (size === void 0) { size = null; }
+        if (size === null) {
+            // getter
+            return String(this.style.width() || '');
+        }
+        else {
+            if (size == '') {
+                this.style._width.isSet = false;
+            }
+            else {
+                this.style.width(size);
+            }
+            return size;
+        }
+    };
+    HTML_Image.prototype.height = function (size) {
+        if (size === void 0) { size = null; }
+        if (size === null) {
+            //getter
+            return String(this.style.height() || '');
+        }
+        else {
+            if (size == '') {
+                this.style._height.isSet = false;
+            }
+            else {
+                this.style.height(size);
+            }
+            return size;
+        }
+    };
+    HTML_Image.prototype.align = function (align) {
+        if (align === void 0) { align = null; }
+        if (align === null) {
+            // getter
+            return this.style.float();
+        }
+        else {
+            if (align == '') {
+                this.style._float.isSet = false;
+            }
+            else {
+                this.style.float(align);
+            }
+            return align;
+        }
+    };
+    return HTML_Image;
 })(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
@@ -1022,6 +1116,9 @@ var Character = (function () {
         this.width = 0; // the width on screen of the character
         this.height = 0; // the height on screen of the character
     }
+    Character.prototype.letter = function () {
+        return this.node._text[this.index];
+    };
     return Character;
 })();
 // the layout class is responsible to render elements on the canvas.
@@ -1039,14 +1136,43 @@ var Layout = (function () {
         this.children = [];
         this.node = null;
         this.hasChars = false;
+        this.isBuilt = false;
+        this.siblingIndex = 0;
+        this.layoutType = 'abstract';
     }
-    Layout.prototype.setParents = function () {
-        if (this.children) {
-            for (var i = 0, len = this.children.length; i < len; i++) {
-                this.children[i].parent = this;
-                this.children[i].setParents();
+    Layout.prototype.buildAhead = function (layout) {
+        if (layout === void 0) { layout = null; }
+        throw "Abstract method";
+    };
+    /* Even if the layout has the node property set to null,
+       as implemented on Layout_BlockChar, it is a child of a node
+       in the upper layout logic. This function returns that node
+    */
+    Layout.prototype.ownerNode = function () {
+        if (this.node === null) {
+            if (this.parent) {
+                return this.parent.ownerNode();
+            }
+            else
+                return null;
+        }
+        else
+            return this.node;
+    };
+    Layout.prototype.serialize = function (tabIndex) {
+        if (tabIndex === void 0) { tabIndex = 0; }
+        var tab = '', i = 0, len, out = [];
+        for (i = 0, len = tabIndex * 4; i < len; i++) {
+            tab += ' ';
+        }
+        out.push(tab + '<' + this.layoutType + (this.node ? ' of=' + this.node.nodeName + ' ' : ' shadow=' + this.ownerNode().nodeName + ' ') + ('offsetWidth=' + this.offsetWidth + ' offsetHeight=' + this.offsetHeight + ' offsetTop=' + this.offsetTop + ' offsetLeft=' + this.offsetLeft + ' ') + '>');
+        if (this.children && (len = this.children.length)) {
+            for (i = 0; i < len; i++) {
+                out.push(this.children[i].serialize(tabIndex + 1));
             }
         }
+        out.push(tab + '</' + this.layoutType + '>');
+        return out.join('\n');
     };
     return Layout;
 })();
@@ -1054,18 +1180,48 @@ var Layout_Horizontal = (function (_super) {
     __extends(Layout_Horizontal, _super);
     function Layout_Horizontal(node, children) {
         _super.call(this);
+        this.layoutType = 'horizontal';
         this.node = node;
         this.children = children;
+        for (var i = 0, len = this.children.length; i < len; i++) {
+            this.children[i].parent = this;
+            this.children[i].siblingIndex = i;
+        }
     }
+    Layout_Horizontal.prototype.buildAhead = function (layout) {
+        if (layout === void 0) { layout = null; }
+        var i, len;
+        if (!this.isBuilt) {
+            for (var i = 0, len = this.children.length; i < len; i++) {
+                this.children[i].buildAhead(this);
+            }
+            this.isBuilt = true;
+        }
+    };
     return Layout_Horizontal;
 })(Layout);
 var Layout_Vertical = (function (_super) {
     __extends(Layout_Vertical, _super);
     function Layout_Vertical(node, children) {
         _super.call(this);
-        this.children = children;
+        this.layoutType = 'vertical';
         this.node = node;
+        this.children = children;
+        for (var i = 0, len = this.children.length; i < len; i++) {
+            this.children[i].parent = this;
+            this.children[i].siblingIndex = i;
+        }
     }
+    Layout_Vertical.prototype.buildAhead = function (layout) {
+        if (layout === void 0) { layout = null; }
+        var i, len;
+        if (!this.isBuilt) {
+            for (var i = 0, len = this.children.length; i < len; i++) {
+                this.children[i].buildAhead(this);
+            }
+            this.isBuilt = true;
+        }
+    };
     return Layout_Vertical;
 })(Layout);
 var Layout_Block = (function (_super) {
@@ -1073,8 +1229,31 @@ var Layout_Block = (function (_super) {
     function Layout_Block(element) {
         _super.call(this);
         this.children = null;
+        this.layoutType = 'block';
         this.node = element;
     }
+    Layout_Block.prototype.buildAhead = function (layout) {
+        if (layout === void 0) { layout = null; }
+        var i, len, replaceLayout;
+        if (!this.isBuilt) {
+            // console.log( 'build ahead: block layout for ' + this.node.nodeName );
+            if (this.node) {
+                if (this.node.childNodes && this.node.childNodes.length) {
+                    if (!this.parent) {
+                        throw "unhandled scenario";
+                    }
+                    // console.log( 'replace layout @index: ' + this.siblingIndex );
+                    replaceLayout = this.node.createLayout(this.parent);
+                    this.parent.children[this.siblingIndex] = this.node.createLayout(this.parent);
+                    this.parent.children[this.siblingIndex].node = this.node;
+                }
+            }
+            else {
+                throw "Unhandled scenario.";
+            }
+            this.isBuilt = true;
+        }
+    };
     return Layout_Block;
 })(Layout);
 var Layout_BlockChar = (function (_super) {
@@ -1084,11 +1263,29 @@ var Layout_BlockChar = (function (_super) {
         this.chars = [];
         this.children = null;
         this.hasChars = true;
+        this.layoutType = 'text';
     }
     Layout_BlockChar.prototype.addTextNode = function (node) {
         for (var i = 0, len = node._text.length; i < len; i++) {
             this.chars.push(new Character(node, i));
         }
+    };
+    Layout_BlockChar.prototype.buildAhead = function () {
+        if (!this.isBuilt) {
+            this.isBuilt = true;
+        }
+    };
+    Layout_BlockChar.prototype.textContents = function () {
+        var out = '', i = 0, len = 0;
+        for (var i = 0, len = this.chars.length; i < len; i++) {
+            out += this.chars[i].letter();
+        }
+        return out;
+    };
+    Layout_BlockChar.prototype.serialize = function (tabIndex) {
+        if (tabIndex === void 0) { tabIndex = 0; }
+        var out = _super.prototype.serialize.call(this, tabIndex).split('\n');
+        return out[0] + this.textContents() + '</text>';
     };
     return Layout_BlockChar;
 })(Layout);
@@ -1100,6 +1297,7 @@ var Layout_BlockChar = (function (_super) {
 /// <reference path="./TNode/Element.ts" />
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
+/// <reference path="./HTML/Image.ts" />
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -1112,8 +1310,15 @@ var Layout_BlockChar = (function (_super) {
 /// <reference path="Layout/Vertical.ts" />
 /// <reference path="Layout/Block.ts" />
 /// <reference path="Layout/BlockChar.ts" />
-var body = new HTML_Body(), p;
+var body = new HTML_Body(), p, img, img2, img3;
 body.appendChild(body.createTextNode('text before p'));
 body.appendChild(p = body.createElement('p'));
 body.appendChild(body.createTextNode('text after p'));
 p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
+p.appendChild(img = body.createElement('img', '_assets/pic1.jpg'));
+p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
+p.appendChild(img2 = body.createElement('img', '_assets/pic1.jpg'));
+p.appendChild(img3 = body.createElement('img', '_assets/pic1.jpg'));
+img.style.float('left');
+img2.style.float('right');
+img3.style.float('right');

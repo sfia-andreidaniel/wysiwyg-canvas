@@ -16,7 +16,7 @@ class HTML_Body extends TNode_Element {
 		return node;
 	}
 
-	createElement( elementName: string ): TNode_Element {
+	createElement( elementName: string, ...args: any[] ): TNode_Element {
 		
 		var node: TNode_Element;
 		
@@ -25,6 +25,9 @@ class HTML_Body extends TNode_Element {
 		switch ( elementName ) {
 			case 'p':
 				node = new HTML_Paragraph();
+				break;
+			case 'img':
+				node = new HTML_Image( String( args[0] || '' ) || null );
 				break;
 			default:
 				node = new TNode_Element();

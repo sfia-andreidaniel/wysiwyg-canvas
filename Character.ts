@@ -8,4 +8,8 @@ class Character {
 
 	constructor( public node: TNode_Text, public index: number ) {}
 
+	public letter(): string {
+		return this.node._text[ this.index ];
+	}
+
 }

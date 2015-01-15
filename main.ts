@@ -8,6 +8,7 @@
 
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
+/// <reference path="./HTML/Image.ts" />
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
@@ -24,7 +25,10 @@
 /// <reference path="Layout/BlockChar.ts" />
 
 var body = new HTML_Body(),
-    p;
+    p,
+    img,
+    img2,
+    img3;
 
 body.appendChild( body.createTextNode( 'text before p' ) );
 
@@ -33,3 +37,15 @@ body.appendChild( p = body.createElement('p') );
 body.appendChild( body.createTextNode( 'text after p' ) );
 
 p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
+
+p.appendChild( img = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
+
+p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
+
+p.appendChild( img2 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
+p.appendChild( img3 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
+
+
+img.style.float( 'left' );
+img2.style.float( 'right' );
+img3.style.float( 'right' );

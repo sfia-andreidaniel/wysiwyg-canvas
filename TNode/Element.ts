@@ -61,7 +61,7 @@ class TNode_Element extends TNode {
 			   this.style.float() != '';
 	}
 
-	public createLayout(): Layout {
+	public createLayout( useParentLayout: Layout = null ): Layout {
 
 		var left: Layout_Block[] = [],
 		    center: Layout_Block[] = [],
@@ -72,11 +72,6 @@ class TNode_Element extends TNode {
 		    returnValue: Layout;
 
 		this.evaluateLayout( left, center, right, argIndex );
-
-		console.log( 'create layout: ', this.nodeName );
-		console.log( 'left: ', left );
-		console.log( 'center: ', center );
-		console.log( 'right: ', right );
 
 		switch ( true ) {
 
@@ -110,14 +105,14 @@ class TNode_Element extends TNode {
 
 			case ( left.length > 0 || right.length > 0 ) && center.length > 0:
 
-				var cells: Layout[];
+				var cells: Layout[] = [];
 
 				if ( left.length ) {
 					cells.push( left.length == 1 ? left[0] : new Layout_Horizontal( null, left ) );
 				}
 
 				if ( center.length ) {
-					cells.push( new Layout_Vertical( this, center ) );
+					cells.push( new Layout_Vertical( null, center ) );
 				}
 
 				if ( right.length ) {
@@ -129,19 +124,16 @@ class TNode_Element extends TNode {
 				break;
 
 			default:
-				throw "Unknown layout variant!";
+				throw "Unhandled layout variant!";
 				break;
 
 		}
 
-		// compute ahead the layouts from the returnValue ...
-		if ( returnValue.children && returnValue.children.length ) {
-			for ( i=0, len = returnValue.children.length; i<len; i++ ) {
-				if ( returnValue.children[i].node ) {
-					console.log( 'build layout of: ', returnValue.children[i].node.nodeName );
-				}
-			}
+		if ( useParentLayout ) {
+			returnValue.parent = useParentLayout;
 		}
+
+		returnValue.buildAhead( useParentLayout );
 
 		return returnValue;
 
@@ -194,6 +186,7 @@ class TNode_Element extends TNode {
 					if ( currentArgIndex != oldArgIndex ) {
 					
 						lchar = new Layout_BlockChar();
+						center.push( lchar );
 					
 					} else {
 					

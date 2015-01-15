@@ -1,9 +1,29 @@
 class Layout_Vertical extends Layout {
 
+	public layoutType: string = 'vertical';
+
 	constructor ( node: TNode_Element, children: Layout[] )	{
 		super();
-		this.children = children;
 		this.node = node;
+		this.children = children;
+		for ( var i=0, len = this.children.length; i<len; i++ ) {
+			this.children[i].parent = this;
+			this.children[i].siblingIndex = i;
+		}
+	}
+
+	public buildAhead( layout: Layout = null ) {
+		var i: number,
+		    len: number;
+
+		if ( !this.isBuilt ) {
+
+			for ( var i=0, len = this.children.length; i<len; i++ ) {
+				this.children[i].buildAhead( this );
+			}
+
+			this.isBuilt = true;
+		}
 	}
 
 }

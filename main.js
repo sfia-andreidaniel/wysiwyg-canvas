@@ -186,7 +186,7 @@ var TNode_Element = (function (_super) {
         for (var i = index, len = this.childNodes.length; i < len; i++) {
             this.childNodes[i].siblingIndex = i;
         }
-        this.fire('relayout');
+        this.requestRelayout();
         return node;
     };
     TNode_Element.prototype.removeChild = function (node) {
@@ -196,7 +196,7 @@ var TNode_Element = (function (_super) {
                 for (var j = i; j < len; j++) {
                     this.childNodes[j].siblingIndex = j;
                 }
-                this.fire('relayout');
+                this.requestRelayout();
                 return node;
             }
         }
@@ -367,12 +367,28 @@ var TNode_Element = (function (_super) {
             throw "node.outerHTML: Setter not implemented yet!";
         }
     };
+    TNode_Element.prototype.requestRelayout = function () {
+        if (this.documentElement) {
+            this.documentElement.needRelayout = true;
+        }
+    };
+    TNode_Element.prototype.requestRepaint = function (originatingElement) {
+        if (originatingElement === void 0) { originatingElement = null; }
+        if (this.documentElement) {
+            this.documentElement.requestRepaint();
+        }
+    };
     return TNode_Element;
 })(TNode);
 var HTML_Body = (function (_super) {
     __extends(HTML_Body, _super);
-    function HTML_Body() {
+    function HTML_Body(viewport) {
         _super.call(this);
+        this._needRelayout = true;
+        this._needRepaint = true;
+        this._layout = null;
+        this.viewport = null;
+        this.viewport = viewport;
         this.nodeName = 'body';
         this.documentElement = this;
         this.parentNode = null;
@@ -384,6 +400,9 @@ var HTML_Body = (function (_super) {
         this.style.fontWeight('normal');
         this.style.fontStyle('normal');
         this.style.textDecoration('none');
+        this.style.lineHeight('1.2');
+        this.style.padding('5');
+        this.relayout();
     }
     HTML_Body.prototype.createTextNode = function (textContents) {
         var node = new TNode_Text(textContents);
@@ -412,6 +431,68 @@ var HTML_Body = (function (_super) {
         node.documentElement = this;
         return node;
     };
+    Object.defineProperty(HTML_Body.prototype, "needRelayout", {
+        get: function () {
+            return this._needRelayout;
+        },
+        set: function (v) {
+            if (!this._needRelayout) {
+                this._needRelayout = !!v;
+                this.requestRepaint();
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    HTML_Body.prototype.requestRelayout = function () {
+        this.needRelayout = true;
+        this.fire('relayout');
+        this.requestRepaint();
+    };
+    HTML_Body.prototype.requestRepaint = function () {
+        this._needRepaint = true;
+        this.fire('repaint');
+        this.viewport.painter.run();
+    };
+    HTML_Body.prototype.repaint = function () {
+        // repaints the document
+        var now = Date.now();
+        if (this._needRepaint == false && this._needRelayout == false) {
+            return;
+        }
+        if (this._needRelayout) {
+            this.relayout();
+        }
+        this._layout.paint(this.viewport.context);
+        this._needRepaint = false;
+        console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
+    };
+    // full document relayout. this function computes where to draw
+    // objects in the canvas.
+    HTML_Body.prototype.relayout = function () {
+        if (!this._needRelayout) {
+            console.log('body.relayout: up to date.');
+            return;
+        }
+        var now = Date.now();
+        if (!this.viewport) {
+            return;
+        }
+        this._layout = this.createLayout();
+        this._layout.offsetTop = -this.style.marginTop();
+        this._layout.offsetLeft = -this.style.marginLeft();
+        this._layout.offsetWidth = this.viewport.width();
+        this._layout.innerWidth = this._layout.offsetWidth - this.style.paddingLeft() - this.style.paddingRight() - (this.style.borderWidth() * 2);
+        this._layout.innerTop = this._layout.offsetTop + this.style.paddingTop() + this.style.borderWidth();
+        this._layout.innerLeft = this._layout.offsetLeft + this.style.paddingLeft() + this.style.borderWidth();
+        this.style._width.value = String(this._layout.offsetWidth);
+        this.style._width.isSet = true;
+        this._layout.computeWidths();
+        this._layout.computeHeights(this.style.marginTop());
+        console.log('relayout completed in ' + (Date.now() - now) + ' ms.');
+        console.log(this._layout.serialize());
+        this._needRelayout = false;
+    };
     return HTML_Body;
 })(TNode_Element);
 var HTML_Paragraph = (function (_super) {
@@ -420,7 +501,7 @@ var HTML_Paragraph = (function (_super) {
         _super.call(this);
         this.nodeName = 'p';
         this.style.display('block');
-        this.style.width('100%');
+        this.style.padding('25');
     }
     return HTML_Paragraph;
 })(TNode_Element);
@@ -442,12 +523,13 @@ var HTML_Image = (function (_super) {
                 if (!me.style._width.isSet && !me.style._height.isSet) {
                     me.style.width(String(me.node.width));
                 }
-                me.fire('rebuild');
+                me.requestRelayout();
             }, false);
             me.node.addEventListener('erorr', function () {
                 me.loaded = true;
                 me.error = true;
-                me.fire('rebuild');
+                me.style.aspectRatio('1');
+                me.requestRelayout();
             }, false);
         })(this);
         if (src !== null) {
@@ -465,6 +547,7 @@ var HTML_Image = (function (_super) {
             this.loaded = false;
             this.error = false;
             this.node.setAttribute('src', String(source || ''));
+            this.requestRelayout();
         }
     };
     HTML_Image.prototype.width = function (size) {
@@ -551,7 +634,7 @@ var TStyle = (function () {
         }
         else {
             this._width.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -562,7 +645,7 @@ var TStyle = (function () {
         }
         else {
             this._height.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -573,7 +656,7 @@ var TStyle = (function () {
         }
         else {
             this._aspectRatio.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -584,7 +667,7 @@ var TStyle = (function () {
         }
         else {
             this._paddingLeft.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -595,7 +678,7 @@ var TStyle = (function () {
         }
         else {
             this._paddingTop.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -606,7 +689,7 @@ var TStyle = (function () {
         }
         else {
             this._paddingRight.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -617,7 +700,7 @@ var TStyle = (function () {
         }
         else {
             this._paddingBottom.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -628,7 +711,7 @@ var TStyle = (function () {
         }
         else {
             this._marginLeft.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -639,7 +722,7 @@ var TStyle = (function () {
         }
         else {
             this._marginTop.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -650,7 +733,7 @@ var TStyle = (function () {
         }
         else {
             this._marginRight.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -661,7 +744,7 @@ var TStyle = (function () {
         }
         else {
             this._marginBottom.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -672,7 +755,7 @@ var TStyle = (function () {
         }
         else {
             this._borderWidth.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -683,7 +766,7 @@ var TStyle = (function () {
         }
         else {
             this._fontSize.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -694,7 +777,7 @@ var TStyle = (function () {
         }
         else {
             this._lineHeight.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return null;
         }
     };
@@ -705,7 +788,7 @@ var TStyle = (function () {
         }
         else {
             this._fontFamily.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return v;
         }
     };
@@ -716,7 +799,7 @@ var TStyle = (function () {
         }
         else {
             this._fontStyle.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return v;
         }
     };
@@ -727,7 +810,7 @@ var TStyle = (function () {
         }
         else {
             this._fontWeight.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return v;
         }
     };
@@ -738,7 +821,7 @@ var TStyle = (function () {
         }
         else {
             this._textDecoration.set(v);
-            this.node.fire('relayout');
+            this.node.requestRepaint();
             return v;
         }
     };
@@ -749,7 +832,7 @@ var TStyle = (function () {
         }
         else {
             this._display.set(v);
-            this.node.fire('relayout');
+            this.node.requestRelayout();
             return v;
         }
     };
@@ -760,7 +843,7 @@ var TStyle = (function () {
         }
         else {
             this._color.set(v);
-            this.node.fire('repaint');
+            this.node.requestRepaint();
             return v;
         }
     };
@@ -771,7 +854,7 @@ var TStyle = (function () {
         }
         else {
             this._backgroundColor.set(v);
-            this.node.fire('repaint');
+            this.node.requestRepaint();
             return v;
         }
     };
@@ -782,7 +865,7 @@ var TStyle = (function () {
         }
         else {
             this._borderColor.set(v);
-            this.node.fire('repaint');
+            this.node.requestRepaint();
             return v;
         }
     };
@@ -793,9 +876,20 @@ var TStyle = (function () {
         }
         else {
             this._float.set(v);
-            this.node.fire('repaint');
+            this.node.requestRelayout();
             return v;
         }
+    };
+    TStyle.prototype.padding = function (value) {
+        this._paddingLeft.value = this._paddingRight.value = this._paddingTop.value = this._paddingBottom.value = (parseFloat(value || '0') || 0);
+        this._paddingLeft.isSet = this._paddingRight.isSet = this._paddingBottom.isSet = this._paddingTop.isSet = true;
+        this.node.requestRelayout();
+    };
+    TStyle.prototype.offsetWidth = function () {
+        return this.borderWidth() + this.paddingLeft() + this.width() + this.paddingRight() + this.borderWidth();
+    };
+    TStyle.prototype.offsetHeight = function () {
+        return this.borderWidth() + this.paddingTop() + this.height() + this.paddingRight() + this.borderWidth();
     };
     TStyle.$FontFamily = [
         "Arial",
@@ -881,7 +975,7 @@ var TStyle_Dimension = (function (_super) {
             if (/%$/.test(this.value)) {
                 if (this.style.node.parentNode) {
                     // this is a percent value. we must obtain it from the parent node
-                    var percent = parseFloat(this.value.substr(this.value.length - 1));
+                    var percent = parseFloat(this.value.substr(0, this.value.length - 1));
                     return (this.style.node.parentNode.style[this.name]() / 100) * percent;
                 }
                 else {
@@ -903,7 +997,7 @@ var TStyle_Dimension = (function (_super) {
                     return this.style._width.get() / this.style._aspectRatio.get();
                 }
             }
-            else if (this.style.node.parentNode) {
+            else if (this.style.node.parentNode && ['width', 'height', 'fontSize', 'lineHeight'].indexOf(this.name) >= 0) {
                 return this.style.node.parentNode.style[this.name]();
             }
             else {
@@ -1121,8 +1215,7 @@ var Character = (function () {
         this.index = index;
         //public node: TElement_Text = null;      // the text node containing the character
         //public index: number;					// the index of the character in it's text node
-        this.width = 0; // the width on screen of the character
-        this.height = 0; // the height on screen of the character
+        this.size = null;
     }
     Character.prototype.letter = function () {
         return this.node._text[this.index];
@@ -1131,31 +1224,102 @@ var Character = (function () {
        style of the element which contains the text
        node */
     Character.prototype.computeSize = function () {
-        if (!this.node.parentNode) {
-            return [0, 0];
+        if (this.size) {
+            return this.size;
         }
         else {
-            //var out: number,
-            //fontSignature: string = ( this.italic ? 'italic ' : '' ) + ( this.bold ? 'bold ' : '' ) + this.size + 'px ' + this.family
-            return null;
+            if (!this.node.parentNode) {
+                return (this.size = [0, 0]);
+            }
+            else {
+                var fontSize, font = (this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '') + (this.node.parentNode.style.fontWeight() == 'bold' ? 'bold ' : '') + (fontSize = this.node.parentNode.style.fontSize()) + 'px ' + this.node.parentNode.style.fontFamily(), lineHeight = fontSize * this.node.parentNode.style.lineHeight();
+                return (this.size = [Character_Metrics.measureCharWidth(font, this.letter()), lineHeight]);
+            }
         }
     };
     return Character;
 })();
-var Character_Line = (function () {
-    function Character_Line() {
-        this.words = [];
-        this.physicalWidth = 0;
-        this.maxWidth = 0;
-        this.wordGap = 0.00;
+var Character_Metrics = (function () {
+    function Character_Metrics() {
     }
+    Character_Metrics.measureCharWidth = function (fontFamily, letter) {
+        var self = Character_Metrics;
+        if (!self.FontMap[fontFamily]) {
+            self.FontMap[fontFamily] = {};
+            self.ctx.font = fontFamily;
+            self.FontMap[fontFamily][letter] = self.ctx.measureText(letter).width;
+            return self.FontMap[fontFamily][letter];
+        }
+        else {
+            if (!self.FontMap[fontFamily][letter]) {
+                self.ctx.font = fontFamily;
+                self.FontMap[fontFamily][letter] = self.ctx.measureText(letter).width;
+            }
+            return self.FontMap[fontFamily][letter];
+        }
+    };
+    Character_Metrics.ctx = document.createElement('canvas').getContext('2d');
+    Character_Metrics.FontMap = {};
+    return Character_Metrics;
+})();
+var Character_Line = (function () {
+    function Character_Line(maxWidth) {
+        this.maxWidth = maxWidth;
+        this.words = [];
+        // <constructor> public maxWidth       : number = 0;
+        this.wordGap = 0.00;
+        this.size = [0, 0];
+    }
+    // a line accepts a word either:
+    // - if the line contains no words
+    // - if the line width + the word width is smaller the the line max allowed physicalWidth
+    Character_Line.prototype.acceptWord = function (w) {
+        return !!!(this.words[0]) || (this.size[0] + w.computeSize()[0] < this.maxWidth);
+    };
+    Character_Line.prototype.addWord = function (w) {
+        var size = w.computeSize();
+        this.words.push(w);
+        this.size[0] += size[0];
+        this.size[1] = Math.max(size[1], this.size[1]);
+        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0;
+    };
+    Character_Line.prototype.toString = function () {
+        var i = 0, len = this.words.length, out = '';
+        for (i = 0; i < len; i++) {
+            out += this.words[i].toString();
+        }
+        return out;
+    };
     return Character_Line;
 })();
 var Character_Word = (function () {
-    //<constructor> public characters: Character[];
     function Character_Word(characters) {
         this.characters = characters;
+        //<constructor> public characters: Character[];
+        this.size = null;
     }
+    Character_Word.prototype.computeSize = function () {
+        var i, len, size = [0, 0], charSize;
+        if (this.size) {
+            return this.size;
+        }
+        else {
+            for (i = 0, len = this.characters.length; i < len; i++) {
+                charSize = this.characters[i].computeSize();
+                size[0] += charSize[0];
+                size[1] = Math.max(size[1], charSize[1]);
+            }
+            this.size = size;
+            return size;
+        }
+    };
+    Character_Word.prototype.toString = function () {
+        var out = '';
+        for (var i = 0, len = this.characters.length; i < len; i++) {
+            out += this.characters[i].letter();
+        }
+        return out;
+    };
     return Character_Word;
 })();
 // the layout class is responsible to render elements on the canvas.
@@ -1202,7 +1366,7 @@ var Layout = (function () {
         for (i = 0, len = tabIndex * 4; i < len; i++) {
             tab += ' ';
         }
-        out.push(tab + '<' + this.layoutType + (this.node ? ' of=' + this.node.nodeName + ' ' : ' shadow=' + this.ownerNode().nodeName + ' ') + ('offsetWidth=' + this.offsetWidth + ' offsetHeight=' + this.offsetHeight + ' offsetTop=' + this.offsetTop + ' offsetLeft=' + this.offsetLeft + ' ') + '>');
+        out.push(tab + '<' + this.layoutType + (this.node ? ' of=' + this.node.nodeName + ' ' : ' shadow=' + this.ownerNode().nodeName + ' ') + ('offsetWidth=' + this.offsetWidth + ' offsetHeight=' + this.offsetHeight + ' offsetTop=' + this.offsetTop + ' offsetLeft=' + this.offsetLeft + ' innerWidth=' + this.innerWidth + ' innerHeight=' + this.innerHeight + ' innerTop=' + this.innerTop + ' innerLeft=' + this.innerLeft + ' ') + '>');
         if (this.children && (len = this.children.length)) {
             for (i = 0; i < len; i++) {
                 out.push(this.children[i].serialize(tabIndex + 1));
@@ -1210,6 +1374,57 @@ var Layout = (function () {
         }
         out.push(tab + '</' + this.layoutType + '>');
         return out.join('\n');
+    };
+    Layout.prototype.computeOffset = function (parentInnerOffsetLeft, parentInnerOffsetTop, parentInnerOffsetWidth) {
+        if (parentInnerOffsetLeft === void 0) { parentInnerOffsetLeft = 0; }
+        if (parentInnerOffsetTop === void 0) { parentInnerOffsetTop = 0; }
+        if (parentInnerOffsetWidth === void 0) { parentInnerOffsetWidth = 0; }
+        throw "Abstract method";
+    };
+    // sets the innerHeight of the block.
+    // automatially increases the offset height if needed
+    Layout.prototype.setInnerHeight = function (amount) {
+        var diffInnerOuter = this.offsetHeight - this.innerHeight;
+        this.innerHeight = amount;
+        this.offsetHeight = this.innerHeight + diffInnerOuter;
+    };
+    Layout.prototype.setInnerHeightIfSmaller = function (amount) {
+        if (amount < this.innerHeight) {
+            this.setInnerHeight(amount);
+        }
+    };
+    Layout.prototype.computeWidths = function () {
+    };
+    /* @input: top placement position
+       @output: top placement position */
+    Layout.prototype.computeHeights = function (topPlacement, indent) {
+        if (indent === void 0) { indent = 0; }
+        throw "Abstract method!";
+    };
+    Layout.prototype.tab = function (num) {
+        var out = '', i = 0;
+        for (i = 0; i < num * 4; i++) {
+            out += ' ';
+        }
+        return out;
+    };
+    Layout.prototype.paint = function (ctx) {
+        if (this.node) {
+            ctx.strokeStyle = 'red';
+            ctx.lineWidth = .5;
+            ctx.rect(~~this.offsetLeft + .5, ~~this.offsetTop + .5, ~~this.offsetWidth - 1, ~~this.offsetHeight);
+            ctx.stroke();
+            ctx.fillStyle = 'blue';
+            ctx.font = '10px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'hanging';
+            ctx.fillText(this.node.nodeName + ' ' + this.layoutType[0], this.offsetLeft + 1, this.offsetTop + 1);
+        }
+        if (this.children) {
+            for (var i = 0, len = this.children.length; i < len; i++) {
+                this.children[i].paint(ctx);
+            }
+        }
     };
     return Layout;
 })();
@@ -1235,6 +1450,79 @@ var Layout_Horizontal = (function (_super) {
             this.isBuilt = true;
         }
     };
+    Layout_Horizontal.prototype.computeWidths = function () {
+        /* on horizontal layouts, we set the widths for the layouts which have nodes.
+           the rest of the widths is computed as the average undefined widths */
+        var widthLeft = this.innerWidth, computeAfter = [], leftPosition = this.innerLeft, i = 0, len = 0, averageWidth = 0, sumWidths = 0;
+        for (i = 0, len = this.children.length; i < len; i++) {
+            if (this.children[i].node) {
+                // the child has a node associated.
+                // if the node has a width, we set it's width as the
+                // node width, otherwise we set it's width automatically
+                if (this.children[i].node.style._width.isSet) {
+                    this.children[i].offsetWidth = this.children[i].node.style.width() + (this.children[i].node.style.borderWidth() * 2) + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight();
+                    sumWidths += this.children[i].offsetWidth;
+                }
+                else {
+                    computeAfter.push(this.children[i]);
+                }
+            }
+            else {
+                computeAfter.push(this.children[i]);
+            }
+        }
+        averageWidth = (this.innerWidth - sumWidths) / computeAfter.length;
+        for (i = 0, len = computeAfter.length; i < len; i++) {
+            computeAfter[i].offsetWidth = averageWidth;
+        }
+        leftPosition = this.innerLeft;
+        for (i = 0, len = this.children.length; i < len; i++) {
+            if (this.children[i].node) {
+                this.children[i].offsetLeft = leftPosition - this.children[i].node.style.marginLeft();
+                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + this.children[i].node.style.borderWidth();
+                this.children[i].innerWidth = this.children[i].offsetWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - this.children[i].node.style.paddingRight();
+                leftPosition += this.children[i].node.style.marginRight();
+            }
+            else {
+                this.children[i].offsetLeft = leftPosition;
+                this.children[i].innerLeft = this.children[i].offsetLeft;
+                this.children[i].innerWidth = this.children[i].offsetWidth;
+            }
+            leftPosition += this.children[i].offsetWidth;
+        }
+        for (i = 0, len = this.children.length; i < len; i++) {
+            this.children[i].computeWidths();
+        }
+    };
+    Layout_Horizontal.prototype.computeHeights = function (topPlacement, indent) {
+        if (indent === void 0) { indent = 0; }
+        var topPlacementBegin = 0, contentHeight = 0, topPlacementMax = 0, i = 0, len;
+        if (this.node) {
+            topPlacement += this.node.style.marginTop();
+            this.offsetTop = topPlacement;
+            this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
+            topPlacement += this.node.style.paddingTop();
+        }
+        else {
+            this.offsetTop = topPlacement;
+            this.innerTop = topPlacement;
+        }
+        topPlacementMax = topPlacement;
+        if (this.children && (len = this.children.length)) {
+            for (i = 0; i < len; i++) {
+                topPlacementMax = Math.max(topPlacementMax, this.children[i].computeHeights(topPlacement, indent + 1));
+            }
+            contentHeight = topPlacementMax - topPlacement;
+        }
+        this.innerHeight = contentHeight;
+        this.offsetHeight = this.innerHeight;
+        if (this.node) {
+            topPlacement += (this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom());
+            this.offsetHeight += this.innerHeight + (this.node.style.paddingTop() + this.node.style.paddingBottom()) + (this.node.style.borderWidth() * 2);
+        }
+        console.log(this.tab(indent) + 'layout horizontal: [' + topPlacementBegin + ',' + topPlacement + ']');
+        return topPlacement;
+    };
     return Layout_Horizontal;
 })(Layout);
 var Layout_Vertical = (function (_super) {
@@ -1258,6 +1546,63 @@ var Layout_Vertical = (function (_super) {
             }
             this.isBuilt = true;
         }
+    };
+    Layout_Vertical.prototype.computeWidths = function () {
+        var i = 0, len = this.children.length;
+        for (i = 0; i < len; i++) {
+            if (this.children[i].node) {
+                // the child is represented by a node
+                // compute offsetleft and innerLeft
+                this.children[i].offsetLeft = this.innerLeft + this.children[i].node.style.marginLeft() - this.children[i].node.style.borderWidth();
+                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.borderWidth() + this.children[i].node.style.paddingLeft();
+                // if the child has a specified width, set the width to the layout,
+                // otherwise determine it's width by this parent
+                if (this.children[i].node.style._width.isSet) {
+                    this.children[i].innerWidth = this.children[i].node.style.width();
+                    this.children[i].offsetWidth = this.children[i].node.style.offsetWidth();
+                }
+                else {
+                    this.children[i].innerWidth = this.innerWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - this.children[i].node.style.paddingRight() - this.children[i].node.style.marginLeft() - this.children[i].node.style.marginRight();
+                    this.children[i].offsetWidth = this.children[i].innerWidth + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight() + (this.children[i].node.style.borderWidth() * 2);
+                }
+            }
+            else {
+                // the child is not represented by a node, so it doesn't have padding, margin, etc
+                this.children[i].offsetLeft = this.children[i].innerLeft = this.innerLeft;
+                this.children[i].offsetWidth = this.children[i].innerWidth = this.innerWidth;
+            }
+            this.children[i].computeWidths();
+        }
+    };
+    Layout_Vertical.prototype.computeHeights = function (topPlacement, indent) {
+        if (indent === void 0) { indent = 0; }
+        var contentHeight = 0, i = 0, len = 0, addHeight = 0;
+        if (this.node) {
+            topPlacement += this.node.style.marginTop();
+            this.offsetTop = topPlacement;
+            this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
+            console.log('add ' + (this.node.style.paddingTop() + this.node.style.borderWidth()) + 'padding...');
+            topPlacement += this.node.style.paddingTop() + this.node.style.borderWidth();
+        }
+        else {
+            this.offsetTop = topPlacement;
+            this.innerTop = topPlacement;
+        }
+        if (this.children && (len = this.children.length)) {
+            for (i = 0; i < len; i++) {
+                addHeight = (this.children[i].computeHeights(topPlacement, indent + 1) - topPlacement);
+                contentHeight += addHeight;
+                topPlacement += addHeight;
+                console.log(this.tab(indent) + 'layout vertical (' + (this.node ? this.node.nodeName : 'void') + '): topplacement become: ' + topPlacement + ', due to added height: ' + addHeight);
+            }
+        }
+        this.innerHeight = contentHeight;
+        this.offsetHeight = this.innerHeight;
+        if (this.node) {
+            this.offsetHeight += this.node.style.paddingBottom() + this.node.style.borderWidth();
+            topPlacement += this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom();
+        }
+        return topPlacement;
     };
     return Layout_Vertical;
 })(Layout);
@@ -1291,6 +1636,44 @@ var Layout_Block = (function (_super) {
             this.isBuilt = true;
         }
     };
+    Layout_Block.prototype.computeWidths = function () {
+        if (this.node) {
+            console.log('computeWidths of a block');
+        }
+        else {
+            throw "Unhandled scenario while computing widths!";
+        }
+    };
+    Layout_Block.prototype.computeHeights = function (topPlacement, indent) {
+        if (indent === void 0) { indent = 0; }
+        var contentHeight = 0, topPlacementBegin = topPlacement;
+        if (this.node) {
+            topPlacement += this.node.style.marginTop();
+            this.offsetTop = topPlacement;
+            this.innerTop = this.offsetTop + this.node.style.paddingTop() + this.node.style.borderWidth();
+            contentHeight = this.node.style.height();
+        }
+        else {
+            throw "invalid block scenario";
+        }
+        if (this.children && this.children.length) {
+            throw "unexpected children!";
+        }
+        console.log(this.tab(indent) + 'blockheight (' + this.node.nodeName + '): ' + contentHeight);
+        // a blockNode doesn't contain children anymore...
+        topPlacement += contentHeight;
+        this.innerHeight = contentHeight;
+        this.offsetHeight = contentHeight;
+        if (this.node) {
+            this.offsetHeight += (this.node.style.paddingBottom() + this.node.style.borderWidth());
+            topPlacement += (this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom());
+        }
+        else {
+            throw "invalid block scenario";
+        }
+        console.log(this.tab(indent) + 'layoutblock: [' + topPlacementBegin + ',' + topPlacement + ']');
+        return topPlacement;
+    };
     return Layout_Block;
 })(Layout);
 var Layout_BlockChar = (function (_super) {
@@ -1318,11 +1701,10 @@ var Layout_BlockChar = (function (_super) {
     // routine to build the lines of the block.
     // it takes in consideration the words, etc.
     Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
-        var contents = this.textContents(), contentsWithWords = contents.replace(/([\s]+)?([^\s]+)/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [];
-        console.log(contents, contentsWithWords);
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line;
         for (i = 0; i < len; i++) {
             if (contentsWithWords[i] == contents[j]) {
-                word.push(this.chars[i]);
+                word.push(this.chars[j]);
                 j++;
             }
             else {
@@ -1335,8 +1717,23 @@ var Layout_BlockChar = (function (_super) {
         if (word.length) {
             words.push(new Character_Word(word));
         }
-        console.log(words);
         this.lines = [];
+        if (!words.length)
+            return;
+        line = new Character_Line(lineWidthInPixels);
+        for (i = 0, len = words.length; i < len; i++) {
+            if (line.acceptWord(words[i])) {
+                line.addWord(words[i]);
+            }
+            else {
+                this.lines.push(line);
+                line = new Character_Line(lineWidthInPixels);
+                line.addWord(words[i]);
+            }
+        }
+        if (line.words.length)
+            this.lines.push(line);
+        return this.lines;
     };
     // returns the text contents of block
     Layout_BlockChar.prototype.textContents = function () {
@@ -1351,8 +1748,87 @@ var Layout_BlockChar = (function (_super) {
         var out = _super.prototype.serialize.call(this, tabIndex).split('\n');
         return out[0] + this.textContents() + '</text>';
     };
+    Layout_BlockChar.prototype.computeWidths = function () {
+        this.buildLines(this.innerWidth);
+    };
+    Layout_BlockChar.prototype.computeHeights = function (topPlacement, indent) {
+        if (indent === void 0) { indent = 0; }
+        var topPlacementBegin = topPlacement;
+        this.offsetTop = this.innerTop = topPlacement;
+        this.offsetHeight = this.innerHeight = 0;
+        for (var i = 0, len = this.lines.length; i < len; i++) {
+            topPlacement += this.lines[i].size[1];
+            console.log(this.tab(indent) + 'added line height: ' + this.lines[i].size[1], this.lines[i]);
+            this.offsetHeight += this.lines[i].size[1];
+            this.innerHeight = this.offsetHeight;
+        }
+        console.log(this.tab(indent) + 'layout blocktext [' + topPlacementBegin + ',' + topPlacement + ']');
+        return topPlacement;
+    };
     return Layout_BlockChar;
 })(Layout);
+var Viewport = (function (_super) {
+    __extends(Viewport, _super);
+    function Viewport(_width, _height) {
+        if (_width === void 0) { _width = null; }
+        if (_height === void 0) { _height = null; }
+        _super.call(this);
+        this._width = 500;
+        this._height = 500;
+        this.canvas = document.createElement('canvas');
+        this.context = null;
+        this.document = null;
+        this.painter = null;
+        this.context = this.canvas.getContext('2d');
+        this.canvas.tabIndex = 0;
+        (function (me) {
+            me.painter = new Throttler(function () {
+                if (me.document)
+                    me.document.repaint();
+            }, 10);
+        })(this);
+        this.document = new HTML_Body(this);
+        this.width(_width === null ? this._width : _width);
+        this.height(_height === null ? this._height : _height);
+        (function (me) {
+            /*
+            me.document.on( 'relayout', function() {
+                console.log( 'relayout request!' );
+            } );
+            me.document.on( 'repaint', function() {
+                console.log( 'repaint request!' );
+            });
+            */
+        })(this);
+    }
+    Viewport.prototype.width = function (newWidth) {
+        if (newWidth === void 0) { newWidth = null; }
+        if (newWidth === null) {
+            //getter
+            return this._width;
+        }
+        else {
+            this._width = newWidth < 0 ? 0 : newWidth;
+            this.canvas.width = this._width;
+            this.document.requestRelayout();
+            return this._width;
+        }
+    };
+    Viewport.prototype.height = function (newHeight) {
+        if (newHeight === void 0) { newHeight = null; }
+        if (newHeight === null) {
+            //getter
+            return this._height;
+        }
+        else {
+            this._height = newHeight < 0 ? 0 : newHeight;
+            this.canvas.height = this._height;
+            this.document.requestRelayout();
+            return this._height;
+        }
+    };
+    return Viewport;
+})(Events);
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
@@ -1369,6 +1845,7 @@ var Layout_BlockChar = (function (_super) {
 /// <reference path="./TStyle/String.ts" />
 /// <reference path="./TStyle/Color.ts" />
 /// <reference path="Character.ts" />
+/// <reference path="./Character/Metrics.ts" />
 /// <reference path="./Character/Line.ts" />
 /// <reference path="./Character/Word.ts" />
 /// <reference path="Layout.ts" />
@@ -1376,7 +1853,8 @@ var Layout_BlockChar = (function (_super) {
 /// <reference path="Layout/Vertical.ts" />
 /// <reference path="Layout/Block.ts" />
 /// <reference path="Layout/BlockChar.ts" />
-var body = new HTML_Body(), p, img, img2, img3;
+/// <reference path="Viewport.ts" />
+var viewport = new Viewport(), body = viewport.document, p, img, img2, img3;
 body.appendChild(body.createTextNode('text before p'));
 body.appendChild(p = body.createElement('p'));
 body.appendChild(body.createTextNode('text after p'));
@@ -1388,3 +1866,10 @@ p.appendChild(img3 = body.createElement('img', '_assets/pic1.jpg'));
 img.style.float('left');
 img2.style.float('right');
 img3.style.float('right');
+img.width(40);
+img2.width(20);
+img3.width(50);
+window.addEventListener('load', function () {
+    document.body.appendChild(viewport.canvas);
+    viewport.canvas.focus();
+});

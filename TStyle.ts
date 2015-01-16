@@ -104,7 +104,7 @@ class TStyle {
 			return this._width.get();
 		} else {
 			this._width.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -114,7 +114,7 @@ class TStyle {
 			return this._height.get();
 		} else {
 			this._height.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -124,7 +124,7 @@ class TStyle {
 			return this._aspectRatio.get();
 		} else {
 			this._aspectRatio.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -134,7 +134,7 @@ class TStyle {
 			return this._paddingLeft.get();
 		} else {
 			this._paddingLeft.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -144,7 +144,7 @@ class TStyle {
 			return this._paddingTop.get();
 		} else {
 			this._paddingTop.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -154,7 +154,7 @@ class TStyle {
 			return this._paddingRight.get();
 		} else {
 			this._paddingRight.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -164,7 +164,7 @@ class TStyle {
 			return this._paddingBottom.get();
 		} else {
 			this._paddingBottom.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -174,7 +174,7 @@ class TStyle {
 			return this._marginLeft.get();
 		} else {
 			this._marginLeft.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -184,7 +184,7 @@ class TStyle {
 			return this._marginTop.get();
 		} else {
 			this._marginTop.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -194,7 +194,7 @@ class TStyle {
 			return this._marginRight.get();
 		} else {
 			this._marginRight.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -204,7 +204,7 @@ class TStyle {
 			return this._marginBottom.get();
 		} else {
 			this._marginBottom.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -214,7 +214,7 @@ class TStyle {
 			return this._borderWidth.get();
 		} else {
 			this._borderWidth.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -224,7 +224,7 @@ class TStyle {
 			return this._fontSize.get();
 		} else {
 			this._fontSize.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -234,7 +234,7 @@ class TStyle {
 			return this._lineHeight.get();
 		} else {
 			this._lineHeight.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return null;
 		}
 	}
@@ -244,7 +244,7 @@ class TStyle {
 			return this._fontFamily.get();
 		} else {
 			this._fontFamily.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return v;
 		}
 	}
@@ -254,7 +254,7 @@ class TStyle {
 			return this._fontStyle.get();
 		} else {
 			this._fontStyle.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return v;
 		}
 	}
@@ -264,7 +264,7 @@ class TStyle {
 			return this._fontWeight.get();
 		} else {
 			this._fontWeight.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return v;
 		}
 	}
@@ -274,7 +274,7 @@ class TStyle {
 			return this._textDecoration.get();
 		} else {
 			this._textDecoration.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRepaint();
 			return v;
 		}
 	}
@@ -284,7 +284,7 @@ class TStyle {
 			return this._display.get();
 		} else {
 			this._display.set( v );
-			this.node.fire( 'relayout' );
+			this.node.requestRelayout();
 			return v;
 		}
 	}
@@ -294,7 +294,7 @@ class TStyle {
 			return this._color.get();
 		} else {
 			this._color.set( v );
-			this.node.fire( 'repaint' );
+			this.node.requestRepaint();
 			return v;
 		}
 	}
@@ -304,7 +304,7 @@ class TStyle {
 			return this._backgroundColor.get();
 		} else {
 			this._backgroundColor.set( v );
-			this.node.fire( 'repaint' );
+			this.node.requestRepaint();
 			return v;
 		}
 	}
@@ -314,7 +314,7 @@ class TStyle {
 			return this._borderColor.get();
 		} else {
 			this._borderColor.set( v );
-			this.node.fire( 'repaint' );
+			this.node.requestRepaint();
 			return v;
 		}
 	}
@@ -324,9 +324,31 @@ class TStyle {
 			return this._float.get();
 		} else {
 			this._float.set( v );
-			this.node.fire( 'repaint' );
+			this.node.requestRelayout();
 			return v;
 		}
+	}
+
+	public padding( value: string ) {
+		this._paddingLeft.value =
+		this._paddingRight.value =
+		this._paddingTop.value =
+		this._paddingBottom.value = ( parseFloat( value || '0' ) || 0 );
+
+		this._paddingLeft.isSet =
+		this._paddingRight.isSet =
+		this._paddingBottom.isSet =
+		this._paddingTop.isSet = true;
+
+		this.node.requestRelayout();
+	}
+
+	public offsetWidth(): number {
+		return this.borderWidth() + this.paddingLeft() + this.width() + this.paddingRight() + this.borderWidth();
+	}
+
+	public offsetHeight(): number {
+		return this.borderWidth() + this.paddingTop() + this.height() + this.paddingRight() + this.borderWidth();
 	}
 
 }

@@ -3,10 +3,7 @@ class Character {
 	//public node: TElement_Text = null;      // the text node containing the character
 	//public index: number;					// the index of the character in it's text node
 
-	public width  : number = 0;				// the width on screen of the character
-	public height : number = 0;				// the height on screen of the character
-
-	private size  : number[];               // [0] => width, [1] => height
+	private size: number[] = null;
 
 	constructor( public node: TNode_Text, public index: number ) {}
 
@@ -19,14 +16,21 @@ class Character {
 	   node */
 	public computeSize(): number[] {
 
-		if ( !this.node.parentNode ) {
-			return [0,0];
+		if ( this.size ) {
+			return this.size;
 		} else {
-
-			//var out: number,
-			//fontSignature: string = ( this.italic ? 'italic ' : '' ) + ( this.bold ? 'bold ' : '' ) + this.size + 'px ' + this.family
-
-			return null;
+			if ( !this.node.parentNode ) {
+				return ( this.size = [0,0] );
+			} else {
+				var fontSize: number,
+					font: string = 
+						( this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '' ) +
+						( this.node.parentNode.style.fontWeight() == 'bold'  ? 'bold ' : '' ) +
+						( fontSize = this.node.parentNode.style.fontSize() ) + 'px ' +
+						this.node.parentNode.style.fontFamily(),
+				    lineHeight: number = fontSize * this.node.parentNode.style.lineHeight();
+				return ( this.size = [ Character_Metrics.measureCharWidth( font, this.letter() ), lineHeight ] );
+			}
 		}
 	}
 

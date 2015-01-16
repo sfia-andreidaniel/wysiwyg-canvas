@@ -17,12 +17,13 @@ class HTML_Image extends TNode_Element {
 				if ( !me.style._width.isSet && !me.style._height.isSet ) {
 					me.style.width( String( me.node.width ) );
 				}
-				me.fire( 'rebuild' );
+				me.requestRelayout();
 			}, false );
 			me.node.addEventListener( 'erorr', function() {
 				me.loaded = true;
 				me.error = true;
-				me.fire( 'rebuild' );
+				me.style.aspectRatio( '1' );
+				me.requestRelayout();
 			}, false );
 		} )( this );
 		if ( src !== null ) {
@@ -40,6 +41,7 @@ class HTML_Image extends TNode_Element {
 			this.loaded = false;
 			this.error = false;
 			this.node.setAttribute( 'src', String( source || '' ) );
+			this.requestRelayout();
 		}
 
 	}

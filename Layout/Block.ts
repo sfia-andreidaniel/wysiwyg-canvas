@@ -41,4 +41,64 @@ class Layout_Block extends Layout {
 		}
 	}
 
+	public computeWidths() {
+		
+		if ( this.node ) {
+
+			console.log( 'computeWidths of a block' );
+
+		} else {
+		
+			throw "Unhandled scenario while computing widths!";
+		
+		}
+	}
+
+	public computeHeights( topPlacement: number, indent: number = 0 ): number {
+
+		var contentHeight: number = 0,
+		    topPlacementBegin: number = topPlacement;
+
+		if ( this.node ) {
+			
+			topPlacement += this.node.style.marginTop();
+
+			this.offsetTop = topPlacement;
+			this.innerTop = this.offsetTop + this.node.style.paddingTop() + this.node.style.borderWidth();
+
+			contentHeight = this.node.style.height();
+
+		} else {
+			throw "invalid block scenario";
+		}
+
+		if ( this.children && this.children.length ) {
+			throw "unexpected children!";
+		}
+
+		console.log( this.tab(indent) + 'blockheight (' + this.node.nodeName + '): ' + contentHeight );
+
+		// a blockNode doesn't contain children anymore...
+		topPlacement += contentHeight;
+		this.innerHeight = contentHeight;
+		this.offsetHeight = contentHeight;
+
+
+		if ( this.node ) {
+
+			this.offsetHeight += ( this.node.style.paddingBottom() + this.node.style.borderWidth() );
+
+			topPlacement += ( this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom() );
+
+		} else {
+			throw "invalid block scenario";
+		}
+
+
+		console.log( this.tab( indent ) + 'layoutblock: [' + topPlacementBegin + ',' + topPlacement + ']' );
+
+		return topPlacement;
+
+	}
+
 }

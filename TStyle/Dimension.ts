@@ -22,7 +22,7 @@ class TStyle_Dimension extends TStyle_Property {
 				if ( <TNode_Element>this.style.node.parentNode ) {
 
 					// this is a percent value. we must obtain it from the parent node
-					var percent = parseFloat( this.value.substr( this.value.length - 1 ) );
+					var percent = parseFloat( this.value.substr( 0, this.value.length - 1 ) );
 
 					return ( (<TNode_Element>this.style.node.parentNode).style[ this.name ]() / 100 ) * percent;
 
@@ -48,7 +48,7 @@ class TStyle_Dimension extends TStyle_Property {
 						   this.style._aspectRatio.get();
 				}
 
-			} else if ( this.style.node.parentNode ) {
+			} else if ( this.style.node.parentNode && [ 'width', 'height', 'fontSize', 'lineHeight' ].indexOf( this.name ) >= 0 ) {
 				return this.style.node.parentNode.style[ this.name ]();
 			} else {
 				return 0;

@@ -30,7 +30,7 @@ class TNode_Element extends TNode {
 			this.childNodes[i].siblingIndex = i;
 		}
 
-		this.fire( 'relayout' );
+		this.requestRelayout();
 		
 		return node;
 	}
@@ -45,7 +45,7 @@ class TNode_Element extends TNode {
 					this.childNodes[j].siblingIndex = j;
 				}
 				
-				this.fire( 'relayout' );
+				this.requestRelayout();
 				
 				return node;
 			}
@@ -267,6 +267,18 @@ class TNode_Element extends TNode {
 			}
 		} else {
 			throw "node.outerHTML: Setter not implemented yet!";
+		}
+	}
+
+	public requestRelayout() {
+		if ( this.documentElement ) {
+			this.documentElement.needRelayout = true;
+		}
+	}
+
+	public requestRepaint( originatingElement: TNode_Element = null ) {
+		if ( this.documentElement ) {
+			this.documentElement.requestRepaint();
 		}
 	}
 

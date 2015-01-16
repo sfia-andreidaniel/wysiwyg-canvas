@@ -18,6 +18,7 @@
 /// <reference path="./TStyle/Color.ts" />
 
 /// <reference path="Character.ts" />
+/// <reference path="./Character/Metrics.ts" />
 /// <reference path="./Character/Line.ts" />
 /// <reference path="./Character/Word.ts" />
 
@@ -27,7 +28,10 @@
 /// <reference path="Layout/Block.ts" />
 /// <reference path="Layout/BlockChar.ts" />
 
-var body = new HTML_Body(),
+/// <reference path="Viewport.ts" />
+
+var viewport = new Viewport(),
+    body = viewport.document,
     p,
     img,
     img2,
@@ -52,3 +56,12 @@ p.appendChild( img3 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' 
 img.style.float( 'left' );
 img2.style.float( 'right' );
 img3.style.float( 'right' );
+
+img.width( 40 );
+img2.width( 20 );
+img3.width( 50 );
+
+window.addEventListener( 'load', function() {
+	document.body.appendChild( viewport.canvas );
+	viewport.canvas.focus();
+});

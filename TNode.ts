@@ -3,7 +3,7 @@ class TNode extends Events {
 	public parentNode      : TNode_Element = null;
 	public siblingIndex    : number = 0;
 	public nodeType        : TNode_Type = TNode_Type.UNKNOWN;
-	public documentElement : TNode_Element = null;
+	public documentElement : HTML_Body = null;
 	
 	// dettach the node from it's parent
 	public remove(): TNode {

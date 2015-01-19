@@ -43,10 +43,15 @@ body.appendChild( p = body.createElement('p') );
 
 body.appendChild( body.createTextNode( 'text after p' ) );
 
+body.style.borderWidth( '1' );
+body.style.borderColor( 'red' );
+body.style.backgroundColor( '#ddd' );
+
 p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
 
 p.appendChild( img = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
 
+p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.' ) );
 p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
 
 p.appendChild( img2 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
@@ -54,7 +59,10 @@ p.appendChild( img3 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' 
 
 
 img.style.float( 'left' );
+img.style.marginLeft( '5' );
+img.style.marginRight( '5' );
 img2.style.float( 'right' );
+img2.style.marginRight( '10' );
 img3.style.float( 'right' );
 
 img.width( 40 );

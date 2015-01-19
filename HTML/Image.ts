@@ -88,4 +88,22 @@ class HTML_Image extends TNode_Element {
 		}
 	}
 
+	public paint( ctx: any, layout: Layout ) {
+		
+		super.paint( ctx, layout );
+
+		if ( this.loaded ) {
+			
+			if ( this.error ) {
+
+			} else {
+
+				ctx.drawImage( this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft, layout.innerTop, layout.innerWidth, layout.innerHeight );
+
+			}
+
+		}
+
+	}
+
 }

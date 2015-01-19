@@ -378,6 +378,25 @@ var TNode_Element = (function (_super) {
             this.documentElement.requestRepaint();
         }
     };
+    /* Paints the node according to layout configuration */
+    TNode_Element.prototype.paint = function (ctx, layout) {
+        // paint border
+        var borderColor, borderWidth, backgroundColor;
+        if (borderWidth = this.style.borderWidth()) {
+            borderColor = this.style.borderColor();
+            if (borderColor) {
+                ctx.strokeStyle = borderColor;
+                ctx.lineWidth = borderWidth;
+                ctx.beginPath();
+                ctx.strokeRect(layout.offsetLeft, layout.offsetTop, layout.offsetWidth, layout.offsetHeight);
+                ctx.closePath();
+            }
+        }
+        if (backgroundColor = this.style.backgroundColor()) {
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
+        }
+    };
     return TNode_Element;
 })(TNode);
 var HTML_Body = (function (_super) {
@@ -596,6 +615,16 @@ var HTML_Image = (function (_super) {
                 this.style.float(align);
             }
             return align;
+        }
+    };
+    HTML_Image.prototype.paint = function (ctx, layout) {
+        _super.prototype.paint.call(this, ctx, layout);
+        if (this.loaded) {
+            if (this.error) {
+            }
+            else {
+                ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft, layout.innerTop, layout.innerWidth, layout.innerHeight);
+            }
         }
     };
     return HTML_Image;
@@ -1408,17 +1437,10 @@ var Layout = (function () {
         }
         return out;
     };
+    // paints the node, and after that paints it's sub-children
     Layout.prototype.paint = function (ctx) {
         if (this.node) {
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = .5;
-            ctx.rect(~~this.offsetLeft + .5, ~~this.offsetTop + .5, ~~this.offsetWidth - 1, ~~this.offsetHeight);
-            ctx.stroke();
-            ctx.fillStyle = 'blue';
-            ctx.font = '10px sans-serif';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'hanging';
-            ctx.fillText(this.node.nodeName + ' ' + this.layoutType[0], this.offsetLeft + 1, this.offsetTop + 1);
+            this.node.paint(ctx, this);
         }
         if (this.children) {
             for (var i = 0, len = this.children.length; i < len; i++) {
@@ -1450,10 +1472,24 @@ var Layout_Horizontal = (function (_super) {
             this.isBuilt = true;
         }
     };
+    Layout_Horizontal.prototype.getCellWidth = function (cellIndex) {
+        var width = 0, i = 0, len = 0;
+        if (this.children[cellIndex] && this.children[cellIndex].children) {
+            for (i = 0, len = this.children[cellIndex].children.length; i < len; i++) {
+                if (!this.children[cellIndex].children[i].node) {
+                    return null;
+                }
+                else {
+                    width += (this.children[cellIndex].children[i].node.style.offsetWidth() + this.children[cellIndex].children[i].node.style.marginLeft() + this.children[cellIndex].children[i].node.style.marginRight());
+                }
+            }
+        }
+        return width;
+    };
     Layout_Horizontal.prototype.computeWidths = function () {
         /* on horizontal layouts, we set the widths for the layouts which have nodes.
            the rest of the widths is computed as the average undefined widths */
-        var widthLeft = this.innerWidth, computeAfter = [], leftPosition = this.innerLeft, i = 0, len = 0, averageWidth = 0, sumWidths = 0;
+        var widthLeft = this.innerWidth, computeAfter = [], leftPosition = this.innerLeft, i = 0, len = 0, averageWidth = 0, sumWidths = 0, optimalWidth = 0;
         for (i = 0, len = this.children.length; i < len; i++) {
             if (this.children[i].node) {
                 // the child has a node associated.
@@ -1468,7 +1504,14 @@ var Layout_Horizontal = (function (_super) {
                 }
             }
             else {
-                computeAfter.push(this.children[i]);
+                optimalWidth = this.getCellWidth(i);
+                if (optimalWidth === null) {
+                    computeAfter.push(this.children[i]);
+                }
+                else {
+                    sumWidths += optimalWidth;
+                    this.children[i].offsetWidth = optimalWidth;
+                }
             }
         }
         averageWidth = (this.innerWidth - sumWidths) / computeAfter.length;
@@ -1496,12 +1539,15 @@ var Layout_Horizontal = (function (_super) {
     };
     Layout_Horizontal.prototype.computeHeights = function (topPlacement, indent) {
         if (indent === void 0) { indent = 0; }
-        var topPlacementBegin = 0, contentHeight = 0, topPlacementMax = 0, i = 0, len;
+        var topPlacementBegin = topPlacement, contentHeight = 0, topPlacementMax = 0, i = 0, len;
+        this.offsetHeight = 0;
+        this.innerHeight = 0;
         if (this.node) {
             topPlacement += this.node.style.marginTop();
+            this.offsetHeight += (this.node.style.borderWidth() + this.node.style.paddingTop());
             this.offsetTop = topPlacement;
-            this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-            topPlacement += this.node.style.paddingTop();
+            this.innerTop = topPlacement + this.offsetHeight;
+            topPlacement += this.node.style.borderWidth() + this.node.style.paddingTop();
         }
         else {
             this.offsetTop = topPlacement;
@@ -1515,12 +1561,12 @@ var Layout_Horizontal = (function (_super) {
             contentHeight = topPlacementMax - topPlacement;
         }
         this.innerHeight = contentHeight;
-        this.offsetHeight = this.innerHeight;
+        this.offsetHeight += this.innerHeight;
+        topPlacement += this.innerHeight;
         if (this.node) {
             topPlacement += (this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom());
-            this.offsetHeight += this.innerHeight + (this.node.style.paddingTop() + this.node.style.paddingBottom()) + (this.node.style.borderWidth() * 2);
+            this.offsetHeight += this.node.style.paddingBottom() + this.node.style.borderWidth();
         }
-        console.log(this.tab(indent) + 'layout horizontal: [' + topPlacementBegin + ',' + topPlacement + ']');
         return topPlacement;
     };
     return Layout_Horizontal;
@@ -1576,13 +1622,18 @@ var Layout_Vertical = (function (_super) {
     };
     Layout_Vertical.prototype.computeHeights = function (topPlacement, indent) {
         if (indent === void 0) { indent = 0; }
-        var contentHeight = 0, i = 0, len = 0, addHeight = 0;
+        var contentHeight = 0, i = 0, len = 0, addHeight = 0, nodeStyleMarginTop = 0, nodeStyleMarginBottom = 0, nodeStyleBorderWidth = 0, nodeStylePaddingTop = 0, nodeStylePaddingBottom = 0;
+        this.offsetHeight = 0;
         if (this.node) {
-            topPlacement += this.node.style.marginTop();
+            nodeStyleMarginTop = this.node.style.marginTop();
+            nodeStyleMarginBottom = this.node.style.marginBottom();
+            nodeStyleBorderWidth = this.node.style.borderWidth();
+            nodeStylePaddingTop = this.node.style.paddingTop();
+            nodeStylePaddingBottom = this.node.style.paddingBottom();
+            topPlacement += nodeStyleMarginTop;
             this.offsetTop = topPlacement;
-            this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-            console.log('add ' + (this.node.style.paddingTop() + this.node.style.borderWidth()) + 'padding...');
-            topPlacement += this.node.style.paddingTop() + this.node.style.borderWidth();
+            topPlacement += (this.offsetHeight = nodeStylePaddingTop + nodeStyleBorderWidth);
+            this.innerTop = topPlacement;
         }
         else {
             this.offsetTop = topPlacement;
@@ -1593,14 +1644,13 @@ var Layout_Vertical = (function (_super) {
                 addHeight = (this.children[i].computeHeights(topPlacement, indent + 1) - topPlacement);
                 contentHeight += addHeight;
                 topPlacement += addHeight;
-                console.log(this.tab(indent) + 'layout vertical (' + (this.node ? this.node.nodeName : 'void') + '): topplacement become: ' + topPlacement + ', due to added height: ' + addHeight);
+                this.offsetHeight += addHeight;
             }
         }
         this.innerHeight = contentHeight;
-        this.offsetHeight = this.innerHeight;
         if (this.node) {
-            this.offsetHeight += this.node.style.paddingBottom() + this.node.style.borderWidth();
-            topPlacement += this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom();
+            this.offsetHeight += nodeStylePaddingBottom + nodeStyleBorderWidth;
+            topPlacement += nodeStylePaddingBottom + nodeStyleBorderWidth + nodeStyleMarginBottom;
         }
         return topPlacement;
     };
@@ -1638,7 +1688,7 @@ var Layout_Block = (function (_super) {
     };
     Layout_Block.prototype.computeWidths = function () {
         if (this.node) {
-            console.log('computeWidths of a block');
+            this.offsetLeft += this.node.style.marginLeft();
         }
         else {
             throw "Unhandled scenario while computing widths!";
@@ -1659,7 +1709,6 @@ var Layout_Block = (function (_super) {
         if (this.children && this.children.length) {
             throw "unexpected children!";
         }
-        console.log(this.tab(indent) + 'blockheight (' + this.node.nodeName + '): ' + contentHeight);
         // a blockNode doesn't contain children anymore...
         topPlacement += contentHeight;
         this.innerHeight = contentHeight;
@@ -1671,7 +1720,6 @@ var Layout_Block = (function (_super) {
         else {
             throw "invalid block scenario";
         }
-        console.log(this.tab(indent) + 'layoutblock: [' + topPlacementBegin + ',' + topPlacement + ']');
         return topPlacement;
     };
     return Layout_Block;
@@ -1701,7 +1749,7 @@ var Layout_BlockChar = (function (_super) {
     // routine to build the lines of the block.
     // it takes in consideration the words, etc.
     Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
-        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line;
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line, ownerNode = this.ownerNode();
         for (i = 0; i < len; i++) {
             if (contentsWithWords[i] == contents[j]) {
                 word.push(this.chars[j]);
@@ -1733,6 +1781,9 @@ var Layout_BlockChar = (function (_super) {
         }
         if (line.words.length)
             this.lines.push(line);
+        for (i = 0, len = this.lines.length; i < len; i++) {
+            this.lines[i].size[1] *= ownerNode.style.lineHeight();
+        }
         return this.lines;
     };
     // returns the text contents of block
@@ -1753,17 +1804,24 @@ var Layout_BlockChar = (function (_super) {
     };
     Layout_BlockChar.prototype.computeHeights = function (topPlacement, indent) {
         if (indent === void 0) { indent = 0; }
-        var topPlacementBegin = topPlacement;
         this.offsetTop = this.innerTop = topPlacement;
         this.offsetHeight = this.innerHeight = 0;
         for (var i = 0, len = this.lines.length; i < len; i++) {
             topPlacement += this.lines[i].size[1];
-            console.log(this.tab(indent) + 'added line height: ' + this.lines[i].size[1], this.lines[i]);
+            //console.log( this.tab( indent ) + 'added line height: ' + this.lines[i].size[1], this.lines[i] );
             this.offsetHeight += this.lines[i].size[1];
             this.innerHeight = this.offsetHeight;
         }
-        console.log(this.tab(indent) + 'layout blocktext [' + topPlacementBegin + ',' + topPlacement + ']');
         return topPlacement;
+    };
+    Layout_BlockChar.prototype.paint = function (ctx) {
+        var i = 0, len = 0, start = this.offsetTop;
+        ctx.fillStyle = 'green';
+        ctx.lineWidth = .5;
+        for (i = 0, len = this.lines.length; i < len; i++) {
+            ctx.fillRect(this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1]);
+            start += this.lines[i].size[1];
+        }
     };
     return Layout_BlockChar;
 })(Layout);
@@ -1858,13 +1916,20 @@ var viewport = new Viewport(), body = viewport.document, p, img, img2, img3;
 body.appendChild(body.createTextNode('text before p'));
 body.appendChild(p = body.createElement('p'));
 body.appendChild(body.createTextNode('text after p'));
+body.style.borderWidth('1');
+body.style.borderColor('red');
+body.style.backgroundColor('#ddd');
 p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
 p.appendChild(img = body.createElement('img', '_assets/pic1.jpg'));
+p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.'));
 p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
 p.appendChild(img2 = body.createElement('img', '_assets/pic1.jpg'));
 p.appendChild(img3 = body.createElement('img', '_assets/pic1.jpg'));
 img.style.float('left');
+img.style.marginLeft('5');
+img.style.marginRight('5');
 img2.style.float('right');
+img2.style.marginRight('10');
 img3.style.float('right');
 img.width(40);
 img2.width(20);

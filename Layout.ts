@@ -104,21 +104,11 @@ class Layout {
 		return out;
 	}
 
+	// paints the node, and after that paints it's sub-children
 	public paint( ctx: any ) {
 
 		if ( this.node ) {
-
-			ctx.strokeStyle = 'red';
-			ctx.lineWidth = .5;
-			ctx.rect( ~~this.offsetLeft + .5, ~~this.offsetTop + .5, ~~this.offsetWidth - 1, ~~this.offsetHeight );
-			ctx.stroke();
-
-			ctx.fillStyle = 'blue';
-			ctx.font = '10px sans-serif';
-			ctx.textAlign = 'left';
-			ctx.textBaseline = 'hanging';
-			ctx.fillText( this.node.nodeName + ' ' + this.layoutType[0] , this.offsetLeft + 1, this.offsetTop + 1 );
-
+			this.node.paint( ctx, this );
 		}
 
 		if ( this.children ) {

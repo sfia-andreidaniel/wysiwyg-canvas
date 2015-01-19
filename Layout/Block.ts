@@ -45,7 +45,7 @@ class Layout_Block extends Layout {
 		
 		if ( this.node ) {
 
-			console.log( 'computeWidths of a block' );
+			this.offsetLeft += this.node.style.marginLeft();
 
 		} else {
 		
@@ -76,8 +76,6 @@ class Layout_Block extends Layout {
 			throw "unexpected children!";
 		}
 
-		console.log( this.tab(indent) + 'blockheight (' + this.node.nodeName + '): ' + contentHeight );
-
 		// a blockNode doesn't contain children anymore...
 		topPlacement += contentHeight;
 		this.innerHeight = contentHeight;
@@ -94,8 +92,6 @@ class Layout_Block extends Layout {
 			throw "invalid block scenario";
 		}
 
-
-		console.log( this.tab( indent ) + 'layoutblock: [' + topPlacementBegin + ',' + topPlacement + ']' );
 
 		return topPlacement;
 

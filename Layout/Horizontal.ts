@@ -26,6 +26,32 @@ class Layout_Horizontal extends Layout {
 		}
 	}
 
+	private getCellWidth( cellIndex: number ): number {
+
+		var width: number = 0,
+		    i: number = 0,
+		    len: number = 0;
+
+		if ( this.children[cellIndex] && this.children[cellIndex].children ) {
+
+			for ( i=0, len = this.children[cellIndex].children.length; i<len; i++ ) {
+				if ( !this.children[cellIndex].children[i].node ) {
+					return null;
+				} else {
+					width += ( 
+						this.children[cellIndex].children[i].node.style.offsetWidth() +
+						this.children[cellIndex].children[i].node.style.marginLeft() +
+						this.children[cellIndex].children[i].node.style.marginRight()
+					);
+				}
+			}
+
+		}
+
+		return width;
+
+	}
+
 	public computeWidths() {
 		/* on horizontal layouts, we set the widths for the layouts which have nodes.
 		   the rest of the widths is computed as the average undefined widths */
@@ -35,7 +61,8 @@ class Layout_Horizontal extends Layout {
 		    i: number = 0,
 		    len: number = 0,
 		    averageWidth: number = 0,
-		    sumWidths: number = 0;
+		    sumWidths: number = 0,
+		    optimalWidth: number = 0;
 
 		for ( i=0, len = this.children.length; i<len; i++ ) {
 
@@ -57,7 +84,14 @@ class Layout_Horizontal extends Layout {
 
 			} else {
 
-				computeAfter.push( this.children[i] );
+				optimalWidth = this.getCellWidth( i );
+
+				if ( optimalWidth === null ) {
+					computeAfter.push( this.children[i] );
+				} else {
+					sumWidths += optimalWidth;
+					this.children[i].offsetWidth = optimalWidth;
+				}
 
 			}
 
@@ -107,18 +141,22 @@ class Layout_Horizontal extends Layout {
 
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {
 
-		var topPlacementBegin: number = 0,
+		var topPlacementBegin: number = topPlacement,
 			contentHeight: number = 0,
 		    topPlacementMax: number = 0,
 		    i: number = 0,
 		    len: number;
 
+		this.offsetHeight = 0;
+		this.innerHeight = 0;
+
 		if ( this.node ) {
 
 			topPlacement += this.node.style.marginTop();
+			this.offsetHeight += ( this.node.style.borderWidth() + this.node.style.paddingTop() );
 			this.offsetTop = topPlacement;
-			this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-			topPlacement += this.node.style.paddingTop();
+			this.innerTop = topPlacement + this.offsetHeight;
+			topPlacement += this.node.style.borderWidth() + this.node.style.paddingTop();
 
 		} else {
 
@@ -142,16 +180,16 @@ class Layout_Horizontal extends Layout {
 		}
 
 		this.innerHeight = contentHeight;
-		this.offsetHeight = this.innerHeight;
+		this.offsetHeight += this.innerHeight;
+
+		topPlacement += this.innerHeight;
 
 		if ( this.node ) {
 
 			topPlacement += ( this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom() );
-			this.offsetHeight += this.innerHeight + ( this.node.style.paddingTop() + this.node.style.paddingBottom() ) + ( this.node.style.borderWidth() * 2 );
+			this.offsetHeight += this.node.style.paddingBottom() + this.node.style.borderWidth();
 
 		}
-
-		console.log( this.tab(indent) + 'layout horizontal: [' + topPlacementBegin + ',' + topPlacement + ']' );
 
 		return topPlacement;
 

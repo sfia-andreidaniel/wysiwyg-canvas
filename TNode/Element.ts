@@ -282,4 +282,35 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Paints the node according to layout configuration */
+	public paint( ctx: any, layout: Layout ) {
+
+		// paint border
+
+		var borderColor: string,
+		    borderWidth: number,
+		    backgroundColor: string;
+
+		if ( borderWidth = this.style.borderWidth() ) {
+			
+			borderColor = this.style.borderColor();
+			
+			if ( borderColor ) {
+				
+				ctx.strokeStyle = borderColor;
+				ctx.lineWidth   = borderWidth;
+
+				ctx.beginPath();
+				ctx.strokeRect( layout.offsetLeft, layout.offsetTop, layout.offsetWidth, layout.offsetHeight );
+				ctx.closePath();
+			}
+		}
+
+		if ( backgroundColor = this.style.backgroundColor() ) {
+			ctx.fillStyle = backgroundColor;
+			ctx.fillRect( layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
+		}
+
+	}
+
 }

@@ -32,7 +32,8 @@ class Layout_BlockChar extends Layout {
 		    n: number = 0,
 		    word: Character[] = [],
 		    words: Character_Word[] = [],
-		    line: Character_Line;
+		    line: Character_Line,
+		    ownerNode: TNode_Element = this.ownerNode();
 
 		for ( i=0; i<len; i++ ) {
 			if ( contentsWithWords[i] == contents[j] ) {
@@ -70,6 +71,11 @@ class Layout_BlockChar extends Layout {
 		if ( line.words.length )
 			this.lines.push( line );
 
+		/* Add the lineHeight factor */
+		for ( i=0, len = this.lines.length; i<len; i++ ) {
+			this.lines[i].size[1] *= ownerNode.style.lineHeight();
+		}
+
 		return this.lines;
 
 	}
@@ -98,8 +104,6 @@ class Layout_BlockChar extends Layout {
 
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {
 		
-		var topPlacementBegin: number = topPlacement;
-
 		this.offsetTop = this.innerTop = topPlacement;
 		this.offsetHeight = this.innerHeight = 0;
 
@@ -107,16 +111,34 @@ class Layout_BlockChar extends Layout {
 			
 			topPlacement += this.lines[i].size[1];
 
-			console.log( this.tab( indent ) + 'added line height: ' + this.lines[i].size[1], this.lines[i] );
+			//console.log( this.tab( indent ) + 'added line height: ' + this.lines[i].size[1], this.lines[i] );
 
 			this.offsetHeight += this.lines[i].size[1];
 			this.innerHeight = this.offsetHeight;
 
 		}
 
-		console.log( this.tab(indent) + 'layout blocktext [' + topPlacementBegin + ',' + topPlacement + ']' );
-
 		return topPlacement;
+	}
+
+	public paint( ctx: any ) {
+
+		var i: number = 0,
+			len: number = 0,
+		    start: number = this.offsetTop;
+
+		ctx.fillStyle = 'green';
+		ctx.lineWidth = .5;
+
+		for ( i=0, len = this.lines.length; i<len; i++ ) {
+
+			ctx.fillRect( this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1] );
+
+			start += this.lines[i].size[1];
+
+		}
+
+
 	}
 
 }

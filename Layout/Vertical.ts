@@ -80,49 +80,49 @@ class Layout_Vertical extends Layout {
 		var contentHeight: number = 0,
 		    i: number = 0,
 		    len: number = 0,
-		    addHeight: number = 0;
+		    addHeight: number = 0,
+
+
+		    nodeStyleMarginTop: number = 0,
+		    nodeStyleMarginBottom: number = 0,
+		    nodeStyleBorderWidth: number = 0,
+		    nodeStylePaddingTop: number = 0,
+		    nodeStylePaddingBottom: number = 0;
+
+		this.offsetHeight = 0;
 
 		if ( this.node ) {
 
-			topPlacement += this.node.style.marginTop();
+			nodeStyleMarginTop = this.node.style.marginTop();
+			nodeStyleMarginBottom = this.node.style.marginBottom();
+			nodeStyleBorderWidth = this.node.style.borderWidth();
+			nodeStylePaddingTop = this.node.style.paddingTop();
+			nodeStylePaddingBottom = this.node.style.paddingBottom();
 
+			topPlacement += nodeStyleMarginTop;
 			this.offsetTop = topPlacement;
-
-			this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-
-			console.log( 'add ' + ( this.node.style.paddingTop() + this.node.style.borderWidth() ) + 'padding...' );
-			topPlacement += this.node.style.paddingTop() + this.node.style.borderWidth();
-
+			topPlacement += ( this.offsetHeight = nodeStylePaddingTop + nodeStyleBorderWidth );
+			this.innerTop = topPlacement;
 		} else {
-
 			this.offsetTop = topPlacement;
 			this.innerTop = topPlacement;
-
 		}
 
 		if ( this.children && ( len = this.children.length ) ) {
-
 			for ( i=0; i<len; i++ ) {
-
 				addHeight = ( this.children[i].computeHeights( topPlacement, indent + 1 ) - topPlacement );
-
 				contentHeight += addHeight;
 				topPlacement += addHeight;
-
-				console.log( this.tab( indent ) + 'layout vertical (' + ( this.node ? this.node.nodeName : 'void' ) + '): topplacement become: ' + topPlacement + ', due to added height: ' + addHeight );
-
+				this.offsetHeight += addHeight;
 			}
 
 		}
 
 		this.innerHeight = contentHeight;
-		this.offsetHeight = this.innerHeight;
 
 		if ( this.node ) {
-
-			this.offsetHeight += this.node.style.paddingBottom() + this.node.style.borderWidth();
-			topPlacement += this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom();
-		
+			this.offsetHeight += nodeStylePaddingBottom + nodeStyleBorderWidth;
+			topPlacement += nodeStylePaddingBottom + nodeStyleBorderWidth + nodeStyleMarginBottom;
 		}
 
 		return topPlacement;

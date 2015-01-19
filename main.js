@@ -382,7 +382,7 @@ var TNode_Element = (function (_super) {
         }
     };
     /* Paints the node according to layout configuration */
-    TNode_Element.prototype.paint = function (ctx, layout) {
+    TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
         var borderColor, borderWidth, backgroundColor;
         if (borderWidth = this.style.borderWidth()) {
@@ -391,13 +391,13 @@ var TNode_Element = (function (_super) {
                 ctx.strokeStyle = borderColor;
                 ctx.lineWidth = borderWidth;
                 ctx.beginPath();
-                ctx.strokeRect(layout.offsetLeft, layout.offsetTop, layout.offsetWidth, layout.offsetHeight);
+                ctx.strokeRect(layout.offsetLeft - scrollLeft, layout.offsetTop - scrollTop, layout.offsetWidth, layout.offsetHeight);
                 ctx.closePath();
             }
         }
         if (backgroundColor = this.style.backgroundColor()) {
             ctx.fillStyle = backgroundColor;
-            ctx.fillRect(layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
+            ctx.fillRect(layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
         }
     };
     // makes the array of nodes @nodesList childNodes of this element.
@@ -467,8 +467,108 @@ var TNode_Element = (function (_super) {
                 break;
         }
     };
+    TNode_Element.prototype.satisfiesQuery = function (query) {
+        var cond, cursor;
+        for (var k in query) {
+            if (query[k] === true) {
+                cond = !!query[k] == this[k];
+            }
+            else {
+                switch (true) {
+                    case k == 'parentNode':
+                        cond = !!this.parentNode && this.parentNode.satisfiesQuery(query.parentNode) ? true : false;
+                        break;
+                    case k == 'anyParentNode':
+                        cond = false;
+                        cursor = this.parentNode;
+                        while (cursor) {
+                            if (cursor.satisfiesQuery(query.anyParentNode)) {
+                                cond = true;
+                                break;
+                            }
+                            cursor = cursor.parentNode;
+                        }
+                        break;
+                    default:
+                        cond = query[k] == this[k];
+                        break;
+                }
+            }
+            if (cond == false)
+                return false;
+        }
+        return true;
+    };
+    /* queryElements( {
+            "nodeName": "p",
+            "childNodes": true
+       } )
+    */
+    TNode_Element.prototype.queryAll = function (query, pushIn) {
+        if (pushIn === void 0) { pushIn = null; }
+        pushIn = pushIn || new TNode_Collection();
+        query = query || {};
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                if (this.childNodes[i].satisfiesQuery(query)) {
+                    pushIn.add(this.childNodes[i]);
+                }
+                this.childNodes[i].queryAll(query, pushIn);
+            }
+        }
+        return pushIn;
+    };
+    TNode_Element.prototype.query = function (query) {
+        var sub;
+        query = query || {};
+        if (this.satisfiesQuery(query)) {
+            return this;
+        }
+        else {
+            for (var i = 0, len = this.childNodes.length; i < len; i++) {
+                if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                    if (sub = this.childNodes[i].query(query)) {
+                        return sub;
+                    }
+                }
+            }
+        }
+        return null;
+    };
     return TNode_Element;
 })(TNode);
+var TNode_Collection = (function () {
+    function TNode_Collection(addNodes) {
+        if (addNodes === void 0) { addNodes = null; }
+        this.nodes = [];
+        if (addNodes !== null) {
+            for (var i = 0, len = addNodes.length; i < len; i++) {
+                this.nodes.push(addNodes[i]);
+            }
+        }
+    }
+    Object.defineProperty(TNode_Collection.prototype, "length", {
+        get: function () {
+            return this.nodes.length;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    TNode_Collection.prototype.each = function (callback) {
+        if (callback) {
+            for (var i = 0, len = this.nodes.length; i < len; i++) {
+                if (this.nodes[i]) {
+                    callback.call(this.nodes[i]);
+                }
+            }
+        }
+        return this;
+    };
+    TNode_Collection.prototype.add = function (node) {
+        this.nodes.push(node);
+    };
+    return TNode_Collection;
+})();
 var HTMLParser = (function () {
     function HTMLParser(document, data) {
         this.document = document;
@@ -719,6 +819,18 @@ var HTML_Body = (function (_super) {
             case 'u':
                 node = new HTML_Underline();
                 break;
+            case 'a':
+                node = new HTML_Anchor();
+                break;
+            case 'ul':
+                node = new HTML_BulletedList();
+                break;
+            case 'ol':
+                node = new HTML_OrderedList();
+                break;
+            case 'li':
+                node = new HTML_ListItem();
+                break;
             default:
                 node = new TNode_Element();
                 node.nodeName = elementName;
@@ -760,8 +872,8 @@ var HTML_Body = (function (_super) {
         if (this._needRelayout) {
             this.relayout();
         }
-        this.viewport.context.clearRect(0, 0, this.viewport.width(), this.viewport.height());
-        this._layout.paint(this.viewport.context);
+        this.viewport.context.clearRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
+        this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop());
         this._needRepaint = false;
         console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
     };
@@ -779,7 +891,7 @@ var HTML_Body = (function (_super) {
         this._layout = this.createLayout();
         this._layout.offsetTop = -this.style.marginTop();
         this._layout.offsetLeft = -this.style.marginLeft();
-        this._layout.offsetWidth = this.viewport.width();
+        this._layout.offsetWidth = this.viewport.width() - this.viewport._scrollbarSize;
         this._layout.innerWidth = this._layout.offsetWidth - this.style.paddingLeft() - this.style.paddingRight() - (this.style.borderWidth() * 2);
         this._layout.innerTop = this._layout.offsetTop + this.style.paddingTop() + this.style.borderWidth();
         this._layout.innerLeft = this._layout.offsetLeft + this.style.paddingLeft() + this.style.borderWidth();
@@ -787,6 +899,7 @@ var HTML_Body = (function (_super) {
         this.style._width.isSet = true;
         this._layout.computeWidths();
         this._layout.computeHeights(this.style.marginTop());
+        this.viewport.scrollTop(this.viewport.scrollTop());
         console.log('relayout completed in ' + (Date.now() - now) + ' ms.');
         //console.log( this._layout.serialize() );
         this._needRelayout = false;
@@ -824,9 +937,8 @@ var HTML_Paragraph = (function (_super) {
         _super.call(this);
         this.nodeName = 'p';
         this.style.display('block');
-        this.style.padding('25');
-        this.style.color('white');
-        this.style.backgroundColor('#333');
+        this.style.marginTop('5');
+        this.style.marginBottom('10');
     }
     return HTML_Paragraph;
 })(TNode_Element);
@@ -876,11 +988,16 @@ var HTML_Image = (function (_super) {
         }
     };
     HTML_Image.prototype.setAttribute = function (attributeName, attributeValue) {
-        if (attributeName == 'src') {
-            this.src(attributeValue || null);
-        }
-        else {
-            _super.prototype.setAttribute.call(this, attributeName, attributeValue);
+        switch (attributeName) {
+            case 'src':
+                this.src(attributeValue || null);
+                break;
+            case 'align':
+                this.style.float(attributeValue || '');
+                break;
+            default:
+                _super.prototype.setAttribute.call(this, attributeName, attributeValue);
+                break;
         }
     };
     HTML_Image.prototype.width = function (size) {
@@ -931,13 +1048,13 @@ var HTML_Image = (function (_super) {
             return align;
         }
     };
-    HTML_Image.prototype.paint = function (ctx, layout) {
-        _super.prototype.paint.call(this, ctx, layout);
+    HTML_Image.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
+        _super.prototype.paint.call(this, ctx, layout, scrollLeft, scrollTop);
         if (this.loaded) {
             if (this.error) {
             }
             else {
-                ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft, layout.innerTop, layout.innerWidth, layout.innerHeight);
+                ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
             }
         }
     };
@@ -1028,6 +1145,62 @@ var HTML_Underline = (function (_super) {
         this.style.textDecoration('underline');
     }
     return HTML_Underline;
+})(TNode_Element);
+var HTML_Anchor = (function (_super) {
+    __extends(HTML_Anchor, _super);
+    function HTML_Anchor() {
+        _super.call(this);
+        this.nodeName = 'a';
+        this.style.display('inline');
+        this.style.color('blue');
+        this.style.textDecoration('underline');
+    }
+    return HTML_Anchor;
+})(TNode_Element);
+var HTML_BulletedList = (function (_super) {
+    __extends(HTML_BulletedList, _super);
+    function HTML_BulletedList() {
+        _super.call(this);
+        this.nodeName = 'ul';
+        this.style.display('block');
+        this.style.paddingLeft('30');
+    }
+    return HTML_BulletedList;
+})(TNode_Element);
+var HTML_OrderedList = (function (_super) {
+    __extends(HTML_OrderedList, _super);
+    function HTML_OrderedList() {
+        _super.call(this);
+        this.nodeName = 'ol';
+        this.style.display('block');
+        this.style.paddingLeft('30');
+    }
+    return HTML_OrderedList;
+})(TNode_Element);
+var HTML_ListItem = (function (_super) {
+    __extends(HTML_ListItem, _super);
+    function HTML_ListItem() {
+        _super.call(this);
+        this.nodeName = 'li';
+        this.style.display('block');
+    }
+    HTML_ListItem.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
+        _super.prototype.paint.call(this, ctx, layout, scrollLeft, scrollTop);
+        /* If the parent is a OL, paint my number,
+           otherwise paint a disk.
+         */
+        ctx.fillStyle = this.style.color();
+        ctx.textAlign = 'right';
+        ctx.font = this.style.fontStyleText();
+        ctx.textBaseline = 'alphabetic';
+        if (this.parentNode.nodeName == 'ol') {
+            ctx.fillText(String(this.siblingIndex + 1) + '.', layout.innerLeft - 5 - scrollLeft, layout.innerTop + this.style.fontSize() * this.style.lineHeight() - scrollTop);
+        }
+        else {
+            ctx.fillText('\u25cf', layout.innerLeft - 5 - scrollLeft, layout.innerTop + this.style.fontSize() * this.style.lineHeight() - scrollTop);
+        }
+    };
+    return HTML_ListItem;
 })(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
@@ -1862,13 +2035,13 @@ var Layout = (function () {
         return out;
     };
     // paints the node, and after that paints it's sub-children
-    Layout.prototype.paint = function (ctx) {
+    Layout.prototype.paint = function (ctx, scrollLeft, scrollTop) {
         if (this.node) {
-            this.node.paint(ctx, this);
+            this.node.paint(ctx, this, scrollLeft, scrollTop);
         }
         if (this.children) {
             for (var i = 0, len = this.children.length; i < len; i++) {
-                this.children[i].paint(ctx);
+                this.children[i].paint(ctx, scrollLeft, scrollTop);
             }
         }
     };
@@ -2238,8 +2411,8 @@ var Layout_BlockChar = (function (_super) {
         }
         return topPlacement;
     };
-    Layout_BlockChar.prototype.paint = function (ctx) {
-        var i = 0, len = 0, startY = this.offsetTop, startX = this.offsetLeft, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0;
+    Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop) {
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft;
         ctx.textAlign = align || 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -2258,6 +2431,7 @@ var Layout_BlockChar = (function (_super) {
                     startX = this.offsetLeft;
                     break;
             }
+            startX -= scrollLeft;
             for (j = 0, n = this.lines[i].words.length; j < n; j++) {
                 for (k = 0, l = this.lines[i].words[j].characters.length; k < l; k++) {
                     ctx.font = this.lines[i].words[j].characters[k].node.parentNode.style.fontStyleText();
@@ -2280,6 +2454,9 @@ var Viewport = (function (_super) {
         _super.call(this);
         this._width = 500;
         this._height = 500;
+        this._scrollbarSize = 10;
+        this._scrollTop = 0;
+        this._scrollLeft = 0;
         this.canvas = document.createElement('canvas');
         this.context = null;
         this.document = null;
@@ -2290,7 +2467,13 @@ var Viewport = (function (_super) {
             me.painter = new Throttler(function () {
                 if (me.document)
                     me.document.repaint();
+                me.paintScrollbars();
             }, 10);
+            me.canvas.addEventListener('mousewheel', function (DOMEvent) {
+                me.scrollTop(me.scrollTop() + (DOMEvent.wheelDelta < 0 ? 12 : -12));
+                DOMEvent.preventDefault();
+                DOMEvent.stopPropagation();
+            }, true);
         })(this);
         this.document = new HTML_Body(this);
         this.width(_width === null ? this._width : _width);
@@ -2332,6 +2515,67 @@ var Viewport = (function (_super) {
             return this._height;
         }
     };
+    Viewport.prototype.scrollTop = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            //getter
+            return this._scrollTop;
+        }
+        else {
+            if (this.document && this.document._layout) {
+                if ((value + this._height - this._scrollbarSize) > (this.document._layout.offsetHeight + this.document._layout.offsetTop)) {
+                    value = this.document._layout.offsetHeight + this.document._layout.offsetTop - this._height + this._scrollbarSize;
+                }
+                if (value < 0) {
+                    value = 0;
+                }
+                value = Math.round(value);
+                if (value != this._scrollTop) {
+                    this._scrollTop = value;
+                    this.document.requestRepaint();
+                }
+            }
+            return this._scrollTop;
+        }
+    };
+    Viewport.prototype.scrollLeft = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            return this._scrollLeft;
+        }
+        else {
+            throw "not implemented scrollLeft";
+        }
+    };
+    // paints the scrollbars on the canvas context
+    Viewport.prototype.paintScrollbars = function () {
+        if (!this.document) {
+            return;
+        }
+        var physScrollHeight = 0, physScrollWidth = 0, docWidth = 0, docHeight = this.document._layout.offsetHeight + this.document._layout.offsetTop, physScrollXShoe = 0, physScrollYShoe = 0, yScale = 0;
+        this.context.fillStyle = '#ddd';
+        this.context.fillRect(physScrollWidth = (this._width - this._scrollbarSize), 0, this._scrollbarSize, this._height - this._scrollbarSize + 1);
+        this.context.fillRect(0, physScrollHeight = (this._height - this._scrollbarSize), this._width - this._scrollbarSize, this._scrollbarSize);
+        docWidth = physScrollWidth;
+        physScrollYShoe = yScale = physScrollHeight / docHeight;
+        physScrollYShoe = physScrollYShoe <= 1 ? physScrollHeight * physScrollYShoe : 0;
+        if (physScrollYShoe != 0) {
+            physScrollYShoe = ~~physScrollYShoe;
+        }
+        this.context.fillStyle = "#888";
+        if (physScrollYShoe) {
+            this.context.fillRect(this._width - this._scrollbarSize, (this._scrollTop * yScale), this._scrollbarSize, physScrollYShoe);
+        }
+    };
+    Viewport.prototype.value = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            return this.document.innerHTML();
+        }
+        else {
+            this.document.innerHTML(v);
+        }
+    };
     return Viewport;
 })(Events);
 /// <reference path="Types.ts" />
@@ -2340,6 +2584,7 @@ var Viewport = (function (_super) {
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
 /// <reference path="./TNode/Element.ts" />
+/// <reference path="./TNode/Collection.ts" />
 /// <reference path="./HTMLParser.ts" />
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
@@ -2352,6 +2597,10 @@ var Viewport = (function (_super) {
 /// <reference path="./HTML/Bold.ts" />
 /// <reference path="./HTML/Italic.ts" />
 /// <reference path="./HTML/Underline.ts" />
+/// <reference path="./HTML/Anchor.ts" />
+/// <reference path="./HTML/BulletedList.ts" />
+/// <reference path="./HTML/OrderedList.ts" />
+/// <reference path="./HTML/ListItem.ts" />
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -2368,38 +2617,39 @@ var Viewport = (function (_super) {
 /// <reference path="Layout/Block.ts" />
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Viewport.ts" />
-var viewport = new Viewport(), body = viewport.document, p, img, img2, img3, h1, h2, h3, h4, h5;
-body.appendChild(h1 = body.createElement('h1'));
-body.appendChild(h2 = body.createElement('h2'));
-body.appendChild(h3 = body.createElement('h3'));
-body.appendChild(h4 = body.createElement('h4'));
-body.appendChild(h5 = body.createElement('h5'));
-body.appendChild(body.createTextNode('text before p'));
-body.appendChild(p = body.createElement('p'));
-body.appendChild(body.createTextNode('text after p'));
-body.style.borderWidth('1');
-body.style.borderColor('red');
-body.style.backgroundColor('#ddd');
-p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
-p.appendChild(img = body.createElement('img', '_assets/pic1.jpg'));
-p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.'));
-p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
-p.appendChild(img2 = body.createElement('img', '_assets/pic1.jpg'));
-p.appendChild(img3 = body.createElement('img', '_assets/pic1.jpg'));
-h1.appendChild(body.createTextNode('This is a heading 1'));
-h2.appendChild(body.createTextNode('This is a heading 2'));
-h3.appendChild(body.createTextNode('This is a heading 3'));
-h4.appendChild(body.createTextNode('This is a heading 4'));
-h5.appendChild(body.createTextNode('This is a heading 5'));
-img.style.float('left');
-img.style.marginLeft('5');
-img.style.marginRight('5');
-img2.style.float('right');
-img2.style.marginRight('10');
-img3.style.float('right');
-img.width(40);
-img2.width(20);
-img3.width(50);
+var viewport = new Viewport(), body = viewport.document, niceHTML = [
+    '<h1>Heading 1</h1>',
+    '<p>The element above this paragraph is a <b>Heading 1</b></p>',
+    '<h2>Heading 2</h2>',
+    '<p>The element above this paragraph is a <b><i>Heading 2</i></b></p>',
+    '<h3>Heading 3</h3>',
+    '<h4>Heading 4</h4>',
+    '<h5>Heading 5</h5>',
+    '<p>The elements above this paragraph are representing a <b>H3</b>, <b>H4</b>, and a <b>H5</b>. </p>',
+    '<h1>Anchoring</h1>',
+    '<p>This text contains an anchor to <a href="http://www.google.com">Google</a>. Anchoring painting should be rendered on the word Google.</p>',
+    '<h1>Lists</h1>',
+    '<p>Bulleted...</p>',
+    '<ul>',
+    '<li>Item 1</li>',
+    '<li>Item 2</li>',
+    '<li>And this is the third element inside the bulleted <b>UL</b> list. The items should be rendered with discs in their left.</li>',
+    '</ul>',
+    '<p>Ordered...</p>',
+    '<ol>',
+    '<li>Item 1</li>',
+    '<li>Item 2</li>',
+    '<li>Item 3</li>',
+    '</ol>',
+    '<h2>Image handling</h2>',
+    '<p>This is a <img align="right" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    '<p>This is a <img align="left" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    '<p>This is a <img align="left" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at <img align="right" src="./_assets/pic1.jpg" width="100" /> the end of the document. Hope you enjoyed it.</p>',
+    '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
+].join('');
+body.innerHTML(niceHTML);
 window.addEventListener('load', function () {
     document.body.appendChild(viewport.canvas);
     viewport.canvas.focus();

@@ -105,15 +105,15 @@ class Layout {
 	}
 
 	// paints the node, and after that paints it's sub-children
-	public paint( ctx: any ) {
+	public paint( ctx: any, scrollLeft: number, scrollTop: number ) {
 
 		if ( this.node ) {
-			this.node.paint( ctx, this );
+			this.node.paint( ctx, this, scrollLeft, scrollTop );
 		}
 
 		if ( this.children ) {
 			for ( var i=0, len = this.children.length; i<len; i++ ) {
-				this.children[i].paint( ctx );
+				this.children[i].paint( ctx, scrollLeft, scrollTop );
 			}
 		}
 

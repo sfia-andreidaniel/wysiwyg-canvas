@@ -100,6 +100,18 @@ class HTML_Body extends TNode_Element {
 			case 'u':
 				node = new HTML_Underline();
 				break;
+			case 'a':
+				node = new HTML_Anchor();
+				break;
+			case 'ul':
+				node = new HTML_BulletedList();
+				break;
+			case 'ol':
+				node = new HTML_OrderedList();
+				break;
+			case 'li':
+				node = new HTML_ListItem();
+				break;
 			default:
 				node = new TNode_Element();
 				node.nodeName = elementName;
@@ -148,9 +160,9 @@ class HTML_Body extends TNode_Element {
 			this.relayout();
 		}
 
-		this.viewport.context.clearRect( 0, 0, this.viewport.width(), this.viewport.height() );
+		this.viewport.context.clearRect( 0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize );
 
-		this._layout.paint( this.viewport.context );
+		this._layout.paint( this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop() );
 
 		this._needRepaint = false;
 
@@ -176,7 +188,7 @@ class HTML_Body extends TNode_Element {
 
 		this._layout.offsetTop   = -this.style.marginTop();
 		this._layout.offsetLeft  = -this.style.marginLeft();
-		this._layout.offsetWidth = this.viewport.width();
+		this._layout.offsetWidth = this.viewport.width() - this.viewport._scrollbarSize;
 		
 		this._layout.innerWidth  = this._layout.offsetWidth - this.style.paddingLeft() - this.style.paddingRight() - ( this.style.borderWidth() * 2 );
 		this._layout.innerTop    = this._layout.offsetTop + this.style.paddingTop() + this.style.borderWidth();
@@ -187,6 +199,8 @@ class HTML_Body extends TNode_Element {
 
 		this._layout.computeWidths( );
 		this._layout.computeHeights( this.style.marginTop() );
+
+		this.viewport.scrollTop( this.viewport.scrollTop() );
 
 		console.log( 'relayout completed in ' + ( Date.now() - now ) + ' ms.' );
 		//console.log( this._layout.serialize() );

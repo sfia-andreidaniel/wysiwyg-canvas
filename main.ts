@@ -5,6 +5,7 @@
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
 /// <reference path="./TNode/Element.ts" />
+/// <reference path="./TNode/Collection.ts" />
 
 /// <reference path="./HTMLParser.ts" />
 
@@ -19,6 +20,11 @@
 /// <reference path="./HTML/Bold.ts" />
 /// <reference path="./HTML/Italic.ts" />
 /// <reference path="./HTML/Underline.ts" />
+/// <reference path="./HTML/Anchor.ts" />
+/// <reference path="./HTML/BulletedList.ts" />
+/// <reference path="./HTML/OrderedList.ts" />
+/// <reference path="./HTML/ListItem.ts" />
+
 
 
 /// <reference path="TStyle.ts" />
@@ -43,55 +49,40 @@
 
 var viewport = new Viewport(),
     body = viewport.document,
-    p,
-    img,
-    img2,
-    img3,
-    h1, h2, h3, h4, h5;
+    niceHTML = [
+    	'<h1>Heading 1</h1>',
+    	'<p>The element above this paragraph is a <b>Heading 1</b></p>',
+    	'<h2>Heading 2</h2>',
+    	'<p>The element above this paragraph is a <b><i>Heading 2</i></b></p>',
+    	'<h3>Heading 3</h3>',
+    	'<h4>Heading 4</h4>',
+    	'<h5>Heading 5</h5>',
+    	'<p>The elements above this paragraph are representing a <b>H3</b>, <b>H4</b>, and a <b>H5</b>. </p>',
+    	'<h1>Anchoring</h1>',
+    	'<p>This text contains an anchor to <a href="http://www.google.com">Google</a>. Anchoring painting should be rendered on the word Google.</p>',
+    	'<h1>Lists</h1>',
+    	'<p>Bulleted...</p>',
+    	'<ul>',
+    		'<li>Item 1</li>',
+    		'<li>Item 2</li>',
+    		'<li>And this is the third element inside the bulleted <b>UL</b> list. The items should be rendered with discs in their left.</li>',
+    	'</ul>',
+    	'<p>Ordered...</p>',
+    	'<ol>',
+    		'<li>Item 1</li>',
+    		'<li>Item 2</li>',
+    		'<li>Item 3</li>',
+    	'</ol>',
+    	'<h2>Image handling</h2>',
+    	'<p>This is a <img align="right" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    	'<p>This is a <img align="left" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    	'<p>This is a <img align="left" src="./_assets/pic1.jpg" width="100" /> very nice paragraph at <img align="right" src="./_assets/pic1.jpg" width="100" /> the end of the document. Hope you enjoyed it.</p>',
+    	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
+    	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
+    ].join( '' );
 
-body.appendChild( h1 = body.createElement( 'h1' ) );
-body.appendChild( h2 = body.createElement( 'h2' ) );
-body.appendChild( h3 = body.createElement( 'h3' ) );
-body.appendChild( h4 = body.createElement( 'h4' ) );
-body.appendChild( h5 = body.createElement( 'h5' ) );
-
-
-body.appendChild( body.createTextNode( 'text before p' ) );
-
-body.appendChild( p = body.createElement('p') );
-
-body.appendChild( body.createTextNode( 'text after p' ) );
-
-body.style.borderWidth( '1' );
-body.style.borderColor( 'red' );
-body.style.backgroundColor( '#ddd' );
-
-p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
-
-p.appendChild( img = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
-
-p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.' ) );
-p.appendChild( body.createTextNode( 'The quick brown fox jumps over the lazy dog.' ) );
-
-p.appendChild( img2 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
-p.appendChild( img3 = <HTML_Image>body.createElement( 'img', '_assets/pic1.jpg' ) );
-
-h1.appendChild( body.createTextNode( 'This is a heading 1' ) );
-h2.appendChild( body.createTextNode( 'This is a heading 2' ) );
-h3.appendChild( body.createTextNode( 'This is a heading 3' ) );
-h4.appendChild( body.createTextNode( 'This is a heading 4' ) );
-h5.appendChild( body.createTextNode( 'This is a heading 5' ) );
-
-img.style.float( 'left' );
-img.style.marginLeft( '5' );
-img.style.marginRight( '5' );
-img2.style.float( 'right' );
-img2.style.marginRight( '10' );
-img3.style.float( 'right' );
-
-img.width( 40 );
-img2.width( 20 );
-img3.width( 50 );
+body.innerHTML( niceHTML );
 
 window.addEventListener( 'load', function() {
 	document.body.appendChild( viewport.canvas );

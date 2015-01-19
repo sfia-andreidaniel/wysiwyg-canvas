@@ -3,8 +3,7 @@ class HTML_Paragraph extends TNode_Element {
 		super();
 		this.nodeName = 'p';
 		this.style.display('block');
-		this.style.padding( '25' );
-		this.style.color( 'white' );
-		this.style.backgroundColor( '#333' );
+		this.style.marginTop( '5' );
+		this.style.marginBottom( '10' );
 	}
 }

@@ -287,7 +287,7 @@ class TNode_Element extends TNode {
 	}
 
 	/* Paints the node according to layout configuration */
-	public paint( ctx: any, layout: Layout ) {
+	public paint( ctx: any, layout: Layout, scrollLeft: number, scrollTop: number ) {
 
 		// paint border
 
@@ -305,14 +305,14 @@ class TNode_Element extends TNode {
 				ctx.lineWidth   = borderWidth;
 
 				ctx.beginPath();
-				ctx.strokeRect( layout.offsetLeft, layout.offsetTop, layout.offsetWidth, layout.offsetHeight );
+				ctx.strokeRect( layout.offsetLeft - scrollLeft, layout.offsetTop - scrollTop, layout.offsetWidth, layout.offsetHeight );
 				ctx.closePath();
 			}
 		}
 
 		if ( backgroundColor = this.style.backgroundColor() ) {
 			ctx.fillStyle = backgroundColor;
-			ctx.fillRect( layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
+			ctx.fillRect( layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
 		}
 
 	}
@@ -415,6 +415,91 @@ class TNode_Element extends TNode {
 				this.style.backgroundColor( String( attributeValue || '' ) );
 				break;
 		}
+	}
+
+	protected satisfiesQuery( query: any ) {
+		var cond: boolean,
+		    cursor: TNode_Element;
+		
+		for ( var k in query ) {
+
+			if ( query[k] === true ) {
+
+				cond = !!query[k] == this[k];
+
+			} else {
+				
+				switch ( true ) {
+					case k == 'parentNode':
+						cond = !!this.parentNode && this.parentNode.satisfiesQuery( query.parentNode )
+							? true
+							: false;
+						break;
+					case k == 'anyParentNode':
+						cond = false;
+						cursor = this.parentNode;
+						while ( cursor ) {
+							if ( cursor.satisfiesQuery( query.anyParentNode ) ) {
+								cond = true;
+								break;
+							}
+							cursor = cursor.parentNode;
+						}
+						break;
+					default:
+						cond = query[k] == this[k];
+						break;
+				}
+			}
+
+			if ( cond == false )
+				return false;
+		}
+		return true;
+	}
+
+	/* queryElements( {
+			"nodeName": "p",
+			"childNodes": true
+	   } ) 
+	*/
+
+	public queryAll( query: any, pushIn: TNode_Collection = null ): TNode_Collection {
+
+		pushIn = pushIn || new TNode_Collection();
+		query = query || {};
+
+		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+			if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) {
+				if ( (<TNode_Element>this.childNodes[i]).satisfiesQuery( query ) ) {
+					pushIn.add( <TNode_Element>this.childNodes[i] );
+				}
+				(<TNode_Element>this.childNodes[i]).queryAll( query, pushIn );
+			}
+		}
+
+		return pushIn;
+
+	}
+
+	public query( query: any ): TNode_Element {
+
+		var sub: TNode_Element;
+		query = query || {};
+		if ( this.satisfiesQuery( query ) ) {
+			return this;
+		} else {
+			for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+				if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) {
+					if ( sub = ( <TNode_Element>this.childNodes[i] ).query( query ) ) {
+						return sub;
+					}
+				}
+			}
+		}
+
+		return null;
+
 	}
 
 }

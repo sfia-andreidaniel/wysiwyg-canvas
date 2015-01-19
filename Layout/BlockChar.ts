@@ -121,12 +121,10 @@ class Layout_BlockChar extends Layout {
 		return topPlacement;
 	}
 
-	public paint( ctx: any ) {
+	public paint( ctx: any, scrollLeft: number, scrollTop: number ) {
 
 		var i: number = 0,
 			len: number = 0,
-		    startY: number = this.offsetTop,
-		    startX: number = this.offsetLeft,
 		    node: TNode_Element = this.ownerNode(),
 		    align: string = node.style.textAlign(),
 		    j: number = 0,
@@ -135,7 +133,9 @@ class Layout_BlockChar extends Layout {
 		    l: number = 0,
 		    wordGap: boolean = ( align == 'justified' ),
 		    lineHeight: number = node.style.lineHeight(),
-		    lineDiff: number = 0;
+		    lineDiff: number = 0,
+		    startY: number = this.offsetTop - scrollTop,
+		    startX: number = this.offsetLeft;
 
 		ctx.textAlign = align || 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -158,6 +158,8 @@ class Layout_BlockChar extends Layout {
 					startX = this.offsetLeft;
 					break;
 			}
+
+			startX -= scrollLeft;
 
 			// ctx.fillRect( this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1] );
 

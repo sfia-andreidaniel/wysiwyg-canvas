@@ -1,7 +1,10 @@
 class Viewport extends Events {
 	
-	private _width  : number    = 500;
-	private _height : number    = 500;
+	private _width         : number = 500;
+	private _height        : number = 500;
+	public  _scrollbarSize : number = 10;
+	private _scrollTop     : number = 0;
+	private _scrollLeft    : number = 0;
 	
 	public  canvas              = document.createElement( 'canvas' );
 	public  context             = null;
@@ -17,10 +20,22 @@ class Viewport extends Events {
 		this.canvas.tabIndex = 0;
 
 		( function( me ) {
+			
 			me.painter = new Throttler( function() {
+				
 				if ( me.document )
 					me.document.repaint();
+
+				me.paintScrollbars();
+
 			}, 10 );
+
+			me.canvas.addEventListener( 'mousewheel', function( DOMEvent ) {
+				me.scrollTop( me.scrollTop() + ( DOMEvent.wheelDelta < 0 ? 12 : -12 ) );
+				DOMEvent.preventDefault();
+				DOMEvent.stopPropagation();
+			}, true );
+
 		})( this );
 		
 
@@ -63,6 +78,91 @@ class Viewport extends Events {
 			this.canvas.height = this._height;
 			this.document.requestRelayout();
 			return this._height;
+		}
+	}
+
+	public scrollTop( value: number = null ): number {
+		if ( value === null ) {
+			//getter
+			return this._scrollTop;
+		} else {
+			
+			if ( this.document && this.document._layout ) {
+
+				if ( ( value + this._height - this._scrollbarSize ) > ( this.document._layout.offsetHeight + this.document._layout.offsetTop ) ) {
+					value = this.document._layout.offsetHeight + this.document._layout.offsetTop - this._height + this._scrollbarSize;
+				}
+
+				if ( value < 0 ) {
+					value = 0;
+				}
+
+				value = Math.round( value );
+
+				if ( value != this._scrollTop ) {
+					this._scrollTop = value;
+					this.document.requestRepaint();
+				}
+
+
+			}
+
+			return this._scrollTop;
+		}
+	}
+
+	public scrollLeft( value: number = null ): number {
+		if ( value === null ) {
+			return this._scrollLeft;
+		} else {
+			throw "not implemented scrollLeft";
+		}
+	}
+
+	// paints the scrollbars on the canvas context
+	public paintScrollbars() {
+
+		if ( !this.document ) {
+			return;
+		}
+
+		var physScrollHeight: number = 0,
+		    physScrollWidth : number = 0,
+		    docWidth        : number = 0,
+		    docHeight       : number = this.document._layout.offsetHeight + this.document._layout.offsetTop,
+		    physScrollXShoe : number = 0,
+		    physScrollYShoe : number = 0,
+		    yScale          : number = 0;
+
+		this.context.fillStyle = '#ddd';
+		this.context.fillRect( physScrollWidth = ( this._width - this._scrollbarSize ), 0, this._scrollbarSize, this._height - this._scrollbarSize + 1 );
+		this.context.fillRect( 0, physScrollHeight = ( this._height - this._scrollbarSize ), this._width - this._scrollbarSize, this._scrollbarSize );
+
+		docWidth = physScrollWidth;
+
+		physScrollYShoe = yScale = physScrollHeight / docHeight;
+
+		physScrollYShoe = physScrollYShoe <= 1
+			? physScrollHeight * physScrollYShoe
+			: 0;
+
+		if ( physScrollYShoe != 0 ) {
+			physScrollYShoe = ~~physScrollYShoe;
+		}
+
+		this.context.fillStyle = "#888";
+
+		if ( physScrollYShoe ) {
+			this.context.fillRect( this._width - this._scrollbarSize, ( this._scrollTop * yScale ), this._scrollbarSize, physScrollYShoe );
+		}
+
+	}
+
+	public value( v: string = null ): string {
+		if ( v === null ) {
+			return this.document.innerHTML();
+		} else {
+			this.document.innerHTML( v );
 		}
 	}
 

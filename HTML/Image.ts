@@ -47,10 +47,16 @@ class HTML_Image extends TNode_Element {
 	}
 
 	public setAttribute( attributeName: string, attributeValue: string ) {
-		if ( attributeName == 'src' ) {
-			this.src( attributeValue || null );
-		} else {
-			super.setAttribute( attributeName, attributeValue );
+		switch ( attributeName ) {
+			case 'src':
+				this.src( attributeValue || null );
+				break;
+			case 'align':
+				this.style.float( attributeValue || '' );
+				break;
+			default:
+				super.setAttribute( attributeName, attributeValue );
+				break;	
 		}
 	}
 
@@ -96,9 +102,9 @@ class HTML_Image extends TNode_Element {
 		}
 	}
 
-	public paint( ctx: any, layout: Layout ) {
+	public paint( ctx: any, layout: Layout, scrollLeft: number, scrollTop: number ) {
 		
-		super.paint( ctx, layout );
+		super.paint( ctx, layout, scrollLeft, scrollTop );
 
 		if ( this.loaded ) {
 			
@@ -106,7 +112,7 @@ class HTML_Image extends TNode_Element {
 
 			} else {
 
-				ctx.drawImage( this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft, layout.innerTop, layout.innerWidth, layout.innerHeight );
+				ctx.drawImage( this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight );
 
 			}
 

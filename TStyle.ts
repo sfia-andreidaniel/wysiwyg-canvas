@@ -24,6 +24,7 @@ class TStyle {
 	public _fontWeight      : TStyle_String;
 	public _textDecoration  : TStyle_String;
 	public _lineHeight      : TStyle_Dimension;
+	public _textAlign       : TStyle_String;
 
 	public _display         : TStyle_String;
 	public _float           : TStyle_String;
@@ -67,6 +68,13 @@ class TStyle {
 		"center"
 	];
 
+	static $TextAlign: string[] = [
+		'left',
+		'right',
+		'center',
+		'justified'
+	];
+
 	constructor( public node: TNode_Element ) {
 		this._width = new TStyle_Dimension( this, 'width' );
 		this._height= new TStyle_Dimension( this, 'height' );
@@ -90,6 +98,7 @@ class TStyle {
 		this._fontWeight = new TStyle_String( this, 'fontWeight', TStyle.$FontWeight );
 		this._textDecoration = new TStyle_String( this, 'textDecoration', TStyle.$TextDecoration );
 		this._lineHeight = new TStyle_Dimension( this, 'lineHeight' );
+		this._textAlign = new TStyle_String( this, 'textAlign', TStyle.$TextAlign );
 
 		this._display = new TStyle_String( this, 'display', TStyle.$Display );
 		this._float = new TStyle_String( this, 'float', TStyle.$Floats );
@@ -269,6 +278,14 @@ class TStyle {
 		}
 	}
 
+	// the text that is used on the canvas context for fontStyle
+	public fontStyleText(): string {
+		return ( this.fontStyle() == 'italic' ? 'italic ' : '' ) +
+			   ( this.fontWeight() == 'bold'  ? 'bold ' : '' ) +
+			   ( this.fontSize() ) + 'px ' +
+			   this.fontFamily();
+	}
+
 	public textDecoration( v: string = null ): string {
 		if ( v === null ) {
 			return this._textDecoration.get();
@@ -341,6 +358,18 @@ class TStyle {
 		this._paddingTop.isSet = true;
 
 		this.node.requestRelayout();
+	}
+
+	public textAlign( value: string = null ): string {
+		if ( value === null ) {
+			//getter
+			return this._textAlign.get();
+		} else {
+			//setter
+			this._textAlign.set( value );
+			this.node.requestRepaint();
+			return value;
+		}
 	}
 
 	public offsetWidth(): number {

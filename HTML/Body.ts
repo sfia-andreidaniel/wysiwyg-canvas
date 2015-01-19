@@ -5,6 +5,35 @@ class HTML_Body extends TNode_Element {
 	public  _layout: Layout = null;
 	public  viewport: Viewport = null;
 
+	public static AUTOCLOSE_TAGS: string[] = [
+		'br',
+		'canvas',
+		'input',
+		'hr',
+		'img'
+	];
+
+	public static FORCE_TEXT_NODES: string[] = [
+		'pre',
+		'script',
+		'textarea',
+		'style',
+		'code'
+	];
+
+	public static IGNORE_ELEMENTS: string[] = [
+		'head',
+		'style',
+		'script',
+		'iframe'
+	];
+
+	public static TRAVERSE_ELEMENTS: string[] = [
+		'html',
+		'body',
+		'span'
+	];
+
 	constructor( viewport: Viewport ) {
 		super();
 
@@ -23,6 +52,7 @@ class HTML_Body extends TNode_Element {
 		this.style.textDecoration( 'none' );
 		this.style.lineHeight( '1.2' );
 		this.style.padding( '5' );
+		this.style.color( 'black' );
 
 		this.relayout();
 	}
@@ -46,8 +76,33 @@ class HTML_Body extends TNode_Element {
 			case 'img':
 				node = new HTML_Image( String( args[0] || '' ) || null );
 				break;
+			case 'h1':
+				node = new HTML_Heading1();
+				break;
+			case 'h2':
+				node = new HTML_Heading2();
+				break;
+			case 'h3':
+				node = new HTML_Heading3();
+				break;
+			case 'h4':
+				node = new HTML_Heading4();
+				break;
+			case 'h5':
+				node = new HTML_Heading5();
+				break;
+			case 'b':
+				node = new HTML_Bold();
+				break;
+			case 'i':
+				node = new HTML_Italic();
+				break;
+			case 'u':
+				node = new HTML_Underline();
+				break;
 			default:
 				node = new TNode_Element();
+				node.nodeName = elementName;
 				break;
 		}
 
@@ -81,6 +136,7 @@ class HTML_Body extends TNode_Element {
 	}
 
 	public repaint() {
+
 		// repaints the document
 		var now = Date.now();
 
@@ -91,6 +147,8 @@ class HTML_Body extends TNode_Element {
 		if ( this._needRelayout ) {
 			this.relayout();
 		}
+
+		this.viewport.context.clearRect( 0, 0, this.viewport.width(), this.viewport.height() );
 
 		this._layout.paint( this.viewport.context );
 
@@ -131,7 +189,7 @@ class HTML_Body extends TNode_Element {
 		this._layout.computeHeights( this.style.marginTop() );
 
 		console.log( 'relayout completed in ' + ( Date.now() - now ) + ' ms.' );
-		console.log( this._layout.serialize() );
+		//console.log( this._layout.serialize() );
 
 		this._needRelayout = false;
 

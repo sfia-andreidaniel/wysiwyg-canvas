@@ -46,6 +46,14 @@ class HTML_Image extends TNode_Element {
 
 	}
 
+	public setAttribute( attributeName: string, attributeValue: string ) {
+		if ( attributeName == 'src' ) {
+			this.src( attributeValue || null );
+		} else {
+			super.setAttribute( attributeName, attributeValue );
+		}
+	}
+
 	public width( size: string = null ): string {
 		if ( size === null ) {
 			// getter

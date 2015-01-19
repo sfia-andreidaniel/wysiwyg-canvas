@@ -163,6 +163,8 @@ var TNode_Element = (function (_super) {
         this.childNodes = [];
         this.nodeType = 2 /* ELEMENT */;
         this.nodeName = '';
+        this.id = '';
+        this.className = '';
         this.style = new TStyle(this);
     }
     TNode_Element.prototype.appendChild = function (node, index) {
@@ -349,7 +351,8 @@ var TNode_Element = (function (_super) {
             }
         }
         else {
-            throw "node.innerHTML: Setter not implemented yet!";
+            var nodes = (new HTMLParser(this.documentElement, setter)).NODES;
+            this.setInnerNodes(nodes);
         }
     };
     TNode_Element.prototype.outerHTML = function (setter) {
@@ -397,8 +400,257 @@ var TNode_Element = (function (_super) {
             ctx.fillRect(layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
         }
     };
+    // makes the array of nodes @nodesList childNodes of this element.
+    // if @scope is null, the contents of this element will be erased before.
+    // if @scope is NOT null, the setInnerNodes method will be executed on
+    //    @scope instead of this element.
+    TNode_Element.prototype.setInnerNodes = function (nodesList, scope) {
+        if (scope === void 0) { scope = null; }
+        var len = this.childNodes.length, i = 0, j = 0, n = 0, clearNodes = scope === null, node = null, nodeName = '';
+        scope = scope || this;
+        if (clearNodes)
+            scope.childNodes.splice(0, len); // clear the child nodes of this element
+        for (i = 0, len = nodesList.length; i < len; i++) {
+            switch (nodesList[i].type) {
+                case 'node':
+                    nodeName = nodesList[i].nodeName;
+                    if (HTML_Body.IGNORE_ELEMENTS.indexOf(nodeName) == -1) {
+                        if (HTML_Body.TRAVERSE_ELEMENTS.indexOf(nodeName) == -1) {
+                            node = scope.documentElement.createElement(nodeName);
+                            scope.appendChild(node);
+                            if (nodesList[i].attributes && (n = nodesList[i].attributes.length)) {
+                                for (j = 0; j < n; j++) {
+                                    node.setAttribute(nodesList[i].attributes[j].name, nodesList[i].attributes[j].value);
+                                }
+                            }
+                        }
+                        else {
+                            node = scope;
+                        }
+                        if (nodesList[i].children && nodesList[i].children.length) {
+                            node.setInnerNodes(nodesList[i].children, node);
+                        }
+                    }
+                    break;
+                case '#text':
+                    scope.appendChild(scope.documentElement.createTextNode(nodesList[i].value));
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+    TNode_Element.prototype.setAttribute = function (attributeName, attributeValue) {
+        if (attributeName === void 0) { attributeName = ''; }
+        if (attributeValue === void 0) { attributeValue = null; }
+        switch (attributeName) {
+            case 'id':
+                this.id = String(attributeValue || '');
+                break;
+            case 'class':
+                this.className = String(attributeValue || '');
+                break;
+            case 'align':
+                this.style.textAlign(String(attributeValue || ''));
+                break;
+            case 'color':
+                this.style.color(String(attributeValue || ''));
+                break;
+            case 'width':
+                this.style.width(String(attributeValue || ''));
+                break;
+            case 'height':
+                this.style.height(String(attributeValue || ''));
+                break;
+            case 'bgcolor':
+                this.style.backgroundColor(String(attributeValue || ''));
+                break;
+        }
+    };
     return TNode_Element;
 })(TNode);
+var HTMLParser = (function () {
+    function HTMLParser(document, data) {
+        this.document = document;
+        this.NODES = [];
+        this.loops = 0;
+        if (data)
+            this.parse(data, null);
+    }
+    HTMLParser.READ_TEXT = function (data) {
+        var matches = /^[^\<]+/.exec(data);
+        if (matches) {
+            return matches[0];
+        }
+        else
+            return null;
+    };
+    HTMLParser.READ_ATTRIBUTE = function (data) {
+        if (/^[\s]+$/.test(data))
+            return null;
+        var out = {
+            "name": null,
+            "value": null,
+            "clearBuffer": null
+        }, matches;
+        if (matches = /^([\s]+)?([^\"\'\=]+)(\=([^\"\'\s]+|\"[^\"]+\"|\'[^\']+')?)?([\s]+)?/.exec(data)) {
+            out.name = matches[2];
+            out.value = matches[4];
+            out.clearBuffer = matches[0];
+            if (out.value.length >= 2 && ((out.value[0] == '"' && out.value[out.value.length - 1] == '"') || (out.value[0] == "'" && out.value[out.value.length - 1] == "'"))) {
+                out.value = out.value.substr(1, out.value.length - 2);
+            }
+            return out;
+        }
+        else
+            return null;
+    };
+    HTMLParser.READ_NODE = function (data, doc) {
+        var out = {
+            "nodeName": "",
+            "autoClose": false,
+            "clearBuffer": "",
+            "attributes": [],
+            "children": []
+        }, matches, matches1, attribute, textContents = '', r, insensitive = true;
+        if (matches = /^\<([^\s\>\/]+)([^\>]+)?\>/.exec(data)) {
+            out.clearBuffer = matches[0];
+            if (matches[1] && /\/$/.test(matches[1])) {
+                matches[1] = matches[1].substr(0, matches[1].length - 1);
+                out.autoClose = true;
+            }
+            out.nodeName = insensitive ? matches[1].toLowerCase() : matches[1];
+            if (!out.autoClose && HTML_Body.AUTOCLOSE_TAGS.indexOf(out.nodeName) >= 0)
+                out.autoClose = true;
+            if (matches[2]) {
+                if (/\/$/.test(matches[2]))
+                    matches[2] = matches[2].substr(0, matches[2].length - 1);
+                while (matches[2] && (attribute = HTMLParser.READ_ATTRIBUTE(matches[2]))) {
+                    matches[2] = matches[2].substr(attribute.clearBuffer.length);
+                    out.attributes.push({ "name": attribute.name, "value": attribute.value });
+                }
+            }
+            /* If the node is one of type with unescaped text, read it's text content,
+               append a child text node inside it, set autoClose to false, and return up
+               to the close tag
+            */
+            if (HTML_Body.FORCE_TEXT_NODES.indexOf(out.nodeName) >= 0 && !out.autoClose) {
+                r = new RegExp('([\\s\\S]+)?<\\/' + out.nodeName + '([\s]+)?>', insensitive ? 'i' : '');
+                matches1 = r.exec(data.substr(matches[0].length));
+                if (matches1) {
+                    textContents = matches1[1];
+                    out.clearBuffer = out.clearBuffer.concat(textContents);
+                    out.children.push({
+                        "type": "#text",
+                        "value": textContents
+                    });
+                }
+                else {
+                    // consider all the text upto the end of the string is the text contents of this node
+                    out.clearBuffer = data;
+                }
+            }
+            return out;
+        }
+        else
+            return null;
+    };
+    HTMLParser.READ_END_NODE = function (data, nodeName, doc) {
+        if (!data)
+            throw "ERR_UNEXPECTED_END_OF_BUFFER";
+        var matches;
+        if (matches = (new RegExp('^<\\/' + nodeName + '([\\s]+)?>', 'i')).exec(data)) {
+            return matches[0];
+        }
+        else
+            return null;
+    };
+    HTMLParser.READ_COMMENT = function (data) {
+        var matches;
+        if (matches = /^<\!--([\s\S]+)?\-\-\>/.exec(data)) {
+            return {
+                "value": matches[1] || '',
+                "clearBuffer": matches[0]
+            };
+        }
+        else
+            return null;
+    };
+    HTMLParser.READ_CDATA = function (data) {
+        var matches;
+        if (matches = /^\<\!\[CDATA\[([\s\S]+)?\]\]\>/.exec(data)) {
+            return {
+                "value": matches[1] || '',
+                "clearBuffer": matches[0]
+            };
+        }
+        else
+            return null;
+    };
+    HTMLParser.prototype.parse = function (data, pushIn) {
+        this.loops++;
+        if (this.loops > 1000000)
+            throw "ERR_DOCUMENT_TOO_BIG";
+        var token1 = '', token2 = {}, token3 = '', subData = '';
+        pushIn = pushIn || null;
+        if (pushIn === null) {
+            this.NODES = [];
+            this.loops = 1;
+            pushIn = this.NODES;
+            data = data.replace(/(^[\s]+|[\s]+$)/g, '').replace(/\>[\s]+\</g, '><');
+        }
+        while (data) {
+            if ((token1 = HTMLParser.READ_TEXT(data)) !== null) {
+                pushIn.push({
+                    "type": "#text",
+                    "value": token1
+                });
+                data = data.substr(token1.length);
+            }
+            else {
+                if ((token2 = HTMLParser.READ_COMMENT(data)) !== null) {
+                    token2.type = 'comment';
+                    data = data.substr(token2.clearBuffer.length);
+                    delete token2.clearBuffer;
+                    pushIn.push(token2);
+                }
+                else {
+                    if ((token2 = HTMLParser.READ_CDATA(data)) !== null) {
+                        token2.type = 'cdata';
+                        data = data.substr(token2.clearBuffer.length);
+                        delete token2.clearBuffer;
+                        pushIn.push(token2);
+                    }
+                    else {
+                        if ((token2 = HTMLParser.READ_NODE(data, this.document)) !== null) {
+                            token2.type = 'node';
+                            pushIn.push(token2);
+                            data = data.substr(token2['clearBuffer'].length);
+                            delete token2.clearBuffer;
+                            if (!token2['autoClose']) {
+                                while (!(token3 = HTMLParser.READ_END_NODE(data, token2.nodeName, this.document))) {
+                                    subData = this.parse(data, token2.children);
+                                    if (subData != data) {
+                                        data = subData;
+                                    }
+                                    else {
+                                        token3 = '';
+                                        break;
+                                    }
+                                }
+                                data = data.substr(token3.length);
+                            }
+                        }
+                        else
+                            return data;
+                    }
+                }
+            }
+        }
+        return data;
+    };
+    return HTMLParser;
+})();
 var HTML_Body = (function (_super) {
     __extends(HTML_Body, _super);
     function HTML_Body(viewport) {
@@ -421,6 +673,7 @@ var HTML_Body = (function (_super) {
         this.style.textDecoration('none');
         this.style.lineHeight('1.2');
         this.style.padding('5');
+        this.style.color('black');
         this.relayout();
     }
     HTML_Body.prototype.createTextNode = function (textContents) {
@@ -442,8 +695,33 @@ var HTML_Body = (function (_super) {
             case 'img':
                 node = new HTML_Image(String(args[0] || '') || null);
                 break;
+            case 'h1':
+                node = new HTML_Heading1();
+                break;
+            case 'h2':
+                node = new HTML_Heading2();
+                break;
+            case 'h3':
+                node = new HTML_Heading3();
+                break;
+            case 'h4':
+                node = new HTML_Heading4();
+                break;
+            case 'h5':
+                node = new HTML_Heading5();
+                break;
+            case 'b':
+                node = new HTML_Bold();
+                break;
+            case 'i':
+                node = new HTML_Italic();
+                break;
+            case 'u':
+                node = new HTML_Underline();
+                break;
             default:
                 node = new TNode_Element();
+                node.nodeName = elementName;
                 break;
         }
         node.nodeName = elementName;
@@ -482,6 +760,7 @@ var HTML_Body = (function (_super) {
         if (this._needRelayout) {
             this.relayout();
         }
+        this.viewport.context.clearRect(0, 0, this.viewport.width(), this.viewport.height());
         this._layout.paint(this.viewport.context);
         this._needRepaint = false;
         console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
@@ -509,9 +788,34 @@ var HTML_Body = (function (_super) {
         this._layout.computeWidths();
         this._layout.computeHeights(this.style.marginTop());
         console.log('relayout completed in ' + (Date.now() - now) + ' ms.');
-        console.log(this._layout.serialize());
+        //console.log( this._layout.serialize() );
         this._needRelayout = false;
     };
+    HTML_Body.AUTOCLOSE_TAGS = [
+        'br',
+        'canvas',
+        'input',
+        'hr',
+        'img'
+    ];
+    HTML_Body.FORCE_TEXT_NODES = [
+        'pre',
+        'script',
+        'textarea',
+        'style',
+        'code'
+    ];
+    HTML_Body.IGNORE_ELEMENTS = [
+        'head',
+        'style',
+        'script',
+        'iframe'
+    ];
+    HTML_Body.TRAVERSE_ELEMENTS = [
+        'html',
+        'body',
+        'span'
+    ];
     return HTML_Body;
 })(TNode_Element);
 var HTML_Paragraph = (function (_super) {
@@ -521,6 +825,8 @@ var HTML_Paragraph = (function (_super) {
         this.nodeName = 'p';
         this.style.display('block');
         this.style.padding('25');
+        this.style.color('white');
+        this.style.backgroundColor('#333');
     }
     return HTML_Paragraph;
 })(TNode_Element);
@@ -567,6 +873,14 @@ var HTML_Image = (function (_super) {
             this.error = false;
             this.node.setAttribute('src', String(source || ''));
             this.requestRelayout();
+        }
+    };
+    HTML_Image.prototype.setAttribute = function (attributeName, attributeValue) {
+        if (attributeName == 'src') {
+            this.src(attributeValue || null);
+        }
+        else {
+            _super.prototype.setAttribute.call(this, attributeName, attributeValue);
         }
     };
     HTML_Image.prototype.width = function (size) {
@@ -629,6 +943,92 @@ var HTML_Image = (function (_super) {
     };
     return HTML_Image;
 })(TNode_Element);
+var HTML_Heading1 = (function (_super) {
+    __extends(HTML_Heading1, _super);
+    function HTML_Heading1() {
+        _super.call(this);
+        this.nodeName = 'h1';
+        this.style.display('block');
+        this.style.fontSize('18');
+        this.style.fontWeight('bold');
+    }
+    return HTML_Heading1;
+})(TNode_Element);
+var HTML_Heading2 = (function (_super) {
+    __extends(HTML_Heading2, _super);
+    function HTML_Heading2() {
+        _super.call(this);
+        this.nodeName = 'h2';
+        this.style.display('block');
+        this.style.fontSize('17');
+        this.style.fontWeight('bold');
+    }
+    return HTML_Heading2;
+})(TNode_Element);
+var HTML_Heading3 = (function (_super) {
+    __extends(HTML_Heading3, _super);
+    function HTML_Heading3() {
+        _super.call(this);
+        this.nodeName = 'h3';
+        this.style.display('block');
+        this.style.fontSize('17');
+        this.style.fontWeight('bold');
+        this.style.fontStyle('italic');
+    }
+    return HTML_Heading3;
+})(TNode_Element);
+var HTML_Heading4 = (function (_super) {
+    __extends(HTML_Heading4, _super);
+    function HTML_Heading4() {
+        _super.call(this);
+        this.nodeName = 'h4';
+        this.style.display('block');
+        this.style.fontSize('16');
+        this.style.fontWeight('bold');
+    }
+    return HTML_Heading4;
+})(TNode_Element);
+var HTML_Heading5 = (function (_super) {
+    __extends(HTML_Heading5, _super);
+    function HTML_Heading5() {
+        _super.call(this);
+        this.nodeName = 'h5';
+        this.style.display('block');
+        this.style.fontSize('15');
+        this.style.fontWeight('bold');
+    }
+    return HTML_Heading5;
+})(TNode_Element);
+var HTML_Bold = (function (_super) {
+    __extends(HTML_Bold, _super);
+    function HTML_Bold() {
+        _super.call(this);
+        this.nodeName = 'b';
+        this.style.display('inline');
+        this.style.fontWeight('bold');
+    }
+    return HTML_Bold;
+})(TNode_Element);
+var HTML_Italic = (function (_super) {
+    __extends(HTML_Italic, _super);
+    function HTML_Italic() {
+        _super.call(this);
+        this.nodeName = 'i';
+        this.style.display('inline');
+        this.style.fontStyle('italic');
+    }
+    return HTML_Italic;
+})(TNode_Element);
+var HTML_Underline = (function (_super) {
+    __extends(HTML_Underline, _super);
+    function HTML_Underline() {
+        _super.call(this);
+        this.nodeName = 'u';
+        this.style.display('inline');
+        this.style.textDecoration('underline');
+    }
+    return HTML_Underline;
+})(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
         this.node = node;
@@ -650,6 +1050,7 @@ var TStyle = (function () {
         this._fontWeight = new TStyle_String(this, 'fontWeight', TStyle.$FontWeight);
         this._textDecoration = new TStyle_String(this, 'textDecoration', TStyle.$TextDecoration);
         this._lineHeight = new TStyle_Dimension(this, 'lineHeight');
+        this._textAlign = new TStyle_String(this, 'textAlign', TStyle.$TextAlign);
         this._display = new TStyle_String(this, 'display', TStyle.$Display);
         this._float = new TStyle_String(this, 'float', TStyle.$Floats);
         this._color = new TStyle_Color(this, 'color', true);
@@ -843,6 +1244,10 @@ var TStyle = (function () {
             return v;
         }
     };
+    // the text that is used on the canvas context for fontStyle
+    TStyle.prototype.fontStyleText = function () {
+        return (this.fontStyle() == 'italic' ? 'italic ' : '') + (this.fontWeight() == 'bold' ? 'bold ' : '') + (this.fontSize()) + 'px ' + this.fontFamily();
+    };
     TStyle.prototype.textDecoration = function (v) {
         if (v === void 0) { v = null; }
         if (v === null) {
@@ -914,6 +1319,19 @@ var TStyle = (function () {
         this._paddingLeft.isSet = this._paddingRight.isSet = this._paddingBottom.isSet = this._paddingTop.isSet = true;
         this.node.requestRelayout();
     };
+    TStyle.prototype.textAlign = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            //getter
+            return this._textAlign.get();
+        }
+        else {
+            //setter
+            this._textAlign.set(value);
+            this.node.requestRepaint();
+            return value;
+        }
+    };
     TStyle.prototype.offsetWidth = function () {
         return this.borderWidth() + this.paddingLeft() + this.width() + this.paddingRight() + this.borderWidth();
     };
@@ -948,6 +1366,12 @@ var TStyle = (function () {
         "left",
         "right",
         "center"
+    ];
+    TStyle.$TextAlign = [
+        'left',
+        'right',
+        'center',
+        'justified'
     ];
     return TStyle;
 })();
@@ -1815,12 +2239,35 @@ var Layout_BlockChar = (function (_super) {
         return topPlacement;
     };
     Layout_BlockChar.prototype.paint = function (ctx) {
-        var i = 0, len = 0, start = this.offsetTop;
-        ctx.fillStyle = 'green';
-        ctx.lineWidth = .5;
+        var i = 0, len = 0, startY = this.offsetTop, startX = this.offsetLeft, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0;
+        ctx.textAlign = align || 'left';
+        ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
-            ctx.fillRect(this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1]);
-            start += this.lines[i].size[1];
+            lineDiff = this.lines[i].size[1] / lineHeight;
+            switch (align) {
+                case 'right':
+                    startX = this.offsetWidth - (this.offsetWidth - this.lines[i].size[0]);
+                    break;
+                case 'center':
+                    startX = this.offsetLeft + (this.offsetWidth / 2) - (this.lines[i].size[0] / 2);
+                    break;
+                case 'justified':
+                    startX = this.offsetLeft;
+                    break;
+                default:
+                    startX = this.offsetLeft;
+                    break;
+            }
+            for (j = 0, n = this.lines[i].words.length; j < n; j++) {
+                for (k = 0, l = this.lines[i].words[j].characters.length; k < l; k++) {
+                    ctx.font = this.lines[i].words[j].characters[k].node.parentNode.style.fontStyleText();
+                    ctx.fillStyle = this.lines[i].words[j].characters[k].node.parentNode.style.color();
+                    ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff);
+                    startX += this.lines[i].words[j].characters[k].computeSize()[0];
+                }
+                startX += (wordGap ? this.lines[i].wordGap : 0);
+            }
+            startY += this.lines[i].size[1];
         }
     };
     return Layout_BlockChar;
@@ -1893,9 +2340,18 @@ var Viewport = (function (_super) {
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
 /// <reference path="./TNode/Element.ts" />
+/// <reference path="./HTMLParser.ts" />
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
 /// <reference path="./HTML/Image.ts" />
+/// <reference path="./HTML/Heading1.ts" />
+/// <reference path="./HTML/Heading2.ts" />
+/// <reference path="./HTML/Heading3.ts" />
+/// <reference path="./HTML/Heading4.ts" />
+/// <reference path="./HTML/Heading5.ts" />
+/// <reference path="./HTML/Bold.ts" />
+/// <reference path="./HTML/Italic.ts" />
+/// <reference path="./HTML/Underline.ts" />
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -1912,7 +2368,12 @@ var Viewport = (function (_super) {
 /// <reference path="Layout/Block.ts" />
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Viewport.ts" />
-var viewport = new Viewport(), body = viewport.document, p, img, img2, img3;
+var viewport = new Viewport(), body = viewport.document, p, img, img2, img3, h1, h2, h3, h4, h5;
+body.appendChild(h1 = body.createElement('h1'));
+body.appendChild(h2 = body.createElement('h2'));
+body.appendChild(h3 = body.createElement('h3'));
+body.appendChild(h4 = body.createElement('h4'));
+body.appendChild(h5 = body.createElement('h5'));
 body.appendChild(body.createTextNode('text before p'));
 body.appendChild(p = body.createElement('p'));
 body.appendChild(body.createTextNode('text after p'));
@@ -1925,6 +2386,11 @@ p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog. 
 p.appendChild(body.createTextNode('The quick brown fox jumps over the lazy dog.'));
 p.appendChild(img2 = body.createElement('img', '_assets/pic1.jpg'));
 p.appendChild(img3 = body.createElement('img', '_assets/pic1.jpg'));
+h1.appendChild(body.createTextNode('This is a heading 1'));
+h2.appendChild(body.createTextNode('This is a heading 2'));
+h3.appendChild(body.createTextNode('This is a heading 3'));
+h4.appendChild(body.createTextNode('This is a heading 4'));
+h5.appendChild(body.createTextNode('This is a heading 5'));
 img.style.float('left');
 img.style.marginLeft('5');
 img.style.marginRight('5');

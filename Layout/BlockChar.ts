@@ -125,19 +125,59 @@ class Layout_BlockChar extends Layout {
 
 		var i: number = 0,
 			len: number = 0,
-		    start: number = this.offsetTop;
+		    startY: number = this.offsetTop,
+		    startX: number = this.offsetLeft,
+		    node: TNode_Element = this.ownerNode(),
+		    align: string = node.style.textAlign(),
+		    j: number = 0,
+		    n: number = 0,
+		    k: number = 0,
+		    l: number = 0,
+		    wordGap: boolean = ( align == 'justified' ),
+		    lineHeight: number = node.style.lineHeight(),
+		    lineDiff: number = 0;
 
-		ctx.fillStyle = 'green';
-		ctx.lineWidth = .5;
+		ctx.textAlign = align || 'left';
+		ctx.textBaseline = 'alphabetic';
 
 		for ( i=0, len = this.lines.length; i<len; i++ ) {
 
-			ctx.fillRect( this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1] );
+			lineDiff = this.lines[i].size[1] / lineHeight;
 
-			start += this.lines[i].size[1];
+			switch ( align ) {
+				case 'right':
+					startX = this.offsetWidth - ( this.offsetWidth - this.lines[i].size[0] );
+					break;
+				case 'center':
+					startX = this.offsetLeft + ( this.offsetWidth / 2 ) - ( this.lines[i].size[0] / 2 );
+					break;
+				case 'justified':
+					startX = this.offsetLeft;
+					break;
+				default:
+					startX = this.offsetLeft;
+					break;
+			}
 
+			// ctx.fillRect( this.offsetLeft, start, this.offsetWidth, this.lines[i].size[1] );
+
+			for ( j=0, n = this.lines[i].words.length; j<n; j++ ) {
+
+				for ( k = 0, l = this.lines[i].words[j].characters.length; k<l; k++ ) {
+
+					ctx.font = this.lines[i].words[j].characters[k].node.parentNode.style.fontStyleText();
+					ctx.fillStyle = this.lines[i].words[j].characters[k].node.parentNode.style.color();
+					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff );
+					startX += this.lines[i].words[j].characters[k].computeSize()[0];
+
+				}
+
+				startX += ( wordGap ? this.lines[i].wordGap : 0 );
+
+			}
+
+			startY += this.lines[i].size[1];
 		}
-
 
 	}
 

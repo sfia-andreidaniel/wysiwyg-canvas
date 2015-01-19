@@ -4,6 +4,8 @@ class TNode_Element extends TNode {
 	public style: TStyle;
 	public nodeType: TNode_Type = TNode_Type.ELEMENT;
 	public nodeName: string = '';
+	public id: string = '';
+	public className: string = '';
 
 	constructor() {
 		super();
@@ -253,7 +255,9 @@ class TNode_Element extends TNode {
 				return out.join( '' );
 			}
 		} else {
-			throw "node.innerHTML: Setter not implemented yet!";
+
+			var nodes = ( new HTMLParser( this.documentElement, setter ) ).NODES;
+			this.setInnerNodes( nodes );
 		}
 	}
 
@@ -311,6 +315,106 @@ class TNode_Element extends TNode {
 			ctx.fillRect( layout.offsetLeft + borderWidth, layout.offsetTop + borderWidth, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
 		}
 
+	}
+
+	// makes the array of nodes @nodesList childNodes of this element.
+	// if @scope is null, the contents of this element will be erased before.
+	// if @scope is NOT null, the setInnerNodes method will be executed on
+	//    @scope instead of this element.
+	public setInnerNodes( nodesList: any[], scope: TNode_Element = null ) {
+
+		var len: number = this.childNodes.length,
+		    i: number = 0,
+		    j: number = 0,
+		    n: number = 0,
+		    clearNodes: boolean = scope === null,
+		    node: TNode_Element = null,
+		    nodeName: string = '';
+
+		scope = scope || this;
+
+		if ( clearNodes )
+			scope.childNodes.splice( 0, len ); // clear the child nodes of this element
+
+		for ( i=0, len = nodesList.length; i<len; i++ ) {
+
+			switch ( nodesList[i].type ) {
+				case 'node':
+
+					nodeName = nodesList[i].nodeName;
+
+					if ( HTML_Body.IGNORE_ELEMENTS.indexOf( nodeName ) == -1 ) {
+
+						if ( HTML_Body.TRAVERSE_ELEMENTS.indexOf( nodeName ) == -1 ) {
+
+							node = scope.documentElement.createElement( nodeName );
+
+							scope.appendChild( node );
+
+							if ( nodesList[i].attributes && ( n = nodesList[i].attributes.length ) ) {
+								
+								for ( j=0; j<n; j++ ) {
+
+									node.setAttribute( nodesList[i].attributes[j].name, nodesList[i].attributes[j].value );
+								
+								}
+							
+							}
+
+						} else {
+
+							node = scope;
+
+						}
+
+						if ( nodesList[i].children && nodesList[i].children.length ) {
+							node.setInnerNodes( nodesList[i].children, node );
+						}
+
+					}
+
+
+					break;
+
+				case '#text':
+
+					scope.appendChild( scope.documentElement.createTextNode( nodesList[i].value ) );
+
+					break;
+
+				default:
+					// comments and cdata are not supported
+					break;
+			}
+
+		}
+
+	}
+
+	public setAttribute( attributeName: string = '', attributeValue: string = null ) {
+		switch ( attributeName ) {
+			case 'id':
+				this.id = String( attributeValue || '' );
+				break;
+			case 'class':
+				this.className = String( attributeValue || '' );
+				break;
+			case 'align':
+				this.style.textAlign( String( attributeValue || '' ) );
+				break;
+			case 'color':
+				this.style.color( String( attributeValue || '' ) );
+				break;
+			case 'width':
+				this.style.width( String( attributeValue || '' ) );
+				break;
+			case 'height':
+				this.style.height( String( attributeValue || '' ) );
+				break;
+			case 'bgcolor':
+				this.style.backgroundColor( String( attributeValue || '' ) );
+				break;
+		}
 	}
 
 }

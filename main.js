@@ -794,6 +794,7 @@ var HTML_Body = (function (_super) {
         this.style.lineHeight('1.2');
         this.style.padding('5');
         this.style.color('black');
+        this.style.verticalAlign('normal');
         this.relayout();
     }
     HTML_Body.prototype.createTextNode = function (textContents) {
@@ -850,6 +851,12 @@ var HTML_Body = (function (_super) {
                 break;
             case 'li':
                 node = new HTML_ListItem();
+                break;
+            case 'sup':
+                node = new HTML_Superscript();
+                break;
+            case 'sub':
+                node = new HTML_Subscript();
                 break;
             default:
                 node = new TNode_Element();
@@ -1222,6 +1229,28 @@ var HTML_ListItem = (function (_super) {
     };
     return HTML_ListItem;
 })(TNode_Element);
+var HTML_Superscript = (function (_super) {
+    __extends(HTML_Superscript, _super);
+    function HTML_Superscript() {
+        _super.call(this);
+        this.nodeName = 'sup';
+        this.style.display('inline');
+        this.style.verticalAlign('super');
+        this.style.fontSize('80%');
+    }
+    return HTML_Superscript;
+})(TNode_Element);
+var HTML_Subscript = (function (_super) {
+    __extends(HTML_Subscript, _super);
+    function HTML_Subscript() {
+        _super.call(this);
+        this.nodeName = 'sub';
+        this.style.display('inline');
+        this.style.verticalAlign('sub');
+        this.style.fontSize('80%');
+    }
+    return HTML_Subscript;
+})(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
         this.node = node;
@@ -1244,6 +1273,7 @@ var TStyle = (function () {
         this._textDecoration = new TStyle_String(this, 'textDecoration', TStyle.$TextDecoration);
         this._lineHeight = new TStyle_Dimension(this, 'lineHeight');
         this._textAlign = new TStyle_String(this, 'textAlign', TStyle.$TextAlign);
+        this._verticalAlign = new TStyle_String(this, 'verticalAlign', TStyle.$VerticalAlign);
         this._display = new TStyle_String(this, 'display', TStyle.$Display);
         this._float = new TStyle_String(this, 'float', TStyle.$Floats);
         this._color = new TStyle_Color(this, 'color', true);
@@ -1525,6 +1555,17 @@ var TStyle = (function () {
             return value;
         }
     };
+    TStyle.prototype.verticalAlign = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            return this._verticalAlign.get();
+        }
+        else {
+            this._verticalAlign.set(value);
+            this.node.requestRepaint();
+            return value;
+        }
+    };
     TStyle.prototype.offsetWidth = function () {
         return this.borderWidth() + this.paddingLeft() + this.width() + this.paddingRight() + this.borderWidth();
     };
@@ -1565,6 +1606,11 @@ var TStyle = (function () {
         'right',
         'center',
         'justified'
+    ];
+    TStyle.$VerticalAlign = [
+        'super',
+        'sub',
+        'normal'
     ];
     return TStyle;
 })();
@@ -2442,7 +2488,7 @@ var Layout_BlockChar = (function (_super) {
         if (!this.isPaintable(viewport)) {
             return;
         }
-        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size;
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0;
         ctx.textAlign = align || 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -2469,17 +2515,29 @@ var Layout_BlockChar = (function (_super) {
                         ctx.font = currentNode.style.fontStyleText();
                         ctx.fillStyle = currentNode.style.color();
                         isUnderline = currentNode.style.textDecoration() == 'underline';
+                        valign = currentNode.style.verticalAlign();
                         if (isUnderline) {
                             underlineWidth = ~~(currentNode.style.fontSize() * .15);
                             if (underlineWidth < 1) {
                                 underlineWidth = 1;
                             }
                         }
+                        switch (valign) {
+                            case 'super':
+                                valignShift = this.lines[i].size[1] * -.2;
+                                break;
+                            case 'sub':
+                                valignShift = this.lines[i].size[1] * .1;
+                                break;
+                            default:
+                                valignShift = 0;
+                                break;
+                        }
                     }
                     size = this.lines[i].words[j].characters[k].computeSize();
-                    ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff);
+                    ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                     if (isUnderline) {
-                        ctx.fillRect(startX, ~~((startY + lineDiff) + 2), size[0], underlineWidth);
+                        ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
                     }
                     startX += size[0];
                 }
@@ -2645,6 +2703,8 @@ var Viewport = (function (_super) {
 /// <reference path="./HTML/BulletedList.ts" />
 /// <reference path="./HTML/OrderedList.ts" />
 /// <reference path="./HTML/ListItem.ts" />
+/// <reference path="./HTML/Superscript.ts" />
+/// <reference path="./HTML/Subscript.ts" />
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -2663,9 +2723,9 @@ var Viewport = (function (_super) {
 /// <reference path="Viewport.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1>He<u>adi</u>ng 1</h1>',
-    '<p>The element above this paragraph is a <b><u>Heading 1</u></b></p>',
+    '<p>The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>.</p>',
     '<h2>Heading 2</h2>',
-    '<p>The element above this paragraph is a <b><i>Heading 2</i></b></p>',
+    '<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     '<h3>Heading 3</h3>',
     '<h4>Heading 4</h4>',
     '<h5>Heading 5</h5>',

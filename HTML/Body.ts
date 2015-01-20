@@ -53,6 +53,7 @@ class HTML_Body extends TNode_Element {
 		this.style.lineHeight( '1.2' );
 		this.style.padding( '5' );
 		this.style.color( 'black' );
+		this.style.verticalAlign( 'normal' );
 
 		this.relayout();
 	}
@@ -111,6 +112,12 @@ class HTML_Body extends TNode_Element {
 				break;
 			case 'li':
 				node = new HTML_ListItem();
+				break;
+			case 'sup':
+				node = new HTML_Superscript();
+				break;
+			case 'sub':
+				node = new HTML_Subscript();
 				break;
 			default:
 				node = new TNode_Element();

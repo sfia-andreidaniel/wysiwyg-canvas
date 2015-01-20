@@ -143,7 +143,9 @@ class Layout_BlockChar extends Layout {
 		    currentNode: TNode_Element = null,
 		    isUnderline: boolean = false,
 		    underlineWidth: number = 0.00,
-		    size: number[];
+		    size: number[],
+		    valign: string = 'normal',
+		    valignShift: number = 0;
 
 		ctx.textAlign = align || 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -183,6 +185,8 @@ class Layout_BlockChar extends Layout {
 						ctx.fillStyle = currentNode.style.color();
 						isUnderline = currentNode.style.textDecoration() == 'underline';
 						
+						valign = currentNode.style.verticalAlign();
+
 						if ( isUnderline ) {
 							
 							underlineWidth = ~~( currentNode.style.fontSize() * .15 );
@@ -193,14 +197,26 @@ class Layout_BlockChar extends Layout {
 
 						}
 
+						switch (valign) {
+							case 'super':
+								valignShift = this.lines[i].size[1] * -.2;
+								break;
+							case 'sub':
+								valignShift = this.lines[i].size[1] * .1;
+								break;
+							default:
+								valignShift = 0;
+								break;
+						}
+
 					}
 
 					size = this.lines[i].words[j].characters[k].computeSize();
 
-					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff );
+					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX , startY + lineDiff + valignShift );
 					
 					if ( isUnderline ) {
-						ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 ), size[0], underlineWidth );
+						ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
 					}
 
 					startX += size[0];

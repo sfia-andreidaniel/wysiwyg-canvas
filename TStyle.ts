@@ -25,6 +25,7 @@ class TStyle {
 	public _textDecoration  : TStyle_String;
 	public _lineHeight      : TStyle_Dimension;
 	public _textAlign       : TStyle_String;
+	public _verticalAlign   : TStyle_String;
 
 	public _display         : TStyle_String;
 	public _float           : TStyle_String;
@@ -75,6 +76,12 @@ class TStyle {
 		'justified'
 	];
 
+	static $VerticalAlign: string[] = [
+		'super',
+		'sub',
+		'normal'
+	];
+
 	constructor( public node: TNode_Element ) {
 		this._width = new TStyle_Dimension( this, 'width' );
 		this._height= new TStyle_Dimension( this, 'height' );
@@ -99,6 +106,7 @@ class TStyle {
 		this._textDecoration = new TStyle_String( this, 'textDecoration', TStyle.$TextDecoration );
 		this._lineHeight = new TStyle_Dimension( this, 'lineHeight' );
 		this._textAlign = new TStyle_String( this, 'textAlign', TStyle.$TextAlign );
+		this._verticalAlign = new TStyle_String( this, 'verticalAlign', TStyle.$VerticalAlign );
 
 		this._display = new TStyle_String( this, 'display', TStyle.$Display );
 		this._float = new TStyle_String( this, 'float', TStyle.$Floats );
@@ -367,6 +375,16 @@ class TStyle {
 		} else {
 			//setter
 			this._textAlign.set( value );
+			this.node.requestRepaint();
+			return value;
+		}
+	}
+
+	public verticalAlign( value: string = null ): string {
+		if ( value === null ) {
+			return this._verticalAlign.get();
+		} else {
+			this._verticalAlign.set( value );
 			this.node.requestRepaint();
 			return value;
 		}

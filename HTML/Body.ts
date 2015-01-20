@@ -162,7 +162,7 @@ class HTML_Body extends TNode_Element {
 
 		this.viewport.context.clearRect( 0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize );
 
-		this._layout.paint( this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop() );
+		this._layout.paint( this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport );
 
 		this._needRepaint = false;
 

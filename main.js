@@ -256,25 +256,45 @@ var TNode_Element = (function (_super) {
         returnValue.buildAhead(useParentLayout);
         return returnValue;
     };
-    TNode_Element.prototype.evaluateLayout = function (left, center, right, argIndex) {
-        if (argIndex === void 0) { argIndex = 0; }
-        var i = 0, len = this.childNodes.length, oldArgIndex = argIndex, currentArgIndex = argIndex, j = 0, n = 0, layoutType = '', lblock, lchar;
+    TNode_Element.prototype.childNodesSortedByFloatValues = function () {
+        var out1 = [], out2 = [], i = 0, len = 0;
         for (i = 0, len = this.childNodes.length; i < len; i++) {
             if (this.childNodes[i].nodeType == 1 /* TEXT */) {
+                out2.push(this.childNodes[i]);
+            }
+            else {
+                if (['left', 'right'].indexOf(this.childNodes[i].style.float()) > -1) {
+                    out1.push(this.childNodes[i]);
+                }
+                else {
+                    out2.push(this.childNodes[i]);
+                }
+            }
+        }
+        for (i = 0, len = out2.length; i < len; i++) {
+            out1.push(out2[i]);
+        }
+        return out1;
+    };
+    TNode_Element.prototype.evaluateLayout = function (left, center, right, argIndex) {
+        if (argIndex === void 0) { argIndex = 0; }
+        var i = 0, len = this.childNodes.length, oldArgIndex = argIndex, currentArgIndex = argIndex, j = 0, n = 0, layoutType = '', lblock, lchar, children;
+        for (i = 0, children = this.childNodesSortedByFloatValues(), len = children.length; i < len; i++) {
+            if (children[i].nodeType == 1 /* TEXT */) {
                 currentArgIndex = 1;
                 layoutType = 'Layout_BlockChar';
             }
             else {
                 switch (true) {
-                    case this.childNodes[i].style.display() == 'block' && ['left', 'right'].indexOf(this.childNodes[i].style.float()) == -1:
+                    case children[i].style.display() == 'block' && ['left', 'right'].indexOf(children[i].style.float()) == -1:
                         layoutType = 'Layout_Block';
                         currentArgIndex = 1;
                         break;
-                    case this.childNodes[i].style.float() == 'left':
+                    case children[i].style.float() == 'left':
                         layoutType = 'Layout_Block';
                         currentArgIndex = 0;
                         break;
-                    case this.childNodes[i].style.float() == 'right':
+                    case children[i].style.float() == 'right':
                         layoutType = 'Layout_Block';
                         currentArgIndex = 2;
                         break;
@@ -304,15 +324,15 @@ var TNode_Element = (function (_super) {
                             return lchar;
                         })());
                     }
-                    if (this.childNodes[i].nodeType == 1 /* TEXT */) {
-                        lchar.addTextNode(this.childNodes[i]);
+                    if (children[i].nodeType == 1 /* TEXT */) {
+                        lchar.addTextNode(children[i]);
                     }
                     else {
-                        currentArgIndex = this.childNodes[i].evaluateLayout(left, center, right, currentArgIndex);
+                        currentArgIndex = children[i].evaluateLayout(left, center, right, currentArgIndex);
                     }
                     break;
                 case 'Layout_Block':
-                    lblock = new Layout_Block(this.childNodes[i]);
+                    lblock = new Layout_Block(children[i]);
                     switch (currentArgIndex) {
                         case 0:
                             left.push(lblock);
@@ -873,7 +893,7 @@ var HTML_Body = (function (_super) {
             this.relayout();
         }
         this.viewport.context.clearRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
-        this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop());
+        this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport);
         this._needRepaint = false;
         console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
     };
@@ -2034,14 +2054,21 @@ var Layout = (function () {
         }
         return out;
     };
+    Layout.prototype.isPaintable = function (viewport) {
+        var x1 = this.offsetLeft, y1 = this.offsetTop, x2 = this.offsetLeft + this.offsetWidth, y2 = this.offsetTop + this.offsetHeight, xx1 = viewport.scrollLeft(), yy1 = viewport.scrollTop(), xx2 = viewport.scrollLeft() + viewport.width() - viewport._scrollbarSize, yy2 = viewport.scrollTop() + viewport.height() - viewport._scrollbarSize;
+        return (x2 <= xx1 || x1 >= xx2 || y2 <= yy1 || y1 >= yy2) ? false : true;
+    };
     // paints the node, and after that paints it's sub-children
-    Layout.prototype.paint = function (ctx, scrollLeft, scrollTop) {
+    Layout.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
+        if (!this.isPaintable(viewport)) {
+            return;
+        }
         if (this.node) {
             this.node.paint(ctx, this, scrollLeft, scrollTop);
         }
         if (this.children) {
             for (var i = 0, len = this.children.length; i < len; i++) {
-                this.children[i].paint(ctx, scrollLeft, scrollTop);
+                this.children[i].paint(ctx, scrollLeft, scrollTop, viewport);
             }
         }
     };
@@ -2411,8 +2438,11 @@ var Layout_BlockChar = (function (_super) {
         }
         return topPlacement;
     };
-    Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop) {
-        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft;
+    Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
+        if (!this.isPaintable(viewport)) {
+            return;
+        }
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size;
         ctx.textAlign = align || 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -2434,10 +2464,24 @@ var Layout_BlockChar = (function (_super) {
             startX -= scrollLeft;
             for (j = 0, n = this.lines[i].words.length; j < n; j++) {
                 for (k = 0, l = this.lines[i].words[j].characters.length; k < l; k++) {
-                    ctx.font = this.lines[i].words[j].characters[k].node.parentNode.style.fontStyleText();
-                    ctx.fillStyle = this.lines[i].words[j].characters[k].node.parentNode.style.color();
+                    if (currentNode != this.lines[i].words[j].characters[k].node.parentNode) {
+                        currentNode = this.lines[i].words[j].characters[k].node.parentNode;
+                        ctx.font = currentNode.style.fontStyleText();
+                        ctx.fillStyle = currentNode.style.color();
+                        isUnderline = currentNode.style.textDecoration() == 'underline';
+                        if (isUnderline) {
+                            underlineWidth = ~~(currentNode.style.fontSize() * .15);
+                            if (underlineWidth < 1) {
+                                underlineWidth = 1;
+                            }
+                        }
+                    }
+                    size = this.lines[i].words[j].characters[k].computeSize();
                     ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff);
-                    startX += this.lines[i].words[j].characters[k].computeSize()[0];
+                    if (isUnderline) {
+                        ctx.fillRect(startX, ~~((startY + lineDiff) + 2), size[0], underlineWidth);
+                    }
+                    startX += size[0];
                 }
                 startX += (wordGap ? this.lines[i].wordGap : 0);
             }
@@ -2618,8 +2662,8 @@ var Viewport = (function (_super) {
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Viewport.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
-    '<h1>Heading 1</h1>',
-    '<p>The element above this paragraph is a <b>Heading 1</b></p>',
+    '<h1>He<u>adi</u>ng 1</h1>',
+    '<p>The element above this paragraph is a <b><u>Heading 1</u></b></p>',
     '<h2>Heading 2</h2>',
     '<p>The element above this paragraph is a <b><i>Heading 2</i></b></p>',
     '<h3>Heading 3</h3>',

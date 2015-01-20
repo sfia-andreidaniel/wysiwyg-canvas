@@ -141,6 +141,37 @@ class TNode_Element extends TNode {
 
 	}
 
+	private childNodesSortedByFloatValues(): TNode[] {
+
+		var out1: TNode[] = [],
+		    out2: TNode[] = [],
+		    i: number = 0,
+		    len: number = 0;
+
+		for ( i=0, len=this.childNodes.length; i<len; i++ ) {
+			
+			if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+			
+				out2.push( this.childNodes[i] );
+			
+			} else {
+				if ( ['left', 'right' ].indexOf( (<TNode_Element>this.childNodes[i]).style.float() ) > -1 ) {
+					out1.push( this.childNodes[i] );
+				} else {
+					out2.push( this.childNodes[i] );
+				}
+			}
+			
+		}
+
+		for ( i=0, len = out2.length; i<len; i++ ) {
+			out1.push( out2[i] );
+		}
+
+		return out1;
+
+	}
+
 	public evaluateLayout( left: Layout_Block[], center: Layout_Block[], right: Layout_Block[], argIndex: number = 0 ): number {
 		var i: number = 0,
 		    len: number = this.childNodes.length,
@@ -150,26 +181,27 @@ class TNode_Element extends TNode {
 		    n: number = 0,
 		    layoutType: string = '',
 		    lblock: Layout_Block,
-		    lchar: Layout_BlockChar;
+		    lchar: Layout_BlockChar,
+		    children: TNode[];
 
-		for ( i=0, len = this.childNodes.length; i<len; i++ ) {
+		for ( i=0, children = this.childNodesSortedByFloatValues(), len = children.length; i<len; i++ ) {
 			
-			if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+			if ( children[i].nodeType == TNode_Type.TEXT ) {
 				currentArgIndex = 1;
 				layoutType = 'Layout_BlockChar';
 			
 			} else {
 				
 				switch ( true ) {
-					case (<TNode_Element>this.childNodes[i]).style.display() == 'block' && ['left', 'right'].indexOf( (<TNode_Element>this.childNodes[i]).style.float() ) == -1:
+					case (<TNode_Element>children[i]).style.display() == 'block' && ['left', 'right'].indexOf( (<TNode_Element>children[i]).style.float() ) == -1:
 						layoutType = 'Layout_Block';
 						currentArgIndex = 1;
 						break;
-					case (<TNode_Element>this.childNodes[i]).style.float() == 'left':
+					case (<TNode_Element>children[i]).style.float() == 'left':
 						layoutType = 'Layout_Block';
 						currentArgIndex = 0;
 						break;
-					case (<TNode_Element>this.childNodes[i]).style.float() == 'right':
+					case (<TNode_Element>children[i]).style.float() == 'right':
 						layoutType = 'Layout_Block';
 						currentArgIndex = 2;
 						break;
@@ -208,16 +240,16 @@ class TNode_Element extends TNode {
 					
 					}
 					
-					if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
-						lchar.addTextNode( <TNode_Text>this.childNodes[i] );
+					if ( children[i].nodeType == TNode_Type.TEXT ) {
+						lchar.addTextNode( <TNode_Text>children[i] );
 					} else {
-						currentArgIndex = (<TNode_Element>this.childNodes[i]).evaluateLayout( left, center, right, currentArgIndex );
+						currentArgIndex = (<TNode_Element>children[i]).evaluateLayout( left, center, right, currentArgIndex );
 					}
 
 					break;
 
 				case 'Layout_Block':
-					lblock = new Layout_Block( <TNode_Element>this.childNodes[i] );
+					lblock = new Layout_Block( <TNode_Element>children[i] );
 					switch ( currentArgIndex ) {
 						case 0:
 							left.push( lblock );

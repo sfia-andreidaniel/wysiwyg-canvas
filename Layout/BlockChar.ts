@@ -121,7 +121,11 @@ class Layout_BlockChar extends Layout {
 		return topPlacement;
 	}
 
-	public paint( ctx: any, scrollLeft: number, scrollTop: number ) {
+	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
+
+		if ( !this.isPaintable( viewport ) ) {
+			return;
+		}
 
 		var i: number = 0,
 			len: number = 0,
@@ -135,7 +139,11 @@ class Layout_BlockChar extends Layout {
 		    lineHeight: number = node.style.lineHeight(),
 		    lineDiff: number = 0,
 		    startY: number = this.offsetTop - scrollTop,
-		    startX: number = this.offsetLeft;
+		    startX: number = this.offsetLeft,
+		    currentNode: TNode_Element = null,
+		    isUnderline: boolean = false,
+		    underlineWidth: number = 0.00,
+		    size: number[];
 
 		ctx.textAlign = align || 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -167,10 +175,35 @@ class Layout_BlockChar extends Layout {
 
 				for ( k = 0, l = this.lines[i].words[j].characters.length; k<l; k++ ) {
 
-					ctx.font = this.lines[i].words[j].characters[k].node.parentNode.style.fontStyleText();
-					ctx.fillStyle = this.lines[i].words[j].characters[k].node.parentNode.style.color();
+					if ( currentNode != this.lines[i].words[j].characters[k].node.parentNode ) {
+						
+						currentNode = this.lines[i].words[j].characters[k].node.parentNode;
+
+						ctx.font = currentNode.style.fontStyleText();
+						ctx.fillStyle = currentNode.style.color();
+						isUnderline = currentNode.style.textDecoration() == 'underline';
+						
+						if ( isUnderline ) {
+							
+							underlineWidth = ~~( currentNode.style.fontSize() * .15 );
+							
+							if ( underlineWidth < 1 ) {
+								underlineWidth = 1;
+							}
+
+						}
+
+					}
+
+					size = this.lines[i].words[j].characters[k].computeSize();
+
 					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff );
-					startX += this.lines[i].words[j].characters[k].computeSize()[0];
+					
+					if ( isUnderline ) {
+						ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 ), size[0], underlineWidth );
+					}
+
+					startX += size[0];
 
 				}
 

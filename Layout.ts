@@ -104,8 +104,28 @@ class Layout {
 		return out;
 	}
 
+	public isPaintable( viewport: Viewport ): boolean {
+		
+		var x1 = this.offsetLeft,
+		    y1 = this.offsetTop,
+		    x2 = this.offsetLeft + this.offsetWidth,
+		    y2 = this.offsetTop + this.offsetHeight,
+
+		    xx1 = viewport.scrollLeft(),
+		    yy1 = viewport.scrollTop(),
+		    xx2 = viewport.scrollLeft() + viewport.width() - viewport._scrollbarSize,
+		    yy2 = viewport.scrollTop() + viewport.height() - viewport._scrollbarSize;
+
+		return ( x2 <= xx1 || x1 >= xx2 || y2 <= yy1 || y1 >= yy2 ) ? false : true;
+
+	}
+
 	// paints the node, and after that paints it's sub-children
-	public paint( ctx: any, scrollLeft: number, scrollTop: number ) {
+	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
+
+		if ( !this.isPaintable( viewport ) ) {
+			return;
+		}
 
 		if ( this.node ) {
 			this.node.paint( ctx, this, scrollLeft, scrollTop );
@@ -113,7 +133,7 @@ class Layout {
 
 		if ( this.children ) {
 			for ( var i=0, len = this.children.length; i<len; i++ ) {
-				this.children[i].paint( ctx, scrollLeft, scrollTop );
+				this.children[i].paint( ctx, scrollLeft, scrollTop, viewport );
 			}
 		}
 

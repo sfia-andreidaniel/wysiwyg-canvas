@@ -25,8 +25,6 @@
 /// <reference path="./HTML/OrderedList.ts" />
 /// <reference path="./HTML/ListItem.ts" />
 
-
-
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -50,8 +48,8 @@
 var viewport = new Viewport(),
     body = viewport.document,
     niceHTML = [
-    	'<h1>Heading 1</h1>',
-    	'<p>The element above this paragraph is a <b>Heading 1</b></p>',
+    	'<h1>He<u>adi</u>ng 1</h1>',
+    	'<p>The element above this paragraph is a <b><u>Heading 1</u></b></p>',
     	'<h2>Heading 2</h2>',
     	'<p>The element above this paragraph is a <b><i>Heading 2</i></b></p>',
     	'<h3>Heading 3</h3>',

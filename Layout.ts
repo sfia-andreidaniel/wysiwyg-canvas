@@ -120,6 +120,21 @@ class Layout {
 
 	}
 
+	public increaseYBy( pixels: number ) {
+		this.offsetTop += pixels;
+		this.innerTop += pixels;
+
+		if ( this.children && this.children.length ) {
+			for ( var i=0, len = this.children.length; i<len; i++ )
+				this.children[i].increaseYBy( pixels );
+		}
+	}
+
+	public increaseHeightBy( pixels: number ) {
+		this.offsetHeight += pixels;
+		this.innerHeight  += pixels;
+	}
+
 	// paints the node, and after that paints it's sub-children
 	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
 

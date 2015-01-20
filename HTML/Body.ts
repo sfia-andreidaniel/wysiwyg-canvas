@@ -119,6 +119,15 @@ class HTML_Body extends TNode_Element {
 			case 'sub':
 				node = new HTML_Subscript();
 				break;
+			case 'table':
+				node = new HTML_Table();
+				break;
+			case 'tr':
+				node = new HTML_TableRow();
+				break;
+			case 'td':
+				node = new HTML_TableCell();
+				break;
 			default:
 				node = new TNode_Element();
 				node.nodeName = elementName;

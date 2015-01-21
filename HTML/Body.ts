@@ -54,6 +54,7 @@ class HTML_Body extends TNode_Element {
 		this.style.padding( '5' );
 		this.style.color( 'black' );
 		this.style.verticalAlign( 'normal' );
+		this.style.textAlign('left');
 
 		this.relayout();
 	}

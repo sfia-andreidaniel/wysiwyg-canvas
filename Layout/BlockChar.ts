@@ -127,6 +127,9 @@ class Layout_BlockChar extends Layout {
 			return;
 		}
 
+		ctx.fillStyle = '#ddd';
+		ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
+
 		var i: number = 0,
 			len: number = 0,
 		    node: TNode_Element = this.ownerNode(),
@@ -147,7 +150,7 @@ class Layout_BlockChar extends Layout {
 		    valign: string = 'normal',
 		    valignShift: number = 0;
 
-		ctx.textAlign = align || 'left';
+		ctx.textAlign = 'left';
 		ctx.textBaseline = 'alphabetic';
 
 		for ( i=0, len = this.lines.length; i<len; i++ ) {
@@ -156,7 +159,7 @@ class Layout_BlockChar extends Layout {
 
 			switch ( align ) {
 				case 'right':
-					startX = this.offsetWidth - ( this.offsetWidth - this.lines[i].size[0] );
+					startX = this.offsetLeft + this.offsetWidth - ( this.lines[i].size[0] );
 					break;
 				case 'center':
 					startX = this.offsetLeft + ( this.offsetWidth / 2 ) - ( this.lines[i].size[0] / 2 );
@@ -213,7 +216,7 @@ class Layout_BlockChar extends Layout {
 
 					size = this.lines[i].words[j].characters[k].computeSize();
 
-					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX , startY + lineDiff + valignShift );
+					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
 					
 					if ( isUnderline ) {
 						ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
@@ -230,6 +233,95 @@ class Layout_BlockChar extends Layout {
 			startY += this.lines[i].size[1];
 		}
 
+	}
+
+	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TTarget {
+		
+		var target: TTarget = super.getTargetAtXY( point, false ),
+		    i: number = 0,
+		    len: number = 0,
+		    j: number = 0,
+		    n: number = 0,
+		    line: number = 0,
+		    lines: number = 0,
+		    bestLine: Character_Line = null,
+		    bestLineIndex: number = 0,
+		    startX: number = 0,
+		    startY: number = 0,
+		    bestCharLineIndex: number = 0,
+		    bestCharTargetIndex: number = 0,
+		    bestNode: TNode_Text,
+		    align: string,
+		    wordGap: boolean,
+		    size: number[],
+		    breakFor: boolean = false;
+		
+		if ( target !== null ) {
+			
+			for ( line=0, lines = this.lines.length; line<lines; line++ ) {
+				if ( target.relative.y >= startY ) {
+					bestLine = this.lines[line];
+					bestLineIndex = line;
+				} else {
+					break;
+				}
+				startY += this.lines[line].size[1];
+			}
+
+			if ( bestLine !== null ) {
+				
+				align = (<TNode_Element>target.target).style.textAlign();
+
+				wordGap = align == 'justified';
+
+				switch ( align ) {
+					case 'right':
+						startX = this.offsetLeft + this.offsetWidth - bestLine.size[0];
+						break;
+					case 'center':
+						startX = this.offsetLeft + ( this.offsetWidth / 2 ) - ( bestLine.size[0] / 2 );
+						break;
+					default:
+						startX = this.offsetLeft;
+						break;
+				}
+
+				for ( i=0, len = bestLine.words.length; i<len; i++ ) {
+
+					for ( j=0, n = bestLine.words[i].characters.length; j < n; j++ ) {
+						
+						size = bestLine.words[i].characters[j].computeSize();
+
+						if ( wordGap && j == n - 1 ) {
+							size[0] += bestLine.wordGap;
+						}
+						
+						if ( ( ( size[0] / 2 ) + startX < target.absolute.x ) ) {
+							bestCharLineIndex++;
+							bestNode = bestLine.words[i].characters[j].node;
+							bestCharTargetIndex = bestLine.words[i].characters[j].index + 1;
+
+							startX += size[0];
+						} else {
+							bestNode = bestLine.words[i].characters[j].node;
+							bestCharTargetIndex = bestLine.words[i].characters[j].index;
+							breakFor = true;
+							break;
+						}
+					}
+
+					if ( breakFor )
+						break;
+				}
+
+				target.line = bestLineIndex;
+				target.target = bestNode;
+				target.charLineIndex = bestCharLineIndex;
+				target.charTargetIndex = bestCharTargetIndex;
+				return target;
+
+			} else return target;
+		} else return null;
 	}
 
 }

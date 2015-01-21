@@ -36,6 +36,26 @@ class Viewport extends Events {
 				DOMEvent.stopPropagation();
 			}, true );
 
+			me.canvas.addEventListener( 'mousedown', function( DOMEvent ) {
+				me.onmousedown( DOMEvent );
+			}, true);
+
+			me.canvas.addEventListener( 'mousemove', function( DOMEvent ) {
+				me.onmousemove( DOMEvent );
+			}, true);
+
+			me.canvas.addEventListener( 'mouseup', function( DOMEvent ) {
+				me.onmousemove( DOMEvent );
+			}, true);
+
+			me.canvas.addEventListener( 'click', function( DOMEvent ) {
+				me.onmouseclick( DOMEvent );
+			}, true);
+
+			me.canvas.addEventListener( 'dblclick', function( DOMEvent ) {
+				me.onmousedblclick( DOMEvent );
+			}, true );
+
 		})( this );
 		
 
@@ -164,6 +184,39 @@ class Viewport extends Events {
 		} else {
 			this.document.innerHTML( v );
 		}
+	}
+
+	private translateMouseEventXY( DOMEvent ): TPoint {
+		return {
+			"x": DOMEvent.offsetX + this._scrollLeft,
+			"y": DOMEvent.offsetY + this._scrollTop
+		}
+	}
+
+	public getTargetAtXY( point: TPoint ): TTarget {
+		if ( this.document && this.document._layout ) {
+			return this.document._layout.getTargetAtXY( point );
+		} else return null;
+	}
+
+	public onmousedown( DOMEvent ) {
+		console.log( this.getTargetAtXY( this.translateMouseEventXY( DOMEvent ) ) );
+	}
+
+	public onmousemove( DOMEvent ) {
+
+	}
+
+	public onmouseup( DOMEvent ) {
+
+	}
+
+	public onmouseclick( DOMEvent ) {
+
+	}
+
+	public onmousedblclick( DOMEvent ) {
+
 	}
 
 }

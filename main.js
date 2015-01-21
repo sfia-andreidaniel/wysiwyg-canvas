@@ -797,6 +797,7 @@ var HTML_Body = (function (_super) {
         this.style.padding('5');
         this.style.color('black');
         this.style.verticalAlign('normal');
+        this.style.textAlign('left');
         this.relayout();
     }
     HTML_Body.prototype.createTextNode = function (textContents) {
@@ -2613,7 +2614,7 @@ var Character_Line = (function () {
         this.words.push(w);
         this.size[0] += size[0];
         this.size[1] = Math.max(size[1], this.size[1]);
-        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0;
+        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0.00;
     };
     Character_Line.prototype.toString = function () {
         var i = 0, len = this.words.length, out = '';
@@ -2769,6 +2770,29 @@ var Layout = (function () {
                 this.children[i].paint(ctx, scrollLeft, scrollTop, viewport);
             }
         }
+    };
+    Layout.prototype.getTargetAtXY = function (point, boundsChecking) {
+        if (boundsChecking === void 0) { boundsChecking = true; }
+        if (point.y < this.offsetTop || (point.y > (this.offsetTop + this.offsetHeight) && boundsChecking) || point.x < (this.offsetLeft) || (point.x > (this.offsetLeft + this.offsetWidth) && boundsChecking))
+            return null; // click outside the layout.
+        var bestTarget = {
+            layout: this,
+            target: this.ownerNode(),
+            absolute: point,
+            relative: {
+                "x": point.x - this.offsetLeft,
+                "y": point.y - this.offsetTop
+            }
+        }, childTarget;
+        if (this.children && this.children.length) {
+            for (var i = this.children.length - 1; i >= 0; i--) {
+                childTarget = this.children[i].getTargetAtXY(point);
+                if (childTarget !== null) {
+                    return childTarget;
+                }
+            }
+        }
+        return bestTarget;
     };
     return Layout;
 })();
@@ -3140,14 +3164,16 @@ var Layout_BlockChar = (function (_super) {
         if (!this.isPaintable(viewport)) {
             return;
         }
+        ctx.fillStyle = '#ddd';
+        ctx.fillRect(this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight);
         var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0;
-        ctx.textAlign = align || 'left';
+        ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
             lineDiff = this.lines[i].size[1] / lineHeight;
             switch (align) {
                 case 'right':
-                    startX = this.offsetWidth - (this.offsetWidth - this.lines[i].size[0]);
+                    startX = this.offsetLeft + this.offsetWidth - (this.lines[i].size[0]);
                     break;
                 case 'center':
                     startX = this.offsetLeft + (this.offsetWidth / 2) - (this.lines[i].size[0] / 2);
@@ -3197,6 +3223,68 @@ var Layout_BlockChar = (function (_super) {
             }
             startY += this.lines[i].size[1];
         }
+    };
+    Layout_BlockChar.prototype.getTargetAtXY = function (point, boundsChecking) {
+        if (boundsChecking === void 0) { boundsChecking = true; }
+        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap, size, breakFor = false;
+        if (target !== null) {
+            for (line = 0, lines = this.lines.length; line < lines; line++) {
+                if (target.relative.y >= startY) {
+                    bestLine = this.lines[line];
+                    bestLineIndex = line;
+                }
+                else {
+                    break;
+                }
+                startY += this.lines[line].size[1];
+            }
+            if (bestLine !== null) {
+                align = target.target.style.textAlign();
+                wordGap = align == 'justified';
+                switch (align) {
+                    case 'right':
+                        startX = this.offsetLeft + this.offsetWidth - bestLine.size[0];
+                        break;
+                    case 'center':
+                        startX = this.offsetLeft + (this.offsetWidth / 2) - (bestLine.size[0] / 2);
+                        break;
+                    default:
+                        startX = this.offsetLeft;
+                        break;
+                }
+                for (i = 0, len = bestLine.words.length; i < len; i++) {
+                    for (j = 0, n = bestLine.words[i].characters.length; j < n; j++) {
+                        size = bestLine.words[i].characters[j].computeSize();
+                        if (wordGap && j == n - 1) {
+                            size[0] += bestLine.wordGap;
+                        }
+                        if (((size[0] / 2) + startX < target.absolute.x)) {
+                            bestCharLineIndex++;
+                            bestNode = bestLine.words[i].characters[j].node;
+                            bestCharTargetIndex = bestLine.words[i].characters[j].index + 1;
+                            startX += size[0];
+                        }
+                        else {
+                            bestNode = bestLine.words[i].characters[j].node;
+                            bestCharTargetIndex = bestLine.words[i].characters[j].index;
+                            breakFor = true;
+                            break;
+                        }
+                    }
+                    if (breakFor)
+                        break;
+                }
+                target.line = bestLineIndex;
+                target.target = bestNode;
+                target.charLineIndex = bestCharLineIndex;
+                target.charTargetIndex = bestCharTargetIndex;
+                return target;
+            }
+            else
+                return target;
+        }
+        else
+            return null;
     };
     return Layout_BlockChar;
 })(Layout);
@@ -3296,6 +3384,21 @@ var Viewport = (function (_super) {
                 me.scrollTop(me.scrollTop() + (DOMEvent.wheelDelta < 0 ? 12 : -12));
                 DOMEvent.preventDefault();
                 DOMEvent.stopPropagation();
+            }, true);
+            me.canvas.addEventListener('mousedown', function (DOMEvent) {
+                me.onmousedown(DOMEvent);
+            }, true);
+            me.canvas.addEventListener('mousemove', function (DOMEvent) {
+                me.onmousemove(DOMEvent);
+            }, true);
+            me.canvas.addEventListener('mouseup', function (DOMEvent) {
+                me.onmousemove(DOMEvent);
+            }, true);
+            me.canvas.addEventListener('click', function (DOMEvent) {
+                me.onmouseclick(DOMEvent);
+            }, true);
+            me.canvas.addEventListener('dblclick', function (DOMEvent) {
+                me.onmousedblclick(DOMEvent);
             }, true);
         })(this);
         this.document = new HTML_Body(this);
@@ -3399,6 +3502,30 @@ var Viewport = (function (_super) {
             this.document.innerHTML(v);
         }
     };
+    Viewport.prototype.translateMouseEventXY = function (DOMEvent) {
+        return {
+            "x": DOMEvent.offsetX + this._scrollLeft,
+            "y": DOMEvent.offsetY + this._scrollTop
+        };
+    };
+    Viewport.prototype.getTargetAtXY = function (point) {
+        if (this.document && this.document._layout) {
+            return this.document._layout.getTargetAtXY(point);
+        }
+        else
+            return null;
+    };
+    Viewport.prototype.onmousedown = function (DOMEvent) {
+        console.log(this.getTargetAtXY(this.translateMouseEventXY(DOMEvent)));
+    };
+    Viewport.prototype.onmousemove = function (DOMEvent) {
+    };
+    Viewport.prototype.onmouseup = function (DOMEvent) {
+    };
+    Viewport.prototype.onmouseclick = function (DOMEvent) {
+    };
+    Viewport.prototype.onmousedblclick = function (DOMEvent) {
+    };
     return Viewport;
 })(Events);
 /// <reference path="Types.ts" />
@@ -3451,8 +3578,8 @@ var Viewport = (function (_super) {
 /// <reference path="Layout/Block/Table.ts" />
 /// <reference path="Viewport.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
-    '<h1>He<u>adi</u>ng 1</h1>',
-    '<p>The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>.</p>',
+    '<h1 align="center">He<u>adi</u>ng 1</h1>',
+    '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja</p>',
     '<h2>Heading 2</h2>',
     '<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     '<h3>Heading 3</h3>',

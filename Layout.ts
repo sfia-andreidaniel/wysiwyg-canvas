@@ -154,4 +154,35 @@ class Layout {
 
 	}
 
+	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TTarget {
+
+		if ( point.y < this.offsetTop || ( point.y > ( this.offsetTop + this.offsetHeight ) && boundsChecking )
+		     ||
+		     point.x < ( this.offsetLeft ) || ( point.x > ( this.offsetLeft + this.offsetWidth ) && boundsChecking )
+		) return null; // click outside the layout.
+
+		var bestTarget: TTarget = {
+				layout: this,
+				target: this.ownerNode(),
+				absolute: point,
+				relative: {
+					"x": point.x - this.offsetLeft,
+					"y": point.y - this.offsetTop
+				}
+			},
+			childTarget: TTarget;
+
+		if ( this.children && this.children.length ) {
+			for ( var i=this.children.length - 1; i>=0; i-- ) {
+				childTarget = this.children[i].getTargetAtXY( point );
+				if ( childTarget !== null ) {
+					return childTarget;
+				}
+			}
+		}
+
+		return bestTarget;
+
+	}
+
 }

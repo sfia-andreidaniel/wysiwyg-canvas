@@ -11,6 +11,7 @@ class Viewport extends Events {
 
 	public  document: HTML_Body = null;
 	public  painter: Throttler  = null;
+	public  selection: DocSelection = null;
 
 	constructor( _width: number = null, _height: number = null ) {
 		
@@ -60,6 +61,7 @@ class Viewport extends Events {
 		
 
 		this.document = new HTML_Body( this );
+		this.selection = new DocSelection( this );
 
 		this.width( _width === null ? this._width : _width );
 		this.height( _height === null ? this._height : _height );

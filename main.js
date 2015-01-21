@@ -3372,6 +3372,7 @@ var Viewport = (function (_super) {
         this.context = null;
         this.document = null;
         this.painter = null;
+        this.selection = null;
         this.context = this.canvas.getContext('2d');
         this.canvas.tabIndex = 0;
         (function (me) {
@@ -3402,6 +3403,7 @@ var Viewport = (function (_super) {
             }, true);
         })(this);
         this.document = new HTML_Body(this);
+        this.selection = new DocSelection(this);
         this.width(_width === null ? this._width : _width);
         this.height(_height === null ? this._height : _height);
         (function (me) {
@@ -3528,6 +3530,14 @@ var Viewport = (function (_super) {
     };
     return Viewport;
 })(Events);
+var DocSelection = (function (_super) {
+    __extends(DocSelection, _super);
+    function DocSelection(viewport) {
+        _super.call(this);
+        this.viewport = viewport;
+    }
+    return DocSelection;
+})(Events);
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
@@ -3577,6 +3587,7 @@ var Viewport = (function (_super) {
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Layout/Block/Table.ts" />
 /// <reference path="Viewport.ts" />
+/// <reference path="DocSelection.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
     '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja</p>',

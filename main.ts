@@ -55,6 +55,8 @@
 
 /// <reference path="Viewport.ts" />
 
+/// <reference path="DocSelection.ts" />
+
 var viewport = new Viewport(),
     body = viewport.document,
     niceHTML = [

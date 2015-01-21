@@ -3,10 +3,16 @@ class HTML_Table extends TNode_Element {
 	public needCompile : boolean = true;
 	public matrix      : HTML_Table_Matrix = null;
 
+	protected _cellPadding = 0;
+	protected _cellSpacing = 0;
+	protected _border      = 0;
+
 	constructor() {
 		super();
 		this.nodeName = 'table';
 		this.style.display('block');
+
+		this.style.marginTop( '10' );
 	}
 
 	public requestCompile() {
@@ -42,10 +48,16 @@ class HTML_Table extends TNode_Element {
 	public setAttribute( attributeName: string, attributeValue: string ) {
 		switch ( attributeName ) {
 			case 'border':
-				this.style.borderWidth( String( attributeValue || '' ) );
+				this.border( ~~attributeValue );
 				break;
 			case 'bordercolor':
 				this.style.borderColor( String( attributeValue || '' ) );
+				break;
+			case 'cellpadding':
+				this.cellPadding( ~~attributeValue );
+				break;
+			case 'cellspacing':
+				this.cellSpacing( ~~attributeValue );
 				break;
 			default:
 				super.setAttribute( attributeName, attributeValue );
@@ -109,4 +121,50 @@ class HTML_Table extends TNode_Element {
 
 		return new Layout_Block_Table( this, this.matrix );
 	}
+
+	public cellPadding( v: number = null ): number {
+		if ( v === null ) {
+			return this._cellPadding;
+		} else {
+			v = ~~v;
+			if ( v < 0 ) v = 0;
+			if ( this._cellPadding != v ) {
+				this._cellPadding = v;
+				if ( this.documentElement ) {
+					this.documentElement.requestRelayout();
+				}
+			}
+		}
+	}
+
+	public cellSpacing( v: number = null ): number {
+		if ( v === null ) {
+			return this._cellSpacing;
+		} else {
+			v = ~~v;
+			if ( v < 0 ) v = 0;
+			if ( this._cellSpacing != v ) {
+				this._cellSpacing = v;
+				if ( this.documentElement ) {
+					this.documentElement.requestRelayout();
+				}
+			}
+		}
+	}
+
+	public border( v: number = null ): number {
+		if ( v === null ) {
+			return this._border;
+		} else {
+			v = ~~v;
+			if ( v < 0 ) v = 0;
+			if ( this._border !== v ) {
+				this._border = v;
+				if ( this.documentElement ) {
+					this.documentElement.requestRelayout();
+				}
+			}
+		}
+	}
+
 }

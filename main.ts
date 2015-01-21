@@ -34,6 +34,7 @@
 /// <reference path="./HTML/TableCell.ts" />
 
 /// <reference path="TStyle.ts" />
+/// <reference path="./TStyle/TableCell.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
 /// <reference path="./TStyle/Dimension.ts" />
@@ -65,14 +66,21 @@ var viewport = new Viewport(),
     	'<h4>Heading 4</h4>',
     	'<h5>Heading 5</h5>',
     	'<p>The elements above this paragraph are representing a <b>H3</b>, <b>H4</b>, and a <b>H5</b>. </p>',
-    	'<table border=1 bordercolor=black cellpadding=1 cellspacing=1 width="300"> this should be ignored',
+        '<h1>Table handling</h1>',
+    	'<table border=1 cellspacing=0 bordercolor=black cellpadding=5 > this should be ignored',
 	    	'<tr>, this also,',
-		    	'<td colspan="2" rowspan="2" width="25%">Cell 1 is the best cell in the world</td> and also this',
-		    	'<td >Cell 2 is also good, but not the best. Because it\'s the second</td>',
+		    	'<td width="33%" rowspan="2">Cell 1 is the best cell in the world</td> and also this',
+		    	'<td>Cell 2 is also good, but not the best. Because it\'s the second</td>',
 	    	'</tr>',
 	    	'<tr>',
-		    	'<td width="200">This is the last cell of the table</td>',
+                '<td>This is the last cell of the table</td>',
 	    	'</tr>',
+            '<tr>',
+                '<td colspan=2>This is the last cell of the table</td>',
+            '</tr>',
+            '<tr>',
+                '<td colspan=2>end<img align="right" src="./_assets/pic1.jpg" width="100" /></td>',
+            '</tr>',
     	'</table>',
     	'<h1>Anchoring</h1>',
     	'<p>This text contains an anchor to <a href="http://www.google.com">Google</a>. Anchoring painting should be rendered on the word Google.</p>',

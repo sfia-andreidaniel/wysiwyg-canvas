@@ -7,9 +7,11 @@ class TNode_Element extends TNode {
 	public id: string = '';
 	public className: string = '';
 
-	constructor() {
+	constructor( postStyleInit: boolean = false ) {
 		super();
-		this.style = new TStyle( this );
+
+		if ( !postStyleInit )
+			this.style = new TStyle( this );
 	}
 
 	public appendChild( node: TNode, index: number = null ): TNode {
@@ -337,7 +339,7 @@ class TNode_Element extends TNode {
 				ctx.lineWidth   = borderWidth;
 
 				ctx.beginPath();
-				ctx.strokeRect( layout.offsetLeft - scrollLeft, layout.offsetTop - scrollTop, layout.offsetWidth, layout.offsetHeight );
+				ctx.strokeRect( layout.offsetLeft + ( borderWidth / 2) - scrollLeft, layout.offsetTop + ( borderWidth / 2 ) - scrollTop, layout.offsetWidth - borderWidth, layout.offsetHeight - borderWidth );
 				ctx.closePath();
 			}
 		}

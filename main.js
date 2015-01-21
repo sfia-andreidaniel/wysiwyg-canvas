@@ -158,14 +158,16 @@ var TNode_Text = (function (_super) {
 })(TNode);
 var TNode_Element = (function (_super) {
     __extends(TNode_Element, _super);
-    function TNode_Element() {
+    function TNode_Element(postStyleInit) {
+        if (postStyleInit === void 0) { postStyleInit = false; }
         _super.call(this);
         this.childNodes = [];
         this.nodeType = 2 /* ELEMENT */;
         this.nodeName = '';
         this.id = '';
         this.className = '';
-        this.style = new TStyle(this);
+        if (!postStyleInit)
+            this.style = new TStyle(this);
     }
     TNode_Element.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
@@ -411,7 +413,7 @@ var TNode_Element = (function (_super) {
                 ctx.strokeStyle = borderColor;
                 ctx.lineWidth = borderWidth;
                 ctx.beginPath();
-                ctx.strokeRect(layout.offsetLeft - scrollLeft, layout.offsetTop - scrollTop, layout.offsetWidth, layout.offsetHeight);
+                ctx.strokeRect(layout.offsetLeft + (borderWidth / 2) - scrollLeft, layout.offsetTop + (borderWidth / 2) - scrollTop, layout.offsetWidth - borderWidth, layout.offsetHeight - borderWidth);
                 ctx.closePath();
             }
         }
@@ -1266,8 +1268,12 @@ var HTML_Table = (function (_super) {
         _super.call(this);
         this.needCompile = true;
         this.matrix = null;
+        this._cellPadding = 0;
+        this._cellSpacing = 0;
+        this._border = 0;
         this.nodeName = 'table';
         this.style.display('block');
+        this.style.marginTop('10');
     }
     HTML_Table.prototype.requestCompile = function () {
         this.needCompile = true;
@@ -1294,10 +1300,16 @@ var HTML_Table = (function (_super) {
     HTML_Table.prototype.setAttribute = function (attributeName, attributeValue) {
         switch (attributeName) {
             case 'border':
-                this.style.borderWidth(String(attributeValue || ''));
+                this.border(~~attributeValue);
                 break;
             case 'bordercolor':
                 this.style.borderColor(String(attributeValue || ''));
+                break;
+            case 'cellpadding':
+                this.cellPadding(~~attributeValue);
+                break;
+            case 'cellspacing':
+                this.cellSpacing(~~attributeValue);
                 break;
             default:
                 _super.prototype.setAttribute.call(this, attributeName, attributeValue);
@@ -1336,6 +1348,57 @@ var HTML_Table = (function (_super) {
         this.compile();
         return new Layout_Block_Table(this, this.matrix);
     };
+    HTML_Table.prototype.cellPadding = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            return this._cellPadding;
+        }
+        else {
+            v = ~~v;
+            if (v < 0)
+                v = 0;
+            if (this._cellPadding != v) {
+                this._cellPadding = v;
+                if (this.documentElement) {
+                    this.documentElement.requestRelayout();
+                }
+            }
+        }
+    };
+    HTML_Table.prototype.cellSpacing = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            return this._cellSpacing;
+        }
+        else {
+            v = ~~v;
+            if (v < 0)
+                v = 0;
+            if (this._cellSpacing != v) {
+                this._cellSpacing = v;
+                if (this.documentElement) {
+                    this.documentElement.requestRelayout();
+                }
+            }
+        }
+    };
+    HTML_Table.prototype.border = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            return this._border;
+        }
+        else {
+            v = ~~v;
+            if (v < 0)
+                v = 0;
+            if (this._border !== v) {
+                this._border = v;
+                if (this.documentElement) {
+                    this.documentElement.requestRelayout();
+                }
+            }
+        }
+    };
     return HTML_Table;
 })(TNode_Element);
 var HTML_Table_Matrix = (function () {
@@ -1344,8 +1407,8 @@ var HTML_Table_Matrix = (function () {
         this.cols = 0;
         this.rows = 0;
         this.data = [];
-        this.xEdges = new HTML_Table_EdgesCollection();
-        this.yEdges = new HTML_Table_EdgesCollection();
+        this.xEdges = new HTML_Table_EdgesCollection('x');
+        this.yEdges = new HTML_Table_EdgesCollection('y');
     }
     HTML_Table_Matrix.prototype.setCols = function (numCols) {
         if (numCols > this.cols) {
@@ -1429,8 +1492,10 @@ var HTML_Table_Matrix = (function () {
     return HTML_Table_Matrix;
 })();
 var HTML_Table_EdgesCollection = (function () {
-    function HTML_Table_EdgesCollection() {
+    function HTML_Table_EdgesCollection(name) {
+        this.name = name;
         this.edges = [];
+        this.purposedSizes = {};
     }
     HTML_Table_EdgesCollection.prototype.setNumber = function (numEdges) {
         this.edges = [];
@@ -1439,62 +1504,135 @@ var HTML_Table_EdgesCollection = (function () {
         }
     };
     HTML_Table_EdgesCollection.prototype.setSize = function (edgeStartIndex, edgeEndIndex, size) {
-        var sum = 0, i = 0;
-        size = ~~size;
-        if (edgeStartIndex < 0 || edgeEndIndex < edgeStartIndex) {
-            throw "HTML_Table_EdgesCollection: Bad arguments!";
+        var key;
+        if (edgeStartIndex == edgeEndIndex) {
+            key = ':' + String(edgeStartIndex);
         }
-        for (i = edgeStartIndex; i < edgeEndIndex; i++) {
-            sum += this.edges[i].value;
+        else {
+            key = '/' + String(edgeStartIndex + ' ' + edgeEndIndex);
         }
-        this.edges[edgeEndIndex].setValue(size - sum);
+        if (this.purposedSizes[key]) {
+            this.purposedSizes[key] = Math.max(this.purposedSizes[key], size);
+        }
+        else {
+            this.purposedSizes[key] = size;
+        }
     };
-    HTML_Table_EdgesCollection.prototype.toString = function () {
-        var out = [];
-        for (var i = 0, len = this.edges.length; i < len; i++) {
-            out.push(String(this.edges[i].scaledValue + ',' + this.edges[i].indexStart + '->' + this.edges[i].indexEnd));
-        }
-        return '[' + out.join('],[') + ']';
+    HTML_Table_EdgesCollection.prototype.resetSizes = function () {
+        this.purposedSizes = {};
     };
-    HTML_Table_EdgesCollection.prototype.resizeToFit = function (totalWidth) {
-        var sumTotal = 0, unset = [], i = 0, len = 0, pieceWidth = 0, maxPieceWidth = 0, minPieceWidth = -1, scale = 0.00;
-        for (i = 0, len = this.edges.length; i < len; i++) {
-            if (this.edges[i].value > 0) {
-                sumTotal = this.edges[i].value;
-                this.edges[i].scaledValue = this.edges[i].value;
-                if (maxPieceWidth < this.edges[i].value) {
-                    maxPieceWidth = this.edges[i].value;
-                    if (minPieceWidth == -1) {
-                        minPieceWidth = maxPieceWidth;
-                    }
-                }
-                if (minPieceWidth < this.edges[i].value) {
-                    minPieceWidth = this.edges[i].value;
-                }
+    HTML_Table_EdgesCollection.prototype.applyRangeSize = function (start, end, size) {
+        var unset = [], i = 0, len = start - end, sum = 0, pieceWidth = 0;
+        for (i = start; i <= end; i++) {
+            if (this.edges[i].isSet) {
+                sum += this.edges[i].value;
             }
             else {
                 unset.push(this.edges[i]);
             }
         }
-        if (unset.length) {
-            if (sumTotal < totalWidth) {
-                pieceWidth = totalWidth / unset.length;
-                for (i = 0, len = unset.length; i < len; i++) {
-                    unset[i].scaledValue = pieceWidth;
-                    sumTotal += pieceWidth;
-                }
+        if (len = unset.length) {
+            if (size < sum)
+                return;
+            pieceWidth = (size - sum) / len;
+            for (i = 0; i < len; i++) {
+                this.edges[i].value = pieceWidth;
+                this.edges[i].isSet = true;
+                sum += pieceWidth;
             }
-            else {
-                for (i = 0, len = unset.length; i < len; i++) {
-                    unset[i].scaledValue = minPieceWidth;
-                    sumTotal += minPieceWidth;
-                }
+            return;
+        }
+        if (size - sum > 0) {
+            pieceWidth = (size - sum) / (end - start + 1);
+            for (i = start; i <= end; i++) {
+                this.edges[i].value += pieceWidth;
             }
         }
-        scale = totalWidth / sumTotal;
+    };
+    HTML_Table_EdgesCollection.prototype.applySizes = function () {
+        var i = 0, len = 0, k = '', iStart = 0, iStop = 0, rng;
         for (i = 0, len = this.edges.length; i < len; i++) {
-            this.edges[i].scaledValue *= scale;
+            this.edges[i].value = 0;
+            this.edges[i].isSet = false;
         }
+        for (k in this.purposedSizes) {
+            if (k[0] == ':') {
+                iStart = ~~k.substr(1);
+                this.edges[iStart].value = this.purposedSizes[k];
+                this.edges[iStart].isSet = true;
+            }
+        }
+        for (k in this.purposedSizes) {
+            if (k[0] == '/') {
+                rng = k.substr(1).split(' ');
+                this.applyRangeSize(~~rng[0], ~~rng[1], this.purposedSizes[k]);
+            }
+        }
+    };
+    HTML_Table_EdgesCollection.prototype.toString = function () {
+        var out = [];
+        for (var i = 0, len = this.edges.length; i < len; i++) {
+            out.push(String(this.edges[i].offsetIndexStart + '->' + this.edges[i].offsetIndexEnd));
+        }
+        return '|' + out.join('|,|') + '|';
+    };
+    HTML_Table_EdgesCollection.prototype.resizeToFit = function (totalWidth, border, padding, spacing, shiftLeft) {
+        if (shiftLeft === void 0) { shiftLeft = 0; }
+        var sumTotal = 0, unset = [], i = 0, len = 0, pieceWidth = 0, maxPieceWidth = 0, minPieceWidth = -1, scale = 0.00, lastEdgeIndex = this.edges.length - 1;
+        if (totalWidth != null) {
+            for (i = 0, len = this.edges.length; i < len; i++) {
+                this.edges[i].scaledValue = this.edges[i].value;
+                if (this.edges[i].value > 0) {
+                    sumTotal += this.edges[i].value;
+                    if (maxPieceWidth < this.edges[i].value) {
+                        maxPieceWidth = this.edges[i].value;
+                        if (minPieceWidth == -1) {
+                            minPieceWidth = maxPieceWidth;
+                        }
+                    }
+                    if (minPieceWidth < this.edges[i].value) {
+                        minPieceWidth = this.edges[i].value;
+                    }
+                }
+                else {
+                    unset.push(this.edges[i]);
+                }
+            }
+            if (unset.length) {
+                if (sumTotal < totalWidth) {
+                    pieceWidth = (totalWidth - sumTotal) / unset.length;
+                    for (i = 0, len = unset.length; i < len; i++) {
+                        unset[i].scaledValue = pieceWidth;
+                        sumTotal += pieceWidth;
+                    }
+                }
+                else {
+                    for (i = 0, len = unset.length; i < len; i++) {
+                        unset[i].scaledValue = minPieceWidth;
+                        sumTotal += minPieceWidth;
+                    }
+                }
+            }
+            scale = totalWidth / sumTotal;
+            for (i = 0, len = this.edges.length; i < len; i++) {
+                this.edges[i].scaledValue *= scale;
+            }
+        }
+        else {
+            for (i = 0, len = this.edges.length; i < len; i++) {
+                this.edges[i].scaledValue = this.edges[i].value;
+            }
+        }
+        this.edges[0].indexStart = shiftLeft + spacing;
+        this.edges[0].offsetIndexStart = shiftLeft + spacing;
+        for (i = 0, len = this.edges.length; i < (len - 1); i++) {
+            this.edges[i].indexEnd = this.edges[i].indexStart + this.edges[i].scaledValue + (2 * (padding + border)) + (spacing * .5);
+            this.edges[i].offsetIndexEnd = this.edges[i].offsetIndexStart + 2 * border + 2 * padding + this.edges[i].scaledValue;
+            this.edges[i + 1].indexStart = this.edges[i].indexEnd;
+            this.edges[i + 1].offsetIndexStart = this.edges[i].indexEnd + spacing * .5;
+        }
+        this.edges[lastEdgeIndex].indexEnd = this.edges[lastEdgeIndex].indexStart + this.edges[lastEdgeIndex].scaledValue + padding * 2 + 2 * border + spacing * 1.5;
+        this.edges[lastEdgeIndex].offsetIndexEnd = this.edges[lastEdgeIndex].indexEnd - spacing;
     };
     return HTML_Table_EdgesCollection;
 })();
@@ -1504,8 +1642,11 @@ var HTML_Table_Edge = (function () {
         this.group = group;
         this.value = 0;
         this.scaledValue = 0;
+        this.isSet = false;
         this.indexStart = 0;
         this.indexEnd = 0;
+        this.offsetIndexStart = 0;
+        this.offsetIndexEnd = 0;
     }
     HTML_Table_Edge.prototype.setValue = function (amount) {
         amount = ~~amount;
@@ -1546,7 +1687,7 @@ var HTML_TableRow = (function (_super) {
 var HTML_TableCell = (function (_super) {
     __extends(HTML_TableCell, _super);
     function HTML_TableCell() {
-        _super.call(this);
+        _super.call(this, true);
         this.ownerTable = null;
         this.tableIndex = 0; // the index of the cell in it's table
         this.rowIndex = 0; // the index of the cell in it's row
@@ -1556,6 +1697,7 @@ var HTML_TableCell = (function (_super) {
         this.edgeRight = null;
         this.edgeTop = null;
         this.edgeBottom = null;
+        this.style = new TStyle_TableCell(this);
         this.nodeName = 'td';
         this.style.display('block');
         this.style.borderWidth('1');
@@ -1972,6 +2114,146 @@ var TStyle = (function () {
     ];
     return TStyle;
 })();
+var TStyle_TableCell = (function (_super) {
+    __extends(TStyle_TableCell, _super);
+    function TStyle_TableCell(node) {
+        _super.call(this, node);
+        this.node = node;
+    }
+    // the padding of the table cell cannot be modified.
+    TStyle_TableCell.prototype.paddingLeft = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellPadding();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.paddingTop = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellPadding();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.paddingRight = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellPadding();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.paddingBottom = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellPadding();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    // the margin of the table cell cannot be modified.
+    TStyle_TableCell.prototype.marginLeft = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellSpacing();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.marginTop = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellSpacing();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.marginRight = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellSpacing();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.marginBottom = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.cellSpacing();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    // the border-width and border-color cannot be modified
+    TStyle_TableCell.prototype.borderWidth = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.border();
+            }
+            else {
+                return 0;
+            }
+        }
+        else
+            return 0;
+    };
+    TStyle_TableCell.prototype.borderColor = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            if (this.node.parentNode && this.node.parentNode.parentNode) {
+                return this.node.parentNode.parentNode.style.borderColor();
+            }
+            else
+                return '';
+        }
+        else
+            return '';
+    };
+    return TStyle_TableCell;
+})(TStyle);
 var TStyle_Property = (function () {
     function TStyle_Property(style, name) {
         this.style = style;
@@ -2932,60 +3214,58 @@ var Layout_Block_Table = (function (_super) {
         }
     }
     Layout_Block_Table.prototype.computeWidths = function () {
-        var i = 0, len = 0, borderWidth = this.node.style.borderWidth() || 1, node;
-        this.offsetLeft += this.node.style.marginLeft();
+        var i = 0, len = 0, table = this.node, node, totalCellsInnerWidths = 0, borderWidth = table.border() || 1, cellSpacing = table.cellSpacing(), cellPadding = table.cellPadding();
+        this.offsetLeft += table.style.marginLeft();
+        this.innerLeft = this.offsetLeft + table.style.borderWidth() + table.style.paddingLeft();
+        this.matrix.xEdges.resetSizes();
         for (i = 0, len = this.matrix.cellsArray.length; i < len; i++) {
             if (this.matrix.cellsArray[i].style._width.isSet)
                 this.matrix.xEdges.setSize(this.matrix.cellsArray[i].edgeLeft.index, this.matrix.cellsArray[i].edgeRight.index, this.matrix.cellsArray[i].style.width());
         }
+        this.matrix.xEdges.applySizes();
+        totalCellsInnerWidths = this.innerWidth - ((this.matrix.cols + 1) * cellSpacing) - (this.matrix.cols * 2 * (cellPadding + borderWidth));
+        //console.warn( 'totalCellsInnerWidths: ' + this.innerWidth + '- (( ' + this.matrix.cols + ' + 1 ) * ' + cellSpacing + ') - ( ' + this.matrix.cols + ' * 2 * (' + cellPadding + '+' + borderWidth + ') ) = ' + totalCellsInnerWidths );
         // resize the colums in order to fit this layout
-        this.matrix.xEdges.resizeToFit(this.innerWidth - (this.matrix.cols + 1) * borderWidth);
-        this.matrix.xEdges.edges[0].indexStart = borderWidth;
-        this.matrix.xEdges.edges[0].indexEnd = borderWidth + this.matrix.xEdges.edges[0].scaledValue;
-        for (i = 1, len = this.matrix.xEdges.edges.length; i < len; i++) {
-            this.matrix.xEdges.edges[i].indexStart = this.matrix.xEdges.edges[i - 1].indexEnd + borderWidth;
-            this.matrix.xEdges.edges[i].indexEnd = this.matrix.xEdges.edges[i].indexStart + this.matrix.xEdges.edges[i].scaledValue;
-        }
+        this.matrix.xEdges.resizeToFit(totalCellsInnerWidths, borderWidth, cellPadding, cellSpacing, this.innerLeft);
         for (var i = 0, len = this.children.length; i < len; i++) {
             node = (this.children[i].node);
-            this.children[i].offsetLeft = node.edgeLeft.indexStart + this.offsetLeft;
-            this.children[i].offsetWidth = node.edgeRight.indexEnd - node.edgeLeft.indexStart;
-            this.children[i].innerWidth = this.children[i].offsetWidth - node.style.paddingLeft() - node.style.paddingRight();
-            this.children[i].innerLeft = this.children[i].offsetLeft + node.style.paddingLeft();
+            this.children[i].offsetLeft = node.edgeLeft.offsetIndexStart;
+            this.children[i].offsetWidth = node.edgeRight.offsetIndexEnd - node.edgeLeft.offsetIndexStart;
+            this.children[i].innerWidth = this.children[i].offsetWidth - 2 * cellPadding - 2 * borderWidth;
+            this.children[i].innerLeft = this.children[i].offsetLeft + cellPadding + borderWidth;
             this.children[i].computeWidths();
         }
     };
     Layout_Block_Table.prototype.computeHeights = function (topPlacement, indent) {
         if (indent === void 0) { indent = 0; }
-        this.offsetTop = topPlacement + this.node.style.marginTop();
-        topPlacement += this.node.style.marginTop();
-        this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-        topPlacement += (this.node.style.borderWidth() + this.node.style.paddingTop());
+        var i = 0, len = 0, table = this.node, borderWidth = table.border() || 1, cellSpacing = table.cellSpacing(), cellPadding = table.cellPadding();
+        topPlacement += table.style.marginTop();
+        this.offsetTop = topPlacement;
+        topPlacement += (this.offsetHeight = (table.style.borderWidth() + this.node.style.paddingTop()));
+        this.innerTop = topPlacement;
         this.innerHeight = 0;
-        var i = 0, len = 0, borderWidth = this.node.style.borderWidth() || 1;
-        this.offsetHeight = borderWidth + this.node.style.paddingTop();
+        /* Compute the heights for all the sub-layouts, then hang them on
+           top position.
+           Set the line heights of the rows of the matrix
+         */
+        this.matrix.yEdges.resetSizes();
         for (i = 0, len = this.children.length; i < len; i++) {
             this.children[i].computeHeights(topPlacement);
-            this.matrix.yEdges.setSize(this.children[i].node.edgeTop.index, this.children[i].node.edgeBottom.index, this.children[i].offsetHeight);
+            this.matrix.yEdges.setSize(this.children[i].node.edgeTop.index, this.children[i].node.edgeBottom.index, this.children[i].offsetHeight - 2 * cellPadding);
         }
-        // compute the stops of the rows on the y axis
-        this.matrix.yEdges.edges[0].indexStart = borderWidth;
-        this.matrix.yEdges.edges[0].indexEnd = this.matrix.yEdges.edges[0].value + borderWidth;
-        for (i = 1, len = this.matrix.yEdges.edges.length; i < len; i++) {
-            this.matrix.yEdges.edges[i].indexStart = this.matrix.yEdges.edges[i - 1].indexEnd + borderWidth;
-            this.matrix.yEdges.edges[i].indexEnd = this.matrix.yEdges.edges[i].indexStart + this.matrix.yEdges.edges[i].scaledValue;
-        }
+        this.matrix.yEdges.applySizes();
+        this.matrix.yEdges.resizeToFit(null, borderWidth, cellPadding, cellSpacing, -cellSpacing);
         for (i = 0, len = this.children.length; i < len; i++) {
-            this.children[i].increaseYBy(this.children[i].node.edgeTop.indexStart);
-            this.children[i].increaseHeightBy((this.children[i].node.edgeBottom.indexEnd - this.children[i].node.edgeTop.indexStart) - this.children[i].offsetHeight);
+            this.children[i].increaseYBy(this.children[i].node.edgeTop.offsetIndexStart);
+            this.children[i].increaseHeightBy((this.children[i].node.edgeBottom.offsetIndexEnd - this.children[i].node.edgeTop.offsetIndexStart) - this.children[i].offsetHeight);
         }
-        this.innerHeight = this.matrix.yEdges.edges[this.matrix.yEdges.edges.length - 1].indexEnd;
-        this.offsetHeight += this.innerHeight;
+        this.innerHeight = this.matrix.yEdges.edges[this.matrix.yEdges.edges.length - 1].offsetIndexEnd;
         topPlacement += this.innerHeight;
-        this.offsetHeight += (this.node.style.paddingBottom() + borderWidth);
-        topPlacement += (this.node.style.paddingBottom() + borderWidth);
+        this.offsetHeight += this.innerHeight;
+        this.offsetHeight += (this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing);
+        topPlacement += (this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing);
         topPlacement += this.node.style.marginBottom();
-        return topPlacement + 4;
+        return topPlacement;
     };
     return Layout_Block_Table;
 })(Layout_Block);
@@ -3153,6 +3433,7 @@ var Viewport = (function (_super) {
 /// <reference path="./HTML/TableRow.ts" />
 /// <reference path="./HTML/TableCell.ts" />
 /// <reference path="TStyle.ts" />
+/// <reference path="./TStyle/TableCell.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
 /// <reference path="./TStyle/Dimension.ts" />
@@ -3178,13 +3459,20 @@ var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h4>Heading 4</h4>',
     '<h5>Heading 5</h5>',
     '<p>The elements above this paragraph are representing a <b>H3</b>, <b>H4</b>, and a <b>H5</b>. </p>',
-    '<table border=1 bordercolor=black cellpadding=1 cellspacing=1 width="300"> this should be ignored',
+    '<h1>Table handling</h1>',
+    '<table border=1 cellspacing=0 bordercolor=black cellpadding=5 > this should be ignored',
     '<tr>, this also,',
-    '<td colspan="2" rowspan="2" width="25%">Cell 1 is the best cell in the world</td> and also this',
-    '<td >Cell 2 is also good, but not the best. Because it\'s the second</td>',
+    '<td width="33%" rowspan="2">Cell 1 is the best cell in the world</td> and also this',
+    '<td>Cell 2 is also good, but not the best. Because it\'s the second</td>',
     '</tr>',
     '<tr>',
-    '<td width="200">This is the last cell of the table</td>',
+    '<td>This is the last cell of the table</td>',
+    '</tr>',
+    '<tr>',
+    '<td colspan=2>This is the last cell of the table</td>',
+    '</tr>',
+    '<tr>',
+    '<td colspan=2>end<img align="right" src="./_assets/pic1.jpg" width="100" /></td>',
     '</tr>',
     '</table>',
     '<h1>Anchoring</h1>',

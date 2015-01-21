@@ -23,11 +23,18 @@ class Layout_Block_Table extends Layout_Block {
 
 		var i: number = 0,
 		    len: number = 0,
-		    borderWidth: number = this.node.style.borderWidth() || 1,
-		    node: HTML_TableCell;
+		    table: HTML_Table = <HTML_Table>this.node,
+		    node: HTML_TableCell,
+		    totalCellsInnerWidths: number = 0,
 
-		this.offsetLeft += this.node.style.marginLeft();
-		// the width of the table is allready computed
+		    borderWidth: number = table.border() || 1,
+		    cellSpacing: number = table.cellSpacing(),
+		    cellPadding: number = table.cellPadding();
+
+		this.offsetLeft += table.style.marginLeft();
+		this.innerLeft = this.offsetLeft + table.style.borderWidth() + table.style.paddingLeft();
+
+		this.matrix.xEdges.resetSizes();
 
 		// compute the column widths
 		for ( i=0, len = this.matrix.cellsArray.length; i<len; i++ ) {
@@ -42,27 +49,25 @@ class Layout_Block_Table extends Layout_Block {
 
 		}
 
+		this.matrix.xEdges.applySizes();
+
+		totalCellsInnerWidths = this.innerWidth - ( ( this.matrix.cols + 1 ) * cellSpacing ) - ( this.matrix.cols * 2 * ( cellPadding + borderWidth ) ) ;
+
+		//console.warn( 'totalCellsInnerWidths: ' + this.innerWidth + '- (( ' + this.matrix.cols + ' + 1 ) * ' + cellSpacing + ') - ( ' + this.matrix.cols + ' * 2 * (' + cellPadding + '+' + borderWidth + ') ) = ' + totalCellsInnerWidths );
+
 		// resize the colums in order to fit this layout
-
-		this.matrix.xEdges.resizeToFit( this.innerWidth - ( this.matrix.cols + 1 ) * borderWidth );
-
-		this.matrix.xEdges.edges[0].indexStart = borderWidth;
-		this.matrix.xEdges.edges[0].indexEnd = borderWidth + this.matrix.xEdges.edges[0].scaledValue;
-
-		for ( i=1, len = this.matrix.xEdges.edges.length; i<len; i++ ) {
-			this.matrix.xEdges.edges[i].indexStart = this.matrix.xEdges.edges[i-1].indexEnd + borderWidth;
-			this.matrix.xEdges.edges[i].indexEnd   = this.matrix.xEdges.edges[i].indexStart + this.matrix.xEdges.edges[i].scaledValue;
-		}
+		this.matrix.xEdges.resizeToFit( totalCellsInnerWidths, borderWidth, cellPadding, cellSpacing, this.innerLeft );
 
 		// set the widths of the sub-layouts
 		for ( var i=0, len = this.children.length; i<len; i++ ) {
 
 			node = <HTML_TableCell>(this.children[i].node);
 
-			this.children[i].offsetLeft = node.edgeLeft.indexStart + this.offsetLeft;
-			this.children[i].offsetWidth= node.edgeRight.indexEnd - node.edgeLeft.indexStart;
-			this.children[i].innerWidth = this.children[i].offsetWidth - node.style.paddingLeft() - node.style.paddingRight();
-			this.children[i].innerLeft  = this.children[i].offsetLeft + node.style.paddingLeft();
+			this.children[i].offsetLeft = node.edgeLeft.offsetIndexStart;
+			this.children[i].offsetWidth= node.edgeRight.offsetIndexEnd - node.edgeLeft.offsetIndexStart;
+			
+			this.children[i].innerWidth = this.children[i].offsetWidth - 2 * cellPadding - 2 * borderWidth;
+			this.children[i].innerLeft  = this.children[i].offsetLeft + cellPadding + borderWidth;
 
 			this.children[i].computeWidths();
 
@@ -72,56 +77,69 @@ class Layout_Block_Table extends Layout_Block {
 
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {
 
-		this.offsetTop = topPlacement + this.node.style.marginTop();
-		topPlacement += this.node.style.marginTop();
-		this.innerTop = this.offsetTop + this.node.style.borderWidth() + this.node.style.paddingTop();
-		topPlacement += ( this.node.style.borderWidth() + this.node.style.paddingTop() );
-
-		this.innerHeight = 0;
-
 		var i: number = 0,
 		    len: number = 0,
-		    borderWidth = this.node.style.borderWidth() || 1;
+		    
+		    table: HTML_Table = <HTML_Table>this.node,
+		    borderWidth = table.border() || 1,
+		    cellSpacing = table.cellSpacing(),
+		    cellPadding = table.cellPadding();
 
-		this.offsetHeight = borderWidth + this.node.style.paddingTop() ;
+
+		topPlacement += table.style.marginTop();
+		this.offsetTop = topPlacement;
+
+		topPlacement += ( this.offsetHeight = ( table.style.borderWidth() + this.node.style.paddingTop() ) );
+
+		this.innerTop = topPlacement;
+
+		this.innerHeight = 0;
 
 		/* Compute the heights for all the sub-layouts, then hang them on
 		   top position.
 		   Set the line heights of the rows of the matrix
 		 */
 
+		this.matrix.yEdges.resetSizes();
+
 		for ( i=0, len = this.children.length; i<len; i++ ) {
+			
 			this.children[i].computeHeights( topPlacement );
+			
 			this.matrix.yEdges.setSize(
 				(<HTML_TableCell>this.children[i].node).edgeTop.index,
 				(<HTML_TableCell>this.children[i].node).edgeBottom.index,
-				this.children[i].offsetHeight
+				this.children[i].offsetHeight - 2 * cellPadding
 			);
+		
 		}
 
-		// compute the stops of the rows on the y axis
-		this.matrix.yEdges.edges[0].indexStart = borderWidth;
-		this.matrix.yEdges.edges[0].indexEnd = this.matrix.yEdges.edges[0].value + borderWidth;
+		this.matrix.yEdges.applySizes();
 
-		for ( i=1, len = this.matrix.yEdges.edges.length; i<len; i++ ) {
-			this.matrix.yEdges.edges[i].indexStart = this.matrix.yEdges.edges[i-1].indexEnd + borderWidth;
-			this.matrix.yEdges.edges[i].indexEnd   = this.matrix.yEdges.edges[i].indexStart + this.matrix.yEdges.edges[i].scaledValue;
-		}
+		this.matrix.yEdges.resizeToFit( null, borderWidth, cellPadding, cellSpacing, -cellSpacing );
 
 		for ( i=0, len = this.children.length; i<len; i++ ) {
-			this.children[i].increaseYBy( (<HTML_TableCell>this.children[i].node).edgeTop.indexStart );
-			this.children[i].increaseHeightBy( ( (<HTML_TableCell>this.children[i].node).edgeBottom.indexEnd - (<HTML_TableCell>this.children[i].node).edgeTop.indexStart ) - this.children[i].offsetHeight )
+
+			this.children[i].increaseYBy( (<HTML_TableCell>this.children[i].node).edgeTop.offsetIndexStart );
+
+			this.children[i].increaseHeightBy( 
+				( (<HTML_TableCell>this.children[i].node).edgeBottom.offsetIndexEnd - (<HTML_TableCell>this.children[i].node).edgeTop.offsetIndexStart )
+				- 
+				this.children[i].offsetHeight
+			);
+
 		}
 
-		this.innerHeight = this.matrix.yEdges.edges[ this.matrix.yEdges.edges.length - 1 ].indexEnd;
-		this.offsetHeight += this.innerHeight;
+		this.innerHeight = this.matrix.yEdges.edges[ this.matrix.yEdges.edges.length - 1 ].offsetIndexEnd;
 		topPlacement += this.innerHeight;
-		this.offsetHeight += ( this.node.style.paddingBottom() + borderWidth );
-		topPlacement += ( this.node.style.paddingBottom() + borderWidth );
+		this.offsetHeight += this.innerHeight;
+
+		this.offsetHeight += ( this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing );
+		topPlacement += ( this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing );
 
 		topPlacement += this.node.style.marginBottom();
 
-		return topPlacement + 4;
+		return topPlacement;
 
 	}
 

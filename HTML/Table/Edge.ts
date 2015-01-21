@@ -2,9 +2,12 @@ class HTML_Table_Edge {
 
 	public value: number = 0;
 	public scaledValue: number = 0;
+	public isSet: boolean = false;
 
 	public indexStart: number = 0;
 	public indexEnd: number = 0;
+	public offsetIndexStart: number = 0;
+	public offsetIndexEnd: number = 0;
 
 	constructor ( public index: number, public group: HTML_Table_EdgesCollection ) {
 	}

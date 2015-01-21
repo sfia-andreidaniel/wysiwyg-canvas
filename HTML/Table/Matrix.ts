@@ -5,8 +5,8 @@ class HTML_Table_Matrix {
 
 	public data: number[][] = [];
 
-	public xEdges: HTML_Table_EdgesCollection = new HTML_Table_EdgesCollection();
-	public yEdges: HTML_Table_EdgesCollection = new HTML_Table_EdgesCollection();
+	public xEdges: HTML_Table_EdgesCollection = new HTML_Table_EdgesCollection( 'x' );
+	public yEdges: HTML_Table_EdgesCollection = new HTML_Table_EdgesCollection( 'y' );
 
 	constructor( public cellsArray ) {
 

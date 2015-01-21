@@ -14,7 +14,9 @@ class HTML_TableCell extends TNode_Element {
 	public edgeBottom: HTML_Table_Edge = null;
 
 	constructor() {
-		super();
+		super( true );
+		this.style = new TStyle_TableCell( this );
+
 		this.nodeName = 'td';
 		this.style.display('block');
 		this.style.borderWidth( '1' );

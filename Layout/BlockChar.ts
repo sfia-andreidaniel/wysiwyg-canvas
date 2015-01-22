@@ -133,14 +133,23 @@ class Layout_BlockChar extends Layout {
 		return topPlacement;
 	}
 
+	protected paintCaret( ctx: any, x: number, y: number, height: number ) {
+		ctx.save();
+		ctx.fillStyle = '#000';
+		ctx.fillRect( Math.min( this.offsetLeft + this.offsetWidth, x - .5 ), y - 2, 2, ( height + 2 ) * 1.12 );
+		ctx.restore();
+	}
+
 	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
 
 		if ( !this.isPaintable( viewport ) ) {
 			return;
 		}
 
+		/*
 		ctx.fillStyle = '#ddd';
 		ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
+		*/
 
 		var i: number = 0,
 			len: number = 0,
@@ -160,7 +169,12 @@ class Layout_BlockChar extends Layout {
 		    underlineWidth: number = 0.00,
 		    size: number[],
 		    valign: string = 'normal',
-		    valignShift: number = 0;
+		    valignShift: number = 0,
+		    fragPos: number = 0,
+		    lastTextNode: TNode_Text = null,
+		    range: TRange = node.documentElement.viewport.selection.getRange(),
+		    caret: TRange_Target = range.focusNode(),
+		    saveColor: string = '';
 
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -192,12 +206,17 @@ class Layout_BlockChar extends Layout {
 
 				for ( k = 0, l = this.lines[i].words[j].characters.length; k<l; k++ ) {
 
+					if ( lastTextNode != this.lines[i].words[j].characters[k].node ) {
+						lastTextNode = this.lines[i].words[j].characters[k].node;
+						fragPos = lastTextNode.FRAGMENT_START;
+					}
+
 					if ( currentNode != this.lines[i].words[j].characters[k].node.parentNode ) {
 						
 						currentNode = this.lines[i].words[j].characters[k].node.parentNode;
 
 						ctx.font = currentNode.style.fontStyleText();
-						ctx.fillStyle = currentNode.style.color();
+						ctx.fillStyle = saveColor = currentNode.style.color();
 						isUnderline = currentNode.style.textDecoration() == 'underline';
 						
 						valign = currentNode.style.verticalAlign();
@@ -228,28 +247,61 @@ class Layout_BlockChar extends Layout {
 
 					size = this.lines[i].words[j].characters[k].computeSize();
 
-					ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
-					
-					if ( isUnderline ) {
-						ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
+					if ( caret && range.contains( fragPos ) ) {
+
+						ctx.fillStyle = 'blue';
+						ctx.fillRect( startX, startY, size[0] + ( wordGap && k == l - 1 ? this.lines[i].wordGap : 0 ) + .5, this.lines[i].size[1] + 1 );
+						ctx.fillStyle = 'white';
+
+						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
+						
+						if ( isUnderline ) {
+							ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
+						}
+
+						ctx.fillStyle = saveColor;
+
+					} else {
+
+						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
+						
+						if ( isUnderline ) {
+							ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
+						}
+
+					}
+
+					if ( caret && caret.fragPos == fragPos ) {
+						//paint caret @ this pos
+						this.paintCaret( ctx, startX, startY, lineDiff );
 					}
 
 					startX += size[0];
 
+					fragPos++; // reached end of character, increment the fragment position
 				}
 
-				startX += ( wordGap ? this.lines[i].wordGap : 0 );
+				if ( wordGap ) {
+					startX += this.lines[i].wordGap;
+				}
 
 			}
 
+			if ( caret && caret.fragPos == fragPos ) {
+				// paint caret @ this pos
+				this.paintCaret( ctx, startX, startY, lineDiff );
+			}
+
 			startY += this.lines[i].size[1];
+			fragPos++; // reached end of line, increment the fragment position
+
 		}
 
 	}
 
-	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TTarget {
+	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TRange_Target {
 		
-		var target: TTarget = super.getTargetAtXY( point, false ),
+		var target: TRange_Target = super.getTargetAtXY( point, false ),
 		    i: number = 0,
 		    len: number = 0,
 		    j: number = 0,
@@ -264,14 +316,23 @@ class Layout_BlockChar extends Layout {
 		    bestCharTargetIndex: number = 0,
 		    bestNode: TNode_Text,
 		    align: string,
-		    wordGap: boolean,
+		    wordGap: boolean = false,
 		    size: number[],
-		    breakFor: boolean = false;
+		    breakFor: boolean = false,
+		    relative: TPoint,
+		    w: number;
 		
 		if ( target !== null ) {
 			
+			relative = {
+				"x": point.x - this.offsetLeft,
+				"y": point.y - this.offsetTop
+			};
+
+			bestCharTargetIndex = target.fragPos;
+
 			for ( line=0, lines = this.lines.length; line<lines; line++ ) {
-				if ( target.relative.y >= startY ) {
+				if ( relative.y >= startY ) {
 					bestLine = this.lines[line];
 					bestLineIndex = line;
 				} else {
@@ -305,18 +366,19 @@ class Layout_BlockChar extends Layout {
 						size = bestLine.words[i].characters[j].computeSize();
 
 						if ( wordGap && j == n - 1 ) {
-							size[0] += bestLine.wordGap;
+							w = size[0] + bestLine.wordGap;
+						} else {
+							w = size[0];
 						}
 						
-						if ( ( ( size[0] / 2 ) + startX < target.absolute.x ) ) {
+						if ( ( ( w / 2 ) + startX < point.x ) ) {
 							bestCharLineIndex++;
 							bestNode = bestLine.words[i].characters[j].node;
-							bestCharTargetIndex = bestLine.words[i].characters[j].index + 1;
-
-							startX += size[0];
+							bestCharTargetIndex = bestLine.words[i].characters[j].fragmentPosition() + 1;
+							startX += w;
 						} else {
 							bestNode = bestLine.words[i].characters[j].node;
-							bestCharTargetIndex = bestLine.words[i].characters[j].index;
+							bestCharTargetIndex = bestLine.words[i].characters[j].fragmentPosition();
 							breakFor = true;
 							break;
 						}
@@ -326,10 +388,8 @@ class Layout_BlockChar extends Layout {
 						break;
 				}
 
-				target.line = bestLineIndex;
 				target.target = bestNode;
-				target.charLineIndex = bestCharLineIndex;
-				target.charTargetIndex = bestCharTargetIndex;
+				target.fragPos = bestCharTargetIndex;
 				return target;
 
 			} else return target;

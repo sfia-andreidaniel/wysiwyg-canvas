@@ -12,6 +12,16 @@ var FragmentItem;
     FragmentItem[FragmentItem["CHARACTER"] = 3] = "CHARACTER";
     FragmentItem[FragmentItem["WHITE_SPACE"] = 4] = "WHITE_SPACE";
 })(FragmentItem || (FragmentItem = {}));
+var TRange_Type;
+(function (TRange_Type) {
+    TRange_Type[TRange_Type["TEXT"] = 0] = "TEXT";
+    TRange_Type[TRange_Type["ELEMENT"] = 1] = "ELEMENT";
+})(TRange_Type || (TRange_Type = {}));
+var FragmentPos;
+(function (FragmentPos) {
+    FragmentPos[FragmentPos["DOC_BEGIN"] = 0] = "DOC_BEGIN";
+    FragmentPos[FragmentPos["DOC_END"] = 1] = "DOC_END";
+})(FragmentPos || (FragmentPos = {}));
 var Events = (function () {
     function Events() {
     }
@@ -624,6 +634,38 @@ var TNode_Element = (function (_super) {
         else
             return -1;
     };
+    TNode_Element.prototype.findNodeAtIndex = function (index) {
+        var i = 0, len = 0, match;
+        if (this.documentElement) {
+            this.documentElement.requestRelayoutNowIfNeeded();
+            if (index == this.FRAGMENT_START || index == this.FRAGMENT_END) {
+                return this;
+            }
+            else if (index < this.FRAGMENT_START || index > this.FRAGMENT_END) {
+                return null;
+            }
+            else {
+                for (i = 0, len = this.childNodes.length; i < len; i++) {
+                    if (this.childNodes && (len = this.childNodes.length)) {
+                        if (this.childNodes[i].nodeType == 1 /* TEXT */) {
+                            if (index >= this.childNodes[i].FRAGMENT_START && index <= this.childNodes[i].FRAGMENT_END) {
+                                return this.childNodes[i];
+                            }
+                        }
+                        else {
+                            match = this.childNodes[i].findNodeAtIndex(index);
+                            if (match !== null) {
+                                return match;
+                            }
+                        }
+                    }
+                }
+                return this;
+            }
+        }
+        else
+            return null;
+    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -848,7 +890,7 @@ var HTML_Body = (function (_super) {
         this._needRepaint = true;
         this._layout = null;
         this.viewport = null;
-        this.fragment = new Fragment();
+        this.fragment = new Fragment(this);
         this.viewport = viewport;
         this.nodeName = 'body';
         this.documentElement = this;
@@ -2866,15 +2908,7 @@ var Layout = (function () {
         if (boundsChecking === void 0) { boundsChecking = true; }
         if (point.y < this.offsetTop || (point.y > (this.offsetTop + this.offsetHeight) && boundsChecking) || point.x < (this.offsetLeft) || (point.x > (this.offsetLeft + this.offsetWidth) && boundsChecking))
             return null; // click outside the layout.
-        var bestTarget = {
-            layout: this,
-            target: this.ownerNode(),
-            absolute: point,
-            relative: {
-                "x": point.x - this.offsetLeft,
-                "y": point.y - this.offsetTop
-            }
-        }, childTarget;
+        var node = this.ownerNode(), bestTarget = new TRange_Target(node, node.FRAGMENT_START), childTarget;
         if (this.children && this.children.length) {
             for (var i = this.children.length - 1; i >= 0; i--) {
                 childTarget = this.children[i].getTargetAtXY(point);
@@ -3260,13 +3294,21 @@ var Layout_BlockChar = (function (_super) {
         }
         return topPlacement;
     };
+    Layout_BlockChar.prototype.paintCaret = function (ctx, x, y, height) {
+        ctx.save();
+        ctx.fillStyle = '#000';
+        ctx.fillRect(Math.min(this.offsetLeft + this.offsetWidth, x - .5), y - 2, 2, (height + 2) * 1.12);
+        ctx.restore();
+    };
     Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
         if (!this.isPaintable(viewport)) {
             return;
         }
+        /*
         ctx.fillStyle = '#ddd';
-        ctx.fillRect(this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight);
-        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0;
+        ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
+        */
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -3288,10 +3330,14 @@ var Layout_BlockChar = (function (_super) {
             startX -= scrollLeft;
             for (j = 0, n = this.lines[i].words.length; j < n; j++) {
                 for (k = 0, l = this.lines[i].words[j].characters.length; k < l; k++) {
+                    if (lastTextNode != this.lines[i].words[j].characters[k].node) {
+                        lastTextNode = this.lines[i].words[j].characters[k].node;
+                        fragPos = lastTextNode.FRAGMENT_START;
+                    }
                     if (currentNode != this.lines[i].words[j].characters[k].node.parentNode) {
                         currentNode = this.lines[i].words[j].characters[k].node.parentNode;
                         ctx.font = currentNode.style.fontStyleText();
-                        ctx.fillStyle = currentNode.style.color();
+                        ctx.fillStyle = saveColor = currentNode.style.color();
                         isUnderline = currentNode.style.textDecoration() == 'underline';
                         valign = currentNode.style.verticalAlign();
                         if (isUnderline) {
@@ -3313,23 +3359,52 @@ var Layout_BlockChar = (function (_super) {
                         }
                     }
                     size = this.lines[i].words[j].characters[k].computeSize();
-                    ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
-                    if (isUnderline) {
-                        ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
+                    if (caret && range.contains(fragPos)) {
+                        ctx.fillStyle = 'blue';
+                        ctx.fillRect(startX, startY, size[0] + (wordGap && k == l - 1 ? this.lines[i].wordGap : 0) + .5, this.lines[i].size[1] + 1);
+                        ctx.fillStyle = 'white';
+                        ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
+                        if (isUnderline) {
+                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
+                        }
+                        ctx.fillStyle = saveColor;
+                    }
+                    else {
+                        ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
+                        if (isUnderline) {
+                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
+                        }
+                    }
+                    if (caret && caret.fragPos == fragPos) {
+                        //paint caret @ this pos
+                        this.paintCaret(ctx, startX, startY, lineDiff);
                     }
                     startX += size[0];
+                    fragPos++; // reached end of character, increment the fragment position
                 }
-                startX += (wordGap ? this.lines[i].wordGap : 0);
+                if (wordGap) {
+                    startX += this.lines[i].wordGap;
+                }
+            }
+            if (caret && caret.fragPos == fragPos) {
+                // paint caret @ this pos
+                this.paintCaret(ctx, startX, startY, lineDiff);
             }
             startY += this.lines[i].size[1];
+            fragPos++; // reached end of line, increment the fragment position
         }
     };
     Layout_BlockChar.prototype.getTargetAtXY = function (point, boundsChecking) {
         if (boundsChecking === void 0) { boundsChecking = true; }
-        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap, size, breakFor = false;
+        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap = false, size, breakFor = false, relative, w;
         if (target !== null) {
+            relative = {
+                "x": point.x - this.offsetLeft,
+                "y": point.y - this.offsetTop
+            };
+            bestCharTargetIndex = target.fragPos;
             for (line = 0, lines = this.lines.length; line < lines; line++) {
-                if (target.relative.y >= startY) {
+                if (relative.y >= startY) {
                     bestLine = this.lines[line];
                     bestLineIndex = line;
                 }
@@ -3356,17 +3431,20 @@ var Layout_BlockChar = (function (_super) {
                     for (j = 0, n = bestLine.words[i].characters.length; j < n; j++) {
                         size = bestLine.words[i].characters[j].computeSize();
                         if (wordGap && j == n - 1) {
-                            size[0] += bestLine.wordGap;
+                            w = size[0] + bestLine.wordGap;
                         }
-                        if (((size[0] / 2) + startX < target.absolute.x)) {
+                        else {
+                            w = size[0];
+                        }
+                        if (((w / 2) + startX < point.x)) {
                             bestCharLineIndex++;
                             bestNode = bestLine.words[i].characters[j].node;
-                            bestCharTargetIndex = bestLine.words[i].characters[j].index + 1;
-                            startX += size[0];
+                            bestCharTargetIndex = bestLine.words[i].characters[j].fragmentPosition() + 1;
+                            startX += w;
                         }
                         else {
                             bestNode = bestLine.words[i].characters[j].node;
-                            bestCharTargetIndex = bestLine.words[i].characters[j].index;
+                            bestCharTargetIndex = bestLine.words[i].characters[j].fragmentPosition();
                             breakFor = true;
                             break;
                         }
@@ -3374,10 +3452,8 @@ var Layout_BlockChar = (function (_super) {
                     if (breakFor)
                         break;
                 }
-                target.line = bestLineIndex;
                 target.target = bestNode;
-                target.charLineIndex = bestCharLineIndex;
-                target.charTargetIndex = bestCharTargetIndex;
+                target.fragPos = bestCharTargetIndex;
                 return target;
             }
             else
@@ -3473,49 +3549,24 @@ var Viewport = (function (_super) {
         this.document = null;
         this.painter = null;
         this.selection = null;
+        this.mouseDriver = null;
+        this.keyboardDriver = null;
         this.context = this.canvas.getContext('2d');
         this.canvas.tabIndex = 0;
+        this.canvas.setAttribute('data-object-type', 'html-viewport');
         (function (me) {
             me.painter = new Throttler(function () {
                 if (me.document)
                     me.document.repaint();
                 me.paintScrollbars();
             }, 10);
-            me.canvas.addEventListener('mousewheel', function (DOMEvent) {
-                me.scrollTop(me.scrollTop() + (DOMEvent.wheelDelta < 0 ? 12 : -12));
-                DOMEvent.preventDefault();
-                DOMEvent.stopPropagation();
-            }, true);
-            me.canvas.addEventListener('mousedown', function (DOMEvent) {
-                me.onmousedown(DOMEvent);
-            }, true);
-            me.canvas.addEventListener('mousemove', function (DOMEvent) {
-                me.onmousemove(DOMEvent);
-            }, true);
-            me.canvas.addEventListener('mouseup', function (DOMEvent) {
-                me.onmousemove(DOMEvent);
-            }, true);
-            me.canvas.addEventListener('click', function (DOMEvent) {
-                me.onmouseclick(DOMEvent);
-            }, true);
-            me.canvas.addEventListener('dblclick', function (DOMEvent) {
-                me.onmousedblclick(DOMEvent);
-            }, true);
         })(this);
         this.document = new HTML_Body(this);
         this.selection = new DocSelection(this);
         this.width(_width === null ? this._width : _width);
         this.height(_height === null ? this._height : _height);
-        (function (me) {
-            /*
-            me.document.on( 'relayout', function() {
-                console.log( 'relayout request!' );
-            } );
-            me.document.on( 'repaint', function() {
-                console.log( 'repaint request!' );
-            });
-            */
-        })(this);
+        this.mouseDriver = new Viewport_MouseDriver(this);
+        this.keyboardDriver = new Viewport_KeyboardDriver(this);
     }
     Viewport.prototype.width = function (newWidth) {
         if (newWidth === void 0) { newWidth = null; }
@@ -3604,12 +3655,6 @@ var Viewport = (function (_super) {
             this.document.innerHTML(v);
         }
     };
-    Viewport.prototype.translateMouseEventXY = function (DOMEvent) {
-        return {
-            "x": DOMEvent.offsetX + this._scrollLeft,
-            "y": DOMEvent.offsetY + this._scrollTop
-        };
-    };
     Viewport.prototype.getTargetAtXY = function (point) {
         if (this.document && this.document._layout) {
             return this.document._layout.getTargetAtXY(point);
@@ -3617,23 +3662,132 @@ var Viewport = (function (_super) {
         else
             return null;
     };
-    Viewport.prototype.onmousedown = function (DOMEvent) {
-        console.log(this.getTargetAtXY(this.translateMouseEventXY(DOMEvent)));
-    };
-    Viewport.prototype.onmousemove = function (DOMEvent) {
-    };
-    Viewport.prototype.onmouseup = function (DOMEvent) {
-    };
-    Viewport.prototype.onmouseclick = function (DOMEvent) {
-    };
-    Viewport.prototype.onmousedblclick = function (DOMEvent) {
-    };
     return Viewport;
 })(Events);
+var Viewport_MouseDriver = (function (_super) {
+    __extends(Viewport_MouseDriver, _super);
+    function Viewport_MouseDriver(viewport) {
+        _super.call(this);
+        this.viewport = null;
+        this.mbPressed = false; // weather a mouse button is pressed
+        this.viewport = viewport;
+        (function (me) {
+            me.viewport.canvas.addEventListener('mousewheel', function (DOMEvent) {
+                me.viewport.scrollTop(me.viewport.scrollTop() + (DOMEvent.wheelDelta < 0 ? 12 : -12));
+                DOMEvent.preventDefault();
+                DOMEvent.stopPropagation();
+            }, true);
+            me.viewport.canvas.addEventListener('mousedown', function (DOMEvent) {
+                me.onmousedown(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('mousemove', function (DOMEvent) {
+                me.onmousemove(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('mouseup', function (DOMEvent) {
+                me.onmouseup(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('click', function (DOMEvent) {
+                me.onmouseclick(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('dblclick', function (DOMEvent) {
+                me.onmousedblclick(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('mouseout', function (DOMEvent) {
+                me.onmouseout(DOMEvent);
+            }, true);
+            me.viewport.canvas.addEventListener('mouseover', function (DOMEvent) {
+                me.onmouseover(DOMEvent);
+            }, true);
+        })(this);
+    }
+    Viewport_MouseDriver.prototype.translateMouseEventXY = function (DOMEvent) {
+        return {
+            "x": DOMEvent.offsetX + this.viewport.scrollLeft(),
+            "y": DOMEvent.offsetY + this.viewport.scrollTop()
+        };
+    };
+    Viewport_MouseDriver.prototype.onmousedown = function (DOMEvent) {
+        var target = this.viewport.getTargetAtXY(this.translateMouseEventXY(DOMEvent));
+        if (target) {
+            this.mbPressed = true;
+            this.viewport.selection.anchorTo(target);
+        }
+    };
+    Viewport_MouseDriver.prototype.onmousemove = function (DOMEvent) {
+        var target, point;
+        target = this.viewport.getTargetAtXY(point = this.translateMouseEventXY(DOMEvent));
+        this.viewport.canvas.style.cursor = (target && target.target.nodeType == 1 /* TEXT */) ? 'text' : 'default';
+        if (this.mbPressed) {
+            if (target)
+                this.viewport.selection.focusTo(target);
+            // scroll up or down if mouse is on top / bottom bound.
+            // make the point absolute on canvas
+            point.x -= this.viewport.scrollLeft();
+            point.y -= this.viewport.scrollTop();
+            if (point.y < 50 && this.viewport.scrollTop() > 0) {
+                this.viewport.scrollTop(this.viewport.scrollTop() - 5);
+            }
+            else {
+                if (point.y + 50 > this.viewport.height()) {
+                    this.viewport.scrollTop(this.viewport.scrollTop() + 5);
+                }
+            }
+        }
+    };
+    Viewport_MouseDriver.prototype.onmouseup = function (DOMEvent) {
+        this.mbPressed = false;
+    };
+    Viewport_MouseDriver.prototype.onmouseclick = function (DOMEvent) {
+    };
+    Viewport_MouseDriver.prototype.onmousedblclick = function (DOMEvent) {
+    };
+    Viewport_MouseDriver.prototype.onmouseout = function (DOMEvent) {
+        if (this.mbPressed)
+            Viewport_MouseDriver.$BodyMouseUps.push(this);
+    };
+    Viewport_MouseDriver.prototype.onmouseover = function (DOMEvent) {
+        var index = -1;
+        if ((index = Viewport_MouseDriver.$BodyMouseUps.indexOf(this)) > -1) {
+            Viewport_MouseDriver.$BodyMouseUps.splice(index, 1);
+        }
+    };
+    Viewport_MouseDriver.$BodyMouseUps = [];
+    return Viewport_MouseDriver;
+})(Events);
+window.addEventListener('load', function (DOMEvent) {
+    if (document.body) {
+        document.body.addEventListener('mouseup', function () {
+            if (Viewport_MouseDriver) {
+                for (var i = Viewport_MouseDriver.$BodyMouseUps.length - 1; i >= 0; i--) {
+                    if (Viewport_MouseDriver.$BodyMouseUps[i].mbPressed) {
+                        Viewport_MouseDriver.$BodyMouseUps[i].mbPressed = false;
+                    }
+                    Viewport_MouseDriver.$BodyMouseUps.splice(i, 1);
+                }
+            }
+        }, false);
+    }
+});
+var Viewport_KeyboardDriver = (function (_super) {
+    __extends(Viewport_KeyboardDriver, _super);
+    function Viewport_KeyboardDriver(viewport) {
+        _super.call(this);
+        this.viewport = null;
+        this.viewport = viewport;
+    }
+    return Viewport_KeyboardDriver;
+})(Events);
 var Fragment = (function () {
-    function Fragment() {
+    function Fragment(document) {
         this._at = [];
         this._length = 0;
+        this._doc = null;
+        if (!document) {
+            throw "ERR_BAD_DOCUMENT";
+        }
+        else {
+            this._doc = document;
+        }
     }
     Fragment.prototype.reset = function () {
         this._length = 0;
@@ -3681,14 +3835,403 @@ var Fragment = (function () {
             }
         }
     };
+    Fragment.prototype.getNodeAtIndex = function (index) {
+        return this._doc.findNodeAtIndex(index);
+    };
+    Fragment.prototype.createTargetAt = function (pos) {
+        var i = 0, element;
+        switch (pos) {
+            case 0 /* DOC_BEGIN */:
+                for (i = 0; i < this._length; i++) {
+                    if (this._at[i] == 2 /* EOL */ || this._at[i] == 3 /* CHARACTER */ || this._at[i] == 4 /* WHITE_SPACE */) {
+                        element = this.getNodeAtIndex(i);
+                        return new TRange_Target(element, i);
+                    }
+                }
+                break;
+            case 1 /* DOC_END */:
+                for (i = this._length - 1; i >= 0; i--) {
+                    if (this._at[i] == 2 /* EOL */ || this._at[i] == 3 /* CHARACTER */ || this._at[i] == 4 /* WHITE_SPACE */) {
+                        element = this.getNodeAtIndex(i);
+                        return new TRange_Target(element, i);
+                    }
+                }
+                break;
+            default:
+                throw "ERR_ILLEGAL_POS_DESCRIPTOR";
+                break;
+        }
+        return null;
+    };
+    Fragment.prototype.getIndexAt = function (pos) {
+        var i = 0;
+        switch (pos) {
+            case 0 /* DOC_BEGIN */:
+                for (i = 0; i < this._length; i++) {
+                    if (this._at[i] == 2 /* EOL */ || this._at[i] == 3 /* CHARACTER */ || this._at[i] == 4 /* WHITE_SPACE */) {
+                        return i;
+                    }
+                }
+                break;
+            case 1 /* DOC_END */:
+                for (i = this._length - 1; i >= 0; i--) {
+                    if (this._at[i] == 2 /* EOL */ || this._at[i] == 3 /* CHARACTER */ || this._at[i] == 4 /* WHITE_SPACE */) {
+                        return i;
+                    }
+                }
+                break;
+            default:
+                throw "ERR_ILLEGAL_POS_DESCRIPTOR";
+                break;
+        }
+        return null;
+    };
     return Fragment;
 })();
+var TRange = (function (_super) {
+    __extends(TRange, _super);
+    function TRange(target) {
+        _super.call(this);
+        this._anchorNode = null;
+        this._focusNode = null;
+        if (!target) {
+            throw "ERR_BAD_CONSTRUCTOR_ARG";
+        }
+        this._anchorNode = target;
+        this._focusNode = (this._anchorNode.target.nodeType == 1 /* TEXT */) ? this._anchorNode.clone() : null;
+        (function (me) {
+            if (me._anchorNode) {
+                me._anchorNode.on('changed', function () {
+                    console.log('anchor node changed');
+                    me.fire('changed');
+                });
+            }
+            if (me._focusNode) {
+                me._focusNode.on('changed', function () {
+                    console.log('focus node changed');
+                    me.fire('changed');
+                });
+            }
+        })(this);
+    }
+    TRange.prototype.anchorNode = function () {
+        return this._anchorNode;
+    };
+    TRange.prototype.focusNode = function () {
+        return this._focusNode;
+    };
+    TRange.prototype.isCollapsed = function () {
+        return this._focusNode === null || (this._anchorNode.fragPos == this._focusNode.fragPos);
+    };
+    TRange.prototype.type = function () {
+        if (this._anchorNode.target.nodeType == 1 /* TEXT */ && this._focusNode !== null) {
+            return 0 /* TEXT */;
+        }
+        else {
+            return 1 /* ELEMENT */;
+        }
+    };
+    TRange.prototype.length = function () {
+        if (this._focusNode === null) {
+            return 0;
+        }
+        else {
+            return this._focusNode.fragPos - this._anchorNode.fragPos;
+        }
+    };
+    TRange.prototype.collapse = function (atEnd) {
+        if (atEnd === void 0) { atEnd = false; }
+        if (!atEnd) {
+            if (this._focusNode !== null) {
+                this._anchorNode = this._focusNode;
+                this._focusNode = null;
+                this.fire('changed');
+            }
+        }
+        else {
+            this._focusNode = null;
+            this.fire('changed');
+        }
+    };
+    TRange.prototype.equalsNode = function (node) {
+        return this._focusNode === null && this._anchorNode.target === node;
+    };
+    TRange.prototype.contains = function (fragmentIndex) {
+        if (this._focusNode && this._anchorNode && !this.isCollapsed()) {
+            var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos);
+            if (this._focusNode.fragPos > this._anchorNode.fragPos) {
+                maxIndex--;
+            }
+            return fragmentIndex >= minIndex && fragmentIndex <= maxIndex + (this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0);
+        }
+        else
+            return false;
+    };
+    return TRange;
+})(Events);
+var TRange_Target = (function (_super) {
+    __extends(TRange_Target, _super);
+    /* Public Methods:
+    
+        // walk in document in the right direction until condition is met
+        public moveRightUntil( condition: ( item: FragmentItem, index?: number ) => boolean, triggerChangeEvent: boolean = true ): boolean
+
+        // walk in document in the left direction until condition is met
+        public moveLeftUntil( condition: ( item: FragmentItem, index?: number ) => boolean, triggerChangeEvent: boolean = true ): boolean
+
+        // walk in document chars characters. chars can be negative.
+        public moveByCharacters( chars: number ): boolean
+
+        // walk in the document words words. words can be negative.
+        public moveByWords( words: number ): boolean
+
+        // creates another target with exactly this one's values.
+        public clone(): TRange_Target
+
+        // imports values from another target to this one.
+        public set( target: TRange_Target )
+
+     */
+    function TRange_Target(target, pos) {
+        if (pos === void 0) { pos = 0; }
+        _super.call(this);
+        this.target = null;
+        this.fragPos = 0;
+        if (!target) {
+            throw "ERR_BAD_TARGET";
+        }
+        else {
+            this.target = target;
+            this.fragPos = ~~pos;
+        }
+    }
+    TRange_Target.prototype.moveRightUntil = function (condition, triggerChangeEvent) {
+        if (triggerChangeEvent === void 0) { triggerChangeEvent = true; }
+        var fragment = this.target.documentElement.fragment, i = this.fragPos, len = fragment.length(), at, target;
+        while (i < len) {
+            i++;
+            if (condition(fragment.at(i), i)) {
+                target = this.target.documentElement.findNodeAtIndex(i);
+                if (!target) {
+                    throw "ERR_BAD_LANDING";
+                }
+                else {
+                    this.target = target;
+                    this.fragPos = i;
+                    if (triggerChangeEvent)
+                        this.fire('changed');
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    TRange_Target.prototype._moveRight = function (times) {
+        if (times === void 0) { times = 1; }
+        times = ~~times;
+        if (times < 1) {
+            return false;
+        }
+        var i = 0, len = 0, thisNode = this.target, thisFrag = this.fragPos;
+        for (i = 0; i < times - 1; i++) {
+            if (!this.moveRightUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            }, false)) {
+                this.target = thisNode;
+                this.fragPos = thisFrag;
+                return false;
+            }
+        }
+        return this.moveRightUntil(function (at) {
+            return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+        });
+    };
+    TRange_Target.prototype._moveRightWord = function (times) {
+        if (times === void 0) { times = 1; }
+        times = ~~times;
+        if (times < 1) {
+            return false;
+        }
+        var thisNode = this.target, thisFrag = this.fragPos, fragment = this.target.documentElement.fragment, at = fragment.at(thisFrag), lastCharIndex = fragment.getIndexAt(1 /* DOC_END */);
+        while (times > 0) {
+            // at a space or @end of a line.
+            // move right until next letter. critical.
+            if (at != 3 /* CHARACTER */) {
+                if (!this.moveRightUntil(function (at) {
+                    return at == 3 /* CHARACTER */;
+                }, false)) {
+                    this.target = thisNode;
+                    this.fragPos = thisFrag;
+                    return false;
+                }
+            }
+            // move right while characters
+            if (!this.moveRightUntil(function (at, i) {
+                return at == 2 /* EOL */ || at == 4 /* WHITE_SPACE */ || i == lastCharIndex;
+            }, false)) {
+                this.target = thisNode;
+                this.fragPos = thisFrag;
+                return false;
+            }
+            times--;
+        }
+        this.fire('changed');
+        return true;
+    };
+    TRange_Target.prototype.moveLeftUntil = function (condition, triggerChangeEvent) {
+        if (triggerChangeEvent === void 0) { triggerChangeEvent = true; }
+        var fragment = this.target.documentElement.fragment, i = this.fragPos, len = fragment.length(), at, target;
+        while (i > 0) {
+            i--;
+            if (condition(fragment.at(i), i)) {
+                target = this.target.documentElement.findNodeAtIndex(i);
+                if (!target) {
+                    throw "ERR_BAD_LANDING";
+                }
+                else {
+                    this.target = target;
+                    this.fragPos = i;
+                    if (triggerChangeEvent)
+                        this.fire('changed');
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
+    TRange_Target.prototype._moveLeft = function (times) {
+        if (times === void 0) { times = 1; }
+        times = ~~times;
+        if (times < 1) {
+            return false;
+        }
+        var i = 0, len = 0, thisNode = this.target, thisFrag = this.fragPos;
+        for (i = 0; i < times - 1; i++) {
+            if (!this.moveLeftUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            }, false)) {
+                this.target = thisNode;
+                this.fragPos = thisFrag;
+                return false;
+            }
+        }
+        return this.moveLeftUntil(function (at) {
+            return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+        });
+    };
+    TRange_Target.prototype._moveLeftWord = function (times) {
+        if (times === void 0) { times = 1; }
+        times = ~~times;
+        if (times < 1) {
+            return false;
+        }
+        var thisNode = this.target, thisFrag = this.fragPos, fragment = this.target.documentElement.fragment, at = fragment.at(thisFrag), firstCharIndex = fragment.getIndexAt(0 /* DOC_BEGIN */);
+        while (times > 0) {
+            // at a space or @end of a line.
+            // move left until prev letter. critical.
+            if (at != 3 /* CHARACTER */) {
+                if (!this.moveLeftUntil(function (at) {
+                    return at == 3 /* CHARACTER */;
+                }, false)) {
+                    this.target = thisNode;
+                    this.fragPos = thisFrag;
+                    return false;
+                }
+            }
+            // move left while characters
+            if (!this.moveLeftUntil(function (at, index) {
+                return at == 2 /* EOL */ || at == 4 /* WHITE_SPACE */ || index == firstCharIndex;
+            }, false)) {
+                this.target = thisNode;
+                this.fragPos = thisFrag;
+                return false;
+            }
+            times--;
+        }
+        this.fire('changed');
+        return true;
+    };
+    TRange_Target.prototype.moveByCharacters = function (chars) {
+        chars = ~~chars;
+        if (chars == 0) {
+            return false;
+        }
+        if (chars > 0) {
+            return this._moveRight(chars);
+        }
+        else {
+            return this._moveLeft(-chars);
+        }
+    };
+    TRange_Target.prototype.moveByWords = function (words) {
+        words = ~~words;
+        if (words == 0) {
+            return false;
+        }
+        if (words > 0) {
+            return this._moveRightWord(words);
+        }
+        else {
+            return this._moveLeftWord(-words);
+        }
+    };
+    TRange_Target.prototype.clone = function () {
+        return new TRange_Target(this.target, this.fragPos);
+    };
+    TRange_Target.prototype.set = function (target) {
+        if (!target) {
+            throw "ERR_INVALID_TARGET";
+        }
+        else {
+            if (target.target != this.target || this.fragPos != target.fragPos) {
+                this.target = target.target;
+                this.fragPos = target.fragPos;
+                this.fire('changed');
+            }
+        }
+    };
+    return TRange_Target;
+})(Events);
 var DocSelection = (function (_super) {
     __extends(DocSelection, _super);
     function DocSelection(viewport) {
         _super.call(this);
         this.viewport = viewport;
+        this.range = null;
     }
+    DocSelection.prototype.getRange = function () {
+        if (!this.range) {
+            this.range = new TRange(this.viewport.document.fragment.createTargetAt(0 /* DOC_BEGIN */));
+            (function (me) {
+                me.range.on('changed', function () {
+                    me.viewport.document.requestRepaint();
+                });
+            })(this);
+        }
+        return this.range;
+    };
+    /* anchors the selection to the target.
+    // if the target is a text node, a text selection will be made.
+    // if the target is a element, an element selection will be made
+    */
+    DocSelection.prototype.anchorTo = function (target) {
+        this.range = new TRange(target);
+        (function (me) {
+            me.range.on('changed', function () {
+                me.viewport.document.requestRepaint();
+            });
+        })(this);
+        this.viewport.document.requestRepaint();
+    };
+    /* selection can be focused to a target if it's anchored
+       and if the selection type is text.
+     */
+    DocSelection.prototype.focusTo = function (target) {
+        var rng = this.getRange(), focus = rng.focusNode();
+        if (target.target.nodeType == 1 /* TEXT */ && focus) {
+            focus.set(target);
+        }
+    };
     return DocSelection;
 })(Events);
 /// <reference path="Types.ts" />
@@ -3740,7 +4283,11 @@ var DocSelection = (function (_super) {
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Layout/Block/Table.ts" />
 /// <reference path="Viewport.ts" />
+/// <reference path="./Viewport/MouseDriver.ts" />
+/// <reference path="./Viewport/KeyboardDriver.ts" />
 /// <reference path="Fragment.ts" />
+/// <reference path="TRange.ts" />
+/// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',

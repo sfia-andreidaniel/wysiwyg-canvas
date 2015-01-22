@@ -17,13 +17,12 @@ interface TPoint {
 	y: number;
 }
 
-interface TTarget {
-	layout   : Layout;
-	relative : TPoint;
-	absolute : TPoint;
-	target   : TNode;
+enum TRange_Type {
+	TEXT,
+	ELEMENT
+}
 
-	line?: number;
-	charLineIndex?: number; // character index on the line
-	charTargetIndex?: number;
+enum FragmentPos {
+	DOC_BEGIN,
+	DOC_END
 }

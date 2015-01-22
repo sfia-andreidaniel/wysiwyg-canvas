@@ -4,7 +4,7 @@ class HTML_Body extends TNode_Element {
 	private _needRepaint: boolean = true;
 	public  _layout: Layout = null;
 	public  viewport: Viewport = null;
-	public  fragment: Fragment = new Fragment();
+	public  fragment: Fragment;
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -38,6 +38,7 @@ class HTML_Body extends TNode_Element {
 	constructor( viewport: Viewport ) {
 		super();
 
+		this.fragment = new Fragment( this );
 		this.viewport = viewport;
 
 		this.nodeName = 'body';

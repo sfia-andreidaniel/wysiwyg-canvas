@@ -578,4 +578,53 @@ class TNode_Element extends TNode {
 		} else return -1;
 	}
 
+	public findNodeAtIndex( index: number ): TNode {
+		
+		var i: number = 0,
+		    len: number = 0,
+		    match: TNode;
+
+		if ( this.documentElement ) {
+			
+			this.documentElement.requestRelayoutNowIfNeeded();
+
+			if ( index == this.FRAGMENT_START || index == this.FRAGMENT_END ) {
+
+				return this;
+
+			} else if ( index < this.FRAGMENT_START || index > this.FRAGMENT_END ) {
+			
+				return null;
+			
+			} else {
+
+				for ( i=0, len = this.childNodes.length; i<len; i++ ) {
+
+					if ( this.childNodes && ( len = this.childNodes.length ) ) {
+						
+						if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+
+							if ( index >= this.childNodes[i].FRAGMENT_START && index <= this.childNodes[i].FRAGMENT_END ) {
+								return this.childNodes[i];
+							}
+
+						} else {
+
+							match = (<TNode_Element>this.childNodes[i]).findNodeAtIndex( index );
+							
+							if ( match !== null ) {
+								return match;
+							}
+						}
+					}
+
+				}
+
+				return this;
+			}
+
+		} else return null;
+
+	}
+
 }

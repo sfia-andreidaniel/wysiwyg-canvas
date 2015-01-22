@@ -1,17 +1,21 @@
 class Viewport extends Events {
 	
-	private _width         : number = 500;
-	private _height        : number = 500;
-	public  _scrollbarSize : number = 10;
-	private _scrollTop     : number = 0;
-	private _scrollLeft    : number = 0;
+	private _width         : number                  = 500;
+	private _height        : number                  = 500;
+	public  _scrollbarSize : number                  = 10;
+	private _scrollTop     : number                  = 0;
+	private _scrollLeft    : number                  = 0;
 	
-	public  canvas              = document.createElement( 'canvas' );
-	public  context             = null;
+	public  canvas  /* :HTMLCanvasElement        */  = document.createElement( 'canvas' );
+	public  context /* :CanvasRenderingContext2D */  = null;
 
-	public  document: HTML_Body = null;
-	public  painter: Throttler  = null;
-	public  selection: DocSelection = null;
+	public  document       : HTML_Body               = null;
+	public  painter        : Throttler               = null;
+	public  selection      : DocSelection            = null;
+
+	public  mouseDriver    : Viewport_MouseDriver    = null;
+	public  keyboardDriver : Viewport_KeyboardDriver = null;
+
 
 	constructor( _width: number = null, _height: number = null ) {
 		
@@ -19,6 +23,7 @@ class Viewport extends Events {
 		
 		this.context = this.canvas.getContext( '2d' );
 		this.canvas.tabIndex = 0;
+		this.canvas.setAttribute( 'data-object-type', 'html-viewport' );
 
 		( function( me ) {
 			
@@ -31,34 +36,9 @@ class Viewport extends Events {
 
 			}, 10 );
 
-			me.canvas.addEventListener( 'mousewheel', function( DOMEvent ) {
-				me.scrollTop( me.scrollTop() + ( DOMEvent.wheelDelta < 0 ? 12 : -12 ) );
-				DOMEvent.preventDefault();
-				DOMEvent.stopPropagation();
-			}, true );
-
-			me.canvas.addEventListener( 'mousedown', function( DOMEvent ) {
-				me.onmousedown( DOMEvent );
-			}, true);
-
-			me.canvas.addEventListener( 'mousemove', function( DOMEvent ) {
-				me.onmousemove( DOMEvent );
-			}, true);
-
-			me.canvas.addEventListener( 'mouseup', function( DOMEvent ) {
-				me.onmousemove( DOMEvent );
-			}, true);
-
-			me.canvas.addEventListener( 'click', function( DOMEvent ) {
-				me.onmouseclick( DOMEvent );
-			}, true);
-
-			me.canvas.addEventListener( 'dblclick', function( DOMEvent ) {
-				me.onmousedblclick( DOMEvent );
-			}, true );
-
 		})( this );
 		
+
 
 		this.document = new HTML_Body( this );
 		this.selection = new DocSelection( this );
@@ -66,16 +46,8 @@ class Viewport extends Events {
 		this.width( _width === null ? this._width : _width );
 		this.height( _height === null ? this._height : _height );
 
-		( function( me ) {
-			/*
-			me.document.on( 'relayout', function() {
-				console.log( 'relayout request!' );
-			} );
-			me.document.on( 'repaint', function() {
-				console.log( 'repaint request!' );
-			});
-			*/
-		} )( this );
+		this.mouseDriver    = new Viewport_MouseDriver( this );
+		this.keyboardDriver = new Viewport_KeyboardDriver( this );
 
 	}
 
@@ -188,37 +160,13 @@ class Viewport extends Events {
 		}
 	}
 
-	private translateMouseEventXY( DOMEvent ): TPoint {
-		return {
-			"x": DOMEvent.offsetX + this._scrollLeft,
-			"y": DOMEvent.offsetY + this._scrollTop
-		}
-	}
 
-	public getTargetAtXY( point: TPoint ): TTarget {
+	public getTargetAtXY( point: TPoint ): TRange_Target {
 		if ( this.document && this.document._layout ) {
 			return this.document._layout.getTargetAtXY( point );
 		} else return null;
 	}
 
-	public onmousedown( DOMEvent ) {
-		console.log( this.getTargetAtXY( this.translateMouseEventXY( DOMEvent ) ) );
-	}
-
-	public onmousemove( DOMEvent ) {
-
-	}
-
-	public onmouseup( DOMEvent ) {
-
-	}
-
-	public onmouseclick( DOMEvent ) {
-
-	}
-
-	public onmousedblclick( DOMEvent ) {
-
-	}
 
 }
+

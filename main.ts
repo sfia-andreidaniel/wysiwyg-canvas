@@ -54,8 +54,12 @@
 /// <reference path="Layout/Block/Table.ts" />
 
 /// <reference path="Viewport.ts" />
+/// <reference path="./Viewport/MouseDriver.ts" />
+/// <reference path="./Viewport/KeyboardDriver.ts" />
 
 /// <reference path="Fragment.ts" />
+/// <reference path="TRange.ts" />
+/// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />
 
 var viewport = new Viewport(),

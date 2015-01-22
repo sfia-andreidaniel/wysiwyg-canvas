@@ -34,4 +34,19 @@ class Character {
 		}
 	}
 
+	public fragmentPosition(): number {
+		var i: number = 0,
+		    len: number = 0,
+		    out: number = this.node.FRAGMENT_START;
+
+		for ( i=0, len = this.index; i<len; i++ ) {
+			out ++;
+			if ( this.node.EOL_POS && this.node.EOL_POS[i] ) {
+				out++;
+			}
+		}
+
+		return out;
+	}
+
 }

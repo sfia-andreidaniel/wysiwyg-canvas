@@ -113,13 +113,21 @@ class HTML_Table extends TNode_Element {
 	}
 
 	public createLayout( useParentLayout: Layout = null ): Layout {
-		/* Creates a table layout, based on compiled information.
-		   This is a special layout, and is needed to display the cells of the table.
-		 */
 		
-		this.compile();
+		if ( this.documentElement ) {
 
-		return new Layout_Block_Table( this, this.matrix );
+			/* Creates a table layout, based on compiled information.
+			   This is a special layout, and is needed to display the cells of the table.
+			 */
+			
+			this.compile();
+
+			var returnValue: Layout_Block_Table = new Layout_Block_Table( this, this.matrix );
+
+			return returnValue;
+		} else {
+			return null;
+		}
 	}
 
 	public cellPadding( v: number = null ): number {

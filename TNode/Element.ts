@@ -67,79 +67,87 @@ class TNode_Element extends TNode {
 
 	public createLayout( useParentLayout: Layout = null ): Layout {
 
-		var left: Layout_Block[] = [],
-		    center: Layout_Block[] = [],
-		    right: Layout_Block[] = [],
-		    argIndex: number = 0,
-		    i: number,
-		    len: number,
-		    returnValue: Layout;
+		if ( this.documentElement ) {
 
-		this.evaluateLayout( left, center, right, argIndex );
+			var left: Layout_Block[] = [],
+			    center: Layout_Block[] = [],
+			    right: Layout_Block[] = [],
+			    argIndex: number = 0,
+			    i: number,
+			    len: number,
+			    returnValue: Layout;
 
-		switch ( true ) {
+			this.evaluateLayout( left, center, right, argIndex );
 
-			case center.length == 0 && left.length == 0 && right.length == 0:
-				/* The node is empty */
-				if ( this.hasLayout() ) {
-					returnValue = new Layout_Block( this );
-				} else {
-					returnValue = new Layout_BlockChar();
-				}
-				break;
+			switch ( true ) {
 
-			case center.length > 0 && left.length == 0 && right.length == 0:
+				case center.length == 0 && left.length == 0 && right.length == 0:
+					/* The node is empty */
+					if ( this.hasLayout() ) {
+						returnValue = new Layout_Block( this );
+					} else {
+						returnValue = new Layout_BlockChar();
+					}
+					break;
 
-				/* Return a Layout_Vertical if center.length > 1 or center[0] if center.length == 1; */
-				returnValue = new Layout_Vertical( this, center );
+				case center.length > 0 && left.length == 0 && right.length == 0:
 
-				break;
+					/* Return a Layout_Vertical if center.length > 1 or center[0] if center.length == 1; */
+					returnValue = new Layout_Vertical( this, center );
 
-			case ( left.length > 0 || right.length > 0 ) && center.length == 0:
+					break;
 
-				/* Return a Layout_Horizontal, containing the left cells combined with the right cells */
+				case ( left.length > 0 || right.length > 0 ) && center.length == 0:
 
-				for ( i=0, len = right.length; i<len; i++ ) {
-					left.push( right[i] );
-				}
+					/* Return a Layout_Horizontal, containing the left cells combined with the right cells */
 
-				returnValue = new Layout_Horizontal( this, left );
+					for ( i=0, len = right.length; i<len; i++ ) {
+						left.push( right[i] );
+					}
 
-				break;
+					returnValue = new Layout_Horizontal( this, left );
 
-			case ( left.length > 0 || right.length > 0 ) && center.length > 0:
+					break;
 
-				var cells: Layout[] = [];
+				case ( left.length > 0 || right.length > 0 ) && center.length > 0:
 
-				if ( left.length ) {
-					cells.push( left.length == 1 ? left[0] : new Layout_Horizontal( null, left ) );
-				}
+					var cells: Layout[] = [];
 
-				if ( center.length ) {
-					cells.push( new Layout_Vertical( null, center ) );
-				}
+					if ( left.length ) {
+						cells.push( left.length == 1 ? left[0] : new Layout_Horizontal( null, left ) );
+					}
 
-				if ( right.length ) {
-					cells.push( right.length == 1 ? right[0] : new Layout_Horizontal( null, right ) );
-				}
+					if ( center.length ) {
+						cells.push( new Layout_Vertical( null, center ) );
+					}
 
-				returnValue = new Layout_Horizontal( this, cells );
+					if ( right.length ) {
+						cells.push( right.length == 1 ? right[0] : new Layout_Horizontal( null, right ) );
+					}
 
-				break;
+					returnValue = new Layout_Horizontal( this, cells );
 
-			default:
-				throw "Unhandled layout variant!";
-				break;
+					break;
+
+				default:
+					throw "Unhandled layout variant!";
+					break;
+
+			}
+
+			if ( useParentLayout ) {
+				returnValue.parent = useParentLayout;
+			}
+
+			returnValue.buildAhead( useParentLayout );
+
+			return returnValue;
+
+		} else {
+
+			return null;
 
 		}
-
-		if ( useParentLayout ) {
-			returnValue.parent = useParentLayout;
-		}
-
-		returnValue.buildAhead( useParentLayout );
-
-		return returnValue;
 
 	}
 
@@ -534,6 +542,40 @@ class TNode_Element extends TNode {
 
 		return null;
 
+	}
+
+	public bakeIntoFragment() {
+		if ( this.documentElement ) {
+			
+			this.FRAGMENT_START = this.documentElement.fragment.length();
+			this.documentElement.fragment.add( FragmentItem.NODE_START );
+
+			var i: number =0,
+			    len: number = 0;
+
+			if ( this.childNodes && ( len = this.childNodes.length ) ) {
+				for ( i=0; i<len; i++ ) {
+					this.childNodes[i].bakeIntoFragment();
+				}
+			}
+
+			this.FRAGMENT_END = this.documentElement.fragment.length();
+			this.documentElement.fragment.add( FragmentItem.NODE_END );
+		}
+	}
+
+	public containsNode( node: TNode_Element ): boolean {
+		if ( node && this.documentElement && node.documentElement && this.documentElement == node.documentElement ) {
+			this.documentElement.requestRelayoutNowIfNeeded();
+			return node.FRAGMENT_START > this.FRAGMENT_START && node.FRAGMENT_START < this.FRAGMENT_END;
+		} else return false;
+	}
+
+	public compareDocumentPosition( node: TNode_Element ): number {
+		if ( node && this.documentElement && node.documentElement && this.documentElement == node.documentElement ) {
+			this.documentElement.requestRelayoutNowIfNeeded();
+			return this.FRAGMENT_START - node.FRAGMENT_START;
+		} else return -1;
 	}
 
 }

@@ -4,6 +4,14 @@ enum TNode_Type {
 	ELEMENT
 }
 
+enum FragmentItem {
+	NODE_START,
+	NODE_END,
+	EOL,
+	CHARACTER,
+	WHITE_SPACE
+}
+
 interface TPoint {
 	x: number;
 	y: number;

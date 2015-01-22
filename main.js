@@ -4,6 +4,14 @@ var TNode_Type;
     TNode_Type[TNode_Type["TEXT"] = 1] = "TEXT";
     TNode_Type[TNode_Type["ELEMENT"] = 2] = "ELEMENT";
 })(TNode_Type || (TNode_Type = {}));
+var FragmentItem;
+(function (FragmentItem) {
+    FragmentItem[FragmentItem["NODE_START"] = 0] = "NODE_START";
+    FragmentItem[FragmentItem["NODE_END"] = 1] = "NODE_END";
+    FragmentItem[FragmentItem["EOL"] = 2] = "EOL";
+    FragmentItem[FragmentItem["CHARACTER"] = 3] = "CHARACTER";
+    FragmentItem[FragmentItem["WHITE_SPACE"] = 4] = "WHITE_SPACE";
+})(FragmentItem || (FragmentItem = {}));
 var Events = (function () {
     function Events() {
     }
@@ -91,6 +99,8 @@ var TNode = (function (_super) {
         this.siblingIndex = 0;
         this.nodeType = 0 /* UNKNOWN */;
         this.documentElement = null;
+        this.FRAGMENT_START = 0;
+        this.FRAGMENT_END = 0;
     }
     // dettach the node from it's parent
     TNode.prototype.remove = function () {
@@ -115,6 +125,9 @@ var TNode = (function (_super) {
             return null;
         }
     };
+    TNode.prototype.bakeIntoFragment = function () {
+        throw "ABSTRACT";
+    };
     return TNode;
 })(Events);
 var TNode_Text = (function (_super) {
@@ -123,6 +136,8 @@ var TNode_Text = (function (_super) {
         _super.call(this);
         this._text = '';
         this.nodeType = 1 /* TEXT */;
+        // on building layout, the EOL_POS will be computed. this is needed on bakeIntoFragment method
+        this.EOL_POS = null;
         this._text = String(textContents || '');
     }
     TNode_Text.prototype.textContents = function (c) {
@@ -148,6 +163,23 @@ var TNode_Text = (function (_super) {
             }
         }
         return out;
+    };
+    TNode_Text.prototype.bakeIntoFragment = function () {
+        if (this.documentElement) {
+            this.FRAGMENT_START = this.documentElement.fragment.length();
+            for (var i = 0, len = this._text.length; i < len; i++) {
+                this.documentElement.fragment.add(TNode_Text.$FragmentTypes[this._text[i]] || 3 /* CHARACTER */);
+                if (this.EOL_POS && this.EOL_POS[i]) {
+                    this.documentElement.fragment.add(2 /* EOL */);
+                }
+            }
+            this.FRAGMENT_END = this.documentElement.fragment.length();
+        }
+    };
+    TNode_Text.$FragmentTypes = {
+        "\n": 4 /* WHITE_SPACE */,
+        "\t": 4 /* WHITE_SPACE */,
+        " ": 4 /* WHITE_SPACE */
     };
     TNode_Text.$SpecialChars = {
         '<': '&lt;',
@@ -213,50 +245,55 @@ var TNode_Element = (function (_super) {
     };
     TNode_Element.prototype.createLayout = function (useParentLayout) {
         if (useParentLayout === void 0) { useParentLayout = null; }
-        var left = [], center = [], right = [], argIndex = 0, i, len, returnValue;
-        this.evaluateLayout(left, center, right, argIndex);
-        switch (true) {
-            case center.length == 0 && left.length == 0 && right.length == 0:
-                /* The node is empty */
-                if (this.hasLayout()) {
-                    returnValue = new Layout_Block(this);
-                }
-                else {
-                    returnValue = new Layout_BlockChar();
-                }
-                break;
-            case center.length > 0 && left.length == 0 && right.length == 0:
-                /* Return a Layout_Vertical if center.length > 1 or center[0] if center.length == 1; */
-                returnValue = new Layout_Vertical(this, center);
-                break;
-            case (left.length > 0 || right.length > 0) && center.length == 0:
-                for (i = 0, len = right.length; i < len; i++) {
-                    left.push(right[i]);
-                }
-                returnValue = new Layout_Horizontal(this, left);
-                break;
-            case (left.length > 0 || right.length > 0) && center.length > 0:
-                var cells = [];
-                if (left.length) {
-                    cells.push(left.length == 1 ? left[0] : new Layout_Horizontal(null, left));
-                }
-                if (center.length) {
-                    cells.push(new Layout_Vertical(null, center));
-                }
-                if (right.length) {
-                    cells.push(right.length == 1 ? right[0] : new Layout_Horizontal(null, right));
-                }
-                returnValue = new Layout_Horizontal(this, cells);
-                break;
-            default:
-                throw "Unhandled layout variant!";
-                break;
+        if (this.documentElement) {
+            var left = [], center = [], right = [], argIndex = 0, i, len, returnValue;
+            this.evaluateLayout(left, center, right, argIndex);
+            switch (true) {
+                case center.length == 0 && left.length == 0 && right.length == 0:
+                    /* The node is empty */
+                    if (this.hasLayout()) {
+                        returnValue = new Layout_Block(this);
+                    }
+                    else {
+                        returnValue = new Layout_BlockChar();
+                    }
+                    break;
+                case center.length > 0 && left.length == 0 && right.length == 0:
+                    /* Return a Layout_Vertical if center.length > 1 or center[0] if center.length == 1; */
+                    returnValue = new Layout_Vertical(this, center);
+                    break;
+                case (left.length > 0 || right.length > 0) && center.length == 0:
+                    for (i = 0, len = right.length; i < len; i++) {
+                        left.push(right[i]);
+                    }
+                    returnValue = new Layout_Horizontal(this, left);
+                    break;
+                case (left.length > 0 || right.length > 0) && center.length > 0:
+                    var cells = [];
+                    if (left.length) {
+                        cells.push(left.length == 1 ? left[0] : new Layout_Horizontal(null, left));
+                    }
+                    if (center.length) {
+                        cells.push(new Layout_Vertical(null, center));
+                    }
+                    if (right.length) {
+                        cells.push(right.length == 1 ? right[0] : new Layout_Horizontal(null, right));
+                    }
+                    returnValue = new Layout_Horizontal(this, cells);
+                    break;
+                default:
+                    throw "Unhandled layout variant!";
+                    break;
+            }
+            if (useParentLayout) {
+                returnValue.parent = useParentLayout;
+            }
+            returnValue.buildAhead(useParentLayout);
+            return returnValue;
         }
-        if (useParentLayout) {
-            returnValue.parent = useParentLayout;
+        else {
+            return null;
         }
-        returnValue.buildAhead(useParentLayout);
-        return returnValue;
     };
     TNode_Element.prototype.childNodesSortedByFloatValues = function () {
         var out1 = [], out2 = [], i = 0, len = 0;
@@ -557,6 +594,36 @@ var TNode_Element = (function (_super) {
         }
         return null;
     };
+    TNode_Element.prototype.bakeIntoFragment = function () {
+        if (this.documentElement) {
+            this.FRAGMENT_START = this.documentElement.fragment.length();
+            this.documentElement.fragment.add(0 /* NODE_START */);
+            var i = 0, len = 0;
+            if (this.childNodes && (len = this.childNodes.length)) {
+                for (i = 0; i < len; i++) {
+                    this.childNodes[i].bakeIntoFragment();
+                }
+            }
+            this.FRAGMENT_END = this.documentElement.fragment.length();
+            this.documentElement.fragment.add(1 /* NODE_END */);
+        }
+    };
+    TNode_Element.prototype.containsNode = function (node) {
+        if (node && this.documentElement && node.documentElement && this.documentElement == node.documentElement) {
+            this.documentElement.requestRelayoutNowIfNeeded();
+            return node.FRAGMENT_START > this.FRAGMENT_START && node.FRAGMENT_START < this.FRAGMENT_END;
+        }
+        else
+            return false;
+    };
+    TNode_Element.prototype.compareDocumentPosition = function (node) {
+        if (node && this.documentElement && node.documentElement && this.documentElement == node.documentElement) {
+            this.documentElement.requestRelayoutNowIfNeeded();
+            return this.FRAGMENT_START - node.FRAGMENT_START;
+        }
+        else
+            return -1;
+    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -781,6 +848,7 @@ var HTML_Body = (function (_super) {
         this._needRepaint = true;
         this._layout = null;
         this.viewport = null;
+        this.fragment = new Fragment();
         this.viewport = viewport;
         this.nodeName = 'body';
         this.documentElement = this;
@@ -897,6 +965,11 @@ var HTML_Body = (function (_super) {
         this.fire('relayout');
         this.requestRepaint();
     };
+    HTML_Body.prototype.requestRelayoutNowIfNeeded = function () {
+        if (this._needRelayout) {
+            this.relayout();
+        }
+    };
     HTML_Body.prototype.requestRepaint = function () {
         this._needRepaint = true;
         this.fire('repaint');
@@ -923,6 +996,7 @@ var HTML_Body = (function (_super) {
             console.log('body.relayout: up to date.');
             return;
         }
+        this.fragment.reset();
         var now = Date.now();
         if (!this.viewport) {
             return;
@@ -941,6 +1015,7 @@ var HTML_Body = (function (_super) {
         this.viewport.scrollTop(this.viewport.scrollTop());
         console.log('relayout completed in ' + (Date.now() - now) + ' ms.');
         //console.log( this._layout.serialize() );
+        this.bakeIntoFragment();
         this._needRelayout = false;
     };
     HTML_Body.AUTOCLOSE_TAGS = [
@@ -1342,12 +1417,18 @@ var HTML_Table = (function (_super) {
         this.needCompile = false;
     };
     HTML_Table.prototype.createLayout = function (useParentLayout) {
-        /* Creates a table layout, based on compiled information.
-           This is a special layout, and is needed to display the cells of the table.
-         */
         if (useParentLayout === void 0) { useParentLayout = null; }
-        this.compile();
-        return new Layout_Block_Table(this, this.matrix);
+        if (this.documentElement) {
+            /* Creates a table layout, based on compiled information.
+               This is a special layout, and is needed to display the cells of the table.
+             */
+            this.compile();
+            var returnValue = new Layout_Block_Table(this, this.matrix);
+            return returnValue;
+        }
+        else {
+            return null;
+        }
     };
     HTML_Table.prototype.cellPadding = function (v) {
         if (v === void 0) { v = null; }
@@ -2570,6 +2651,16 @@ var Character = (function () {
             }
         }
     };
+    Character.prototype.fragmentPosition = function () {
+        var i = 0, len = 0, out = this.node.FRAGMENT_START;
+        for (i = 0, len = this.index; i < len; i++) {
+            out++;
+            if (this.node.EOL_POS && this.node.EOL_POS[i]) {
+                out++;
+            }
+        }
+        return out;
+    };
     return Character;
 })();
 var Character_Metrics = (function () {
@@ -3081,6 +3172,7 @@ var Layout_BlockChar = (function (_super) {
         this.lines = [];
     }
     Layout_BlockChar.prototype.addTextNode = function (node) {
+        node.EOL_POS = null;
         for (var i = 0, len = node._text.length; i < len; i++) {
             this.chars.push(new Character(node, i));
         }
@@ -3095,7 +3187,7 @@ var Layout_BlockChar = (function (_super) {
     // routine to build the lines of the block.
     // it takes in consideration the words, etc.
     Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
-        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line, ownerNode = this.ownerNode();
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line, ownerNode = this.ownerNode(), w, c;
         for (i = 0; i < len; i++) {
             if (contentsWithWords[i] == contents[j]) {
                 word.push(this.chars[j]);
@@ -3129,6 +3221,14 @@ var Layout_BlockChar = (function (_super) {
             this.lines.push(line);
         for (i = 0, len = this.lines.length; i < len; i++) {
             this.lines[i].size[1] *= ownerNode.style.lineHeight();
+            if ((n = this.lines[i].words.length)) {
+                w = this.lines[i].words[n - 1];
+                if ((n = w.characters.length)) {
+                    c = w.characters[n - 1];
+                    c.node.EOL_POS = c.node.EOL_POS || {};
+                    c.node.EOL_POS[c.index] = 1;
+                }
+            }
         }
         return this.lines;
     };
@@ -3530,6 +3630,59 @@ var Viewport = (function (_super) {
     };
     return Viewport;
 })(Events);
+var Fragment = (function () {
+    function Fragment() {
+        this._at = [];
+        this._length = 0;
+    }
+    Fragment.prototype.reset = function () {
+        this._length = 0;
+    };
+    Fragment.prototype.add = function (what, index) {
+        if (index === void 0) { index = null; }
+        if (index == null) {
+            this._at[this._length++] = what;
+        }
+        else {
+            if (index < this._length) {
+                this._at[index] = what;
+            }
+            else {
+                this._length = index + 1;
+                this._at[index] = what;
+            }
+        }
+    };
+    Fragment.prototype.at = function (index, value) {
+        if (value === void 0) { value = null; }
+        if (index < 0 || index >= this._length) {
+            throw "OFFSET_OUT_BOUNDS";
+        }
+        else {
+            if (value === null) {
+                return this._at[index] == void 0 ? null : this._at[index];
+            }
+            else {
+                this.add(value, index);
+            }
+        }
+    };
+    Fragment.prototype.length = function (value) {
+        if (value === void 0) { value = null; }
+        if (value == null) {
+            return this._length;
+        }
+        else {
+            if (value < 0) {
+                throw "OFFSET_OUT_BOUNDS";
+            }
+            else {
+                this._length = value;
+            }
+        }
+    };
+    return Fragment;
+})();
 var DocSelection = (function (_super) {
     __extends(DocSelection, _super);
     function DocSelection(viewport) {
@@ -3587,6 +3740,7 @@ var DocSelection = (function (_super) {
 /// <reference path="Layout/BlockChar.ts" />
 /// <reference path="Layout/Block/Table.ts" />
 /// <reference path="Viewport.ts" />
+/// <reference path="Fragment.ts" />
 /// <reference path="DocSelection.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',

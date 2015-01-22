@@ -4,6 +4,8 @@ class TNode extends Events {
 	public siblingIndex    : number = 0;
 	public nodeType        : TNode_Type = TNode_Type.UNKNOWN;
 	public documentElement : HTML_Body = null;
+	public FRAGMENT_START  : number = 0;
+	public FRAGMENT_END    : number = 0;
 	
 	// dettach the node from it's parent
 	public remove(): TNode {
@@ -27,6 +29,10 @@ class TNode extends Events {
 		} else {
 			return null;
 		}
+	}
+
+	public bakeIntoFragment() {
+		throw "ABSTRACT";
 	}
 
 }

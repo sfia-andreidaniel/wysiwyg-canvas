@@ -55,6 +55,7 @@
 
 /// <reference path="Viewport.ts" />
 
+/// <reference path="Fragment.ts" />
 /// <reference path="DocSelection.ts" />
 
 var viewport = new Viewport(),

@@ -4,6 +4,7 @@ class HTML_Body extends TNode_Element {
 	private _needRepaint: boolean = true;
 	public  _layout: Layout = null;
 	public  viewport: Viewport = null;
+	public  fragment: Fragment = new Fragment();
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -158,6 +159,12 @@ class HTML_Body extends TNode_Element {
 		this.requestRepaint();
 	}
 
+	public requestRelayoutNowIfNeeded() {
+		if ( this._needRelayout ) {
+			this.relayout();
+		}
+	}
+
 	public requestRepaint() {
 		this._needRepaint = true;
 		this.fire( 'repaint' );
@@ -195,6 +202,8 @@ class HTML_Body extends TNode_Element {
 			return;
 		}
 
+		this.fragment.reset();
+
 		var now = Date.now();
 
 		if ( !this.viewport ) {
@@ -222,6 +231,7 @@ class HTML_Body extends TNode_Element {
 		console.log( 'relayout completed in ' + ( Date.now() - now ) + ' ms.' );
 		//console.log( this._layout.serialize() );
 
+		this.bakeIntoFragment();
 		this._needRelayout = false;
 
 	}

@@ -1,7 +1,16 @@
 class TNode_Text extends TNode {
 
-	public _text    : string = '';
+	static $FragmentTypes = {
+		"\n": FragmentItem.WHITE_SPACE,
+		"\t": FragmentItem.WHITE_SPACE,
+		" " : FragmentItem.WHITE_SPACE
+	};
+
+	public _text     : string = '';
 	public nodeType  : TNode_Type = TNode_Type.TEXT;
+	
+	// on building layout, the EOL_POS will be computed. this is needed on bakeIntoFragment method
+	public EOL_POS   : any = null;
 
 	static $SpecialChars = {
 		'<': '&lt;',
@@ -41,6 +50,20 @@ class TNode_Text extends TNode {
 		}
 
 		return out;
+	}
+
+	public bakeIntoFragment() {
+		if ( this.documentElement ) {
+			
+			this.FRAGMENT_START = this.documentElement.fragment.length();
+			for ( var i=0, len = this._text.length; i<len; i++ ) {
+				this.documentElement.fragment.add( TNode_Text.$FragmentTypes[ this._text[i] ] || FragmentItem.CHARACTER );
+				if ( this.EOL_POS && this.EOL_POS[i] ) {
+					this.documentElement.fragment.add( FragmentItem.EOL );
+				}
+			}
+			this.FRAGMENT_END = this.documentElement.fragment.length();
+		}
 	}
 
 }

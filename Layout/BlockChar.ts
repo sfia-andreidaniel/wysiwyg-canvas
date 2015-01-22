@@ -8,6 +8,7 @@ class Layout_BlockChar extends Layout {
 	public lines      : Character_Line[] = [];
 
 	public addTextNode( node: TNode_Text ) {
+		node.EOL_POS = null;
 		for ( var i=0, len = node._text.length; i<len; i++ ) {
 			this.chars.push( new Character( node, i ) );
 		}
@@ -33,7 +34,9 @@ class Layout_BlockChar extends Layout {
 		    word: Character[] = [],
 		    words: Character_Word[] = [],
 		    line: Character_Line,
-		    ownerNode: TNode_Element = this.ownerNode();
+		    ownerNode: TNode_Element = this.ownerNode(),
+		    w: Character_Word,
+		    c: Character;
 
 		for ( i=0; i<len; i++ ) {
 			if ( contentsWithWords[i] == contents[j] ) {
@@ -71,10 +74,19 @@ class Layout_BlockChar extends Layout {
 		if ( line.words.length )
 			this.lines.push( line );
 
-		/* Add the lineHeight factor */
+		/* Add the lineHeight factor and the EOL_POS */
 		for ( i=0, len = this.lines.length; i<len; i++ ) {
 			this.lines[i].size[1] *= ownerNode.style.lineHeight();
+			if ( ( n = this.lines[i].words.length ) ) {
+				w = this.lines[i].words[ n - 1 ];
+				if ( ( n = w.characters.length ) ) {
+					c = w.characters[ n-1 ];
+					c.node.EOL_POS = c.node.EOL_POS || {};
+					c.node.EOL_POS[ c.index ] = 1;
+				}
+			}
 		}
+
 
 		return this.lines;
 

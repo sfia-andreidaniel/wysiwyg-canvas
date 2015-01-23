@@ -16,6 +16,37 @@ class Fragment {
 		this._length = 0;
 	}
 
+	// returns a part of the fragment, for debugging purposes
+	public slice( index: number, length: number ): FragmentItem[] {
+		var out: FragmentItem[] = [],
+		    i: number = 0;
+		
+		for ( i=0; i<length; i++ ) {
+			out.push( this._at[ index + i ] );
+		}
+
+		return out;
+	}
+
+	public sliceDebug( index: number, length: number, cursorPos: number = null ): string {
+
+		if ( index < 0 ) {
+			index = 0;
+		}
+
+		var s: string = '';
+		s = this.slice(index, length ).join( '' )
+			.replace( new RegExp( String( FragmentItem.NODE_START ), 'g' ), '<' )
+			.replace( new RegExp( String( FragmentItem.NODE_END ), 'g' ), '>' )
+			.replace( new RegExp( String( FragmentItem.CHARACTER ), 'g' ), '*' )
+			.replace( new RegExp( String( FragmentItem.WHITE_SPACE ), 'g' ), ' ' )
+			.replace( new RegExp( String( FragmentItem.EOL ), 'g' ), '|' );
+		if ( cursorPos ) {
+			s = s.substr( 0, cursorPos - index ) + '_' + s.substr( cursorPos - index );
+		}
+		return s;
+	}
+
 	public add( what: FragmentItem, index: number = null ) {
 		if ( index == null ) {
 			this._at[ this._length++ ] = what;

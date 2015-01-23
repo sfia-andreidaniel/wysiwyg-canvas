@@ -176,7 +176,41 @@ class Viewport_CommandRouter extends Events {
 
 	// inserts a string @ caret position.
 	public insertText( str: string ) {
+		str = String( str || '' );
 
+		if ( !str ) {
+			return;
+		}
+
+		var range: TRange = this.viewport.selection.getRange(),
+		    focus: TRange_Target = range.focusNode(),
+		    len: number = str.length,
+		    nowPos: number,
+		    jump: number = 0;
+
+		if ( !focus ) {
+			return;
+		}
+
+		// clear existing selection if any.
+		if ( this.viewport.selection.getRange().length() ) {
+			this.viewport.selection.removeContents();
+		}
+
+		console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
+
+		// find the target text node offset
+		jump = (<TNode_Text>focus.target).insertTextAtTargetOffset( focus.fragPos, str );
+
+		this.viewport.document.relayout(true);
+
+		focus.fragPos = (<TNode_Text>focus.target).textIndexToFragmentPosition( jump );
+
+		console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
+		
+		range.collapse( true );
+
+		
 	}
 
 	// negative values delete characters in the left of the caret,

@@ -292,7 +292,7 @@ class Layout_BlockChar extends Layout {
 					fragPos++; // reached end of character, increment the fragment position
 				}
 
-				if ( wordGap ) {
+				if ( wordGap && ( i < len - 1 ) ) {
 					startX += this.lines[i].wordGap;
 				}
 
@@ -331,7 +331,8 @@ class Layout_BlockChar extends Layout {
 		    size: number[],
 		    breakFor: boolean = false,
 		    relative: TPoint,
-		    w: number;
+		    w: number,
+		    isLastLine: boolean = false;
 		
 		if ( target !== null ) {
 			
@@ -346,6 +347,7 @@ class Layout_BlockChar extends Layout {
 				if ( relative.y >= startY ) {
 					bestLine = this.lines[line];
 					bestLineIndex = line;
+					isLastLine = line == lines-1;
 				} else {
 					break;
 				}
@@ -356,7 +358,7 @@ class Layout_BlockChar extends Layout {
 				
 				align = (<TNode_Element>target.target).style.textAlign();
 
-				wordGap = align == 'justified';
+				wordGap = align == 'justified' && !isLastLine;
 
 				switch ( align ) {
 					case 'right':

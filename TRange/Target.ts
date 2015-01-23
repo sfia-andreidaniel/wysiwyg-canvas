@@ -72,7 +72,7 @@ class TRange_Target extends Events {
 
 	}
 
-	private _moveRight( times: number = 1 ): boolean {
+	private _moveRight( times: number = 1, ignoreEOL: boolean = false ): boolean {
 
 		times = ~~times;
 
@@ -93,7 +93,7 @@ class TRange_Target extends Events {
 			}
 		}
 
-		return this.moveRightUntil( function( at: FragmentItem ) { return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
+		return this.moveRightUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
 
 	}
 
@@ -176,7 +176,7 @@ class TRange_Target extends Events {
 
 	}
 
-	private _moveLeft( times: number = 1 ): boolean {
+	private _moveLeft( times: number = 1, ignoreEOL: boolean = false ): boolean {
 
 		times = ~~times;
 
@@ -197,7 +197,7 @@ class TRange_Target extends Events {
 			}
 		}
 
-		return this.moveLeftUntil( function( at: FragmentItem ) { return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
+		return this.moveLeftUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
 
 	}
 
@@ -245,7 +245,7 @@ class TRange_Target extends Events {
 	}
 
 
-	public moveByCharacters( chars: number ): boolean {
+	public moveByCharacters( chars: number, ignoreEOL: boolean = false ): boolean {
 		chars = ~~chars;
 
 		if ( chars == 0 ) {
@@ -253,9 +253,9 @@ class TRange_Target extends Events {
 		}
 
 		if ( chars > 0 ) {
-			return this._moveRight( chars );
+			return this._moveRight( chars, ignoreEOL );
 		} else {
-			return this._moveLeft( -chars );
+			return this._moveLeft( -chars, ignoreEOL );
 		}
 	}
 

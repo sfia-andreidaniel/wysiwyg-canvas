@@ -249,6 +249,10 @@ var TNode_Text = (function (_super) {
         }
         return out;
     };
+    TNode_Text.prototype.insertTextAtTargetOffset = function (offset, str) {
+    };
+    TNode_Text.prototype.textIndexToFragmentPosition = function (index) {
+    };
     TNode_Text.$FragmentTypes = {
         "\n": 4 /* WHITE_SPACE */,
         "\t": 4 /* WHITE_SPACE */,
@@ -3521,7 +3525,7 @@ var Layout_BlockChar = (function (_super) {
                     startX += size[0];
                     fragPos++; // reached end of character, increment the fragment position
                 }
-                if (wordGap) {
+                if (wordGap && (i < len - 1)) {
                     startX += this.lines[i].wordGap;
                 }
             }
@@ -3535,7 +3539,7 @@ var Layout_BlockChar = (function (_super) {
     };
     Layout_BlockChar.prototype.getTargetAtXY = function (point, boundsChecking) {
         if (boundsChecking === void 0) { boundsChecking = true; }
-        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap = false, size, breakFor = false, relative, w;
+        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap = false, size, breakFor = false, relative, w, isLastLine = false;
         if (target !== null) {
             relative = {
                 "x": point.x - this.offsetLeft,
@@ -3546,6 +3550,7 @@ var Layout_BlockChar = (function (_super) {
                 if (relative.y >= startY) {
                     bestLine = this.lines[line];
                     bestLineIndex = line;
+                    isLastLine = line == lines - 1;
                 }
                 else {
                     break;
@@ -3554,7 +3559,7 @@ var Layout_BlockChar = (function (_super) {
             }
             if (bestLine !== null) {
                 align = target.target.style.textAlign();
-                wordGap = align == 'justified';
+                wordGap = align == 'justified' && !isLastLine;
                 switch (align) {
                     case 'right':
                         startX = this.offsetLeft + this.offsetWidth - bestLine.size[0];
@@ -3981,6 +3986,10 @@ var Viewport_KeyboardDriver = (function (_super) {
         }
         var cancelEvent = false;
         switch (DOMEvent.keyCode) {
+            case 32:
+                this.viewport.execCommand(0 /* INSERT_TEXT */, ' ');
+                cancelEvent = true;
+                break;
             case 9:
                 cancelEvent = true;
                 this.viewport.execCommand(DOMEvent.shiftKey ? 12 /* UNINDENT */ : 11 /* INDENT */);
@@ -4352,6 +4361,25 @@ var Viewport_CommandRouter = (function (_super) {
     };
     // inserts a string @ caret position.
     Viewport_CommandRouter.prototype.insertText = function (str) {
+        str = String(str || '');
+        if (!str) {
+            return;
+        }
+        var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0;
+        if (!focus) {
+            return;
+        }
+        // clear existing selection if any.
+        if (this.viewport.selection.getRange().length()) {
+            this.viewport.selection.removeContents();
+        }
+        console.log('before: ' + focus.fragPos + ' => ' + JSON.stringify(this.viewport.document.fragment.sliceDebug((nowPos = focus.fragPos - 10), 20, focus.fragPos)));
+        // find the target text node offset
+        jump = focus.target.insertTextAtTargetOffset(focus.fragPos, str);
+        this.viewport.document.relayout(true);
+        focus.fragPos = focus.target.textIndexToFragmentPosition(jump);
+        console.log('after: ' + focus.fragPos + ' => ' + JSON.stringify(this.viewport.document.fragment.sliceDebug((nowPos), 20, focus.fragPos)) + ', jump = ' + jump);
+        range.collapse(true);
     };
     // negative values delete characters in the left of the caret,
     // positive values delete characters in the right of the caret
@@ -4483,6 +4511,26 @@ var Fragment = (function () {
     }
     Fragment.prototype.reset = function () {
         this._length = 0;
+    };
+    // returns a part of the fragment, for debugging purposes
+    Fragment.prototype.slice = function (index, length) {
+        var out = [], i = 0;
+        for (i = 0; i < length; i++) {
+            out.push(this._at[index + i]);
+        }
+        return out;
+    };
+    Fragment.prototype.sliceDebug = function (index, length, cursorPos) {
+        if (cursorPos === void 0) { cursorPos = null; }
+        if (index < 0) {
+            index = 0;
+        }
+        var s = '';
+        s = this.slice(index, length).join('').replace(new RegExp(String(0 /* NODE_START */), 'g'), '<').replace(new RegExp(String(1 /* NODE_END */), 'g'), '>').replace(new RegExp(String(3 /* CHARACTER */), 'g'), '*').replace(new RegExp(String(4 /* WHITE_SPACE */), 'g'), ' ').replace(new RegExp(String(2 /* EOL */), 'g'), '|');
+        if (cursorPos) {
+            s = s.substr(0, cursorPos - index) + '_' + s.substr(cursorPos - index);
+        }
+        return s;
     };
     Fragment.prototype.add = function (what, index) {
         if (index === void 0) { index = null; }
@@ -5059,8 +5107,9 @@ var TRange_Target = (function (_super) {
         }
         return false;
     };
-    TRange_Target.prototype._moveRight = function (times) {
+    TRange_Target.prototype._moveRight = function (times, ignoreEOL) {
         if (times === void 0) { times = 1; }
+        if (ignoreEOL === void 0) { ignoreEOL = false; }
         times = ~~times;
         if (times < 1) {
             return false;
@@ -5076,7 +5125,7 @@ var TRange_Target = (function (_super) {
             }
         }
         return this.moveRightUntil(function (at) {
-            return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            return (!ignoreEOL && at == 2 /* EOL */) || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
         });
     };
     TRange_Target.prototype._moveRightWord = function (times) {
@@ -5132,8 +5181,9 @@ var TRange_Target = (function (_super) {
         }
         return false;
     };
-    TRange_Target.prototype._moveLeft = function (times) {
+    TRange_Target.prototype._moveLeft = function (times, ignoreEOL) {
         if (times === void 0) { times = 1; }
+        if (ignoreEOL === void 0) { ignoreEOL = false; }
         times = ~~times;
         if (times < 1) {
             return false;
@@ -5149,7 +5199,7 @@ var TRange_Target = (function (_super) {
             }
         }
         return this.moveLeftUntil(function (at) {
-            return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            return (!ignoreEOL && at == 2 /* EOL */) || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
         });
     };
     TRange_Target.prototype._moveLeftWord = function (times) {
@@ -5184,16 +5234,17 @@ var TRange_Target = (function (_super) {
         this.fire('changed');
         return true;
     };
-    TRange_Target.prototype.moveByCharacters = function (chars) {
+    TRange_Target.prototype.moveByCharacters = function (chars, ignoreEOL) {
+        if (ignoreEOL === void 0) { ignoreEOL = false; }
         chars = ~~chars;
         if (chars == 0) {
             return false;
         }
         if (chars > 0) {
-            return this._moveRight(chars);
+            return this._moveRight(chars, ignoreEOL);
         }
         else {
-            return this._moveLeft(-chars);
+            return this._moveLeft(-chars, ignoreEOL);
         }
     };
     TRange_Target.prototype.moveByWords = function (words) {
@@ -5349,7 +5400,7 @@ var DocSelection = (function (_super) {
 /// <reference path="DocSelection.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
-    '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja</p>',
+    '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     '<h2>Heading 2</h2>',
     '<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     '<h3>Heading 3</h3>',
@@ -5394,7 +5445,7 @@ var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
     '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
     '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
-].join('');
+].join('\n');
 body.innerHTML(niceHTML);
 window.addEventListener('load', function () {
     document.body.appendChild(viewport.canvas);

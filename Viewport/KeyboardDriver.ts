@@ -81,6 +81,11 @@ class Viewport_KeyboardDriver extends Events {
 
 		switch ( DOMEvent.keyCode ) {
 
+			case 32:
+				this.viewport.execCommand( EditorCommand.INSERT_TEXT, ' ' );
+				cancelEvent = true;
+				break;
+
 			case 9: /* Tab: */
 				cancelEvent = true;
 				this.viewport.execCommand( DOMEvent.shiftKey ? EditorCommand.UNINDENT : EditorCommand.INDENT );

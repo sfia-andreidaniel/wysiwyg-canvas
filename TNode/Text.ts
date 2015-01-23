@@ -86,4 +86,10 @@ class TNode_Text extends TNode {
 		return out;
 	}
 
+	public insertTextAtTargetOffset( offset: number, str: string ): number {
+	}
+
+	public textIndexToFragmentPosition( index: number ): number {
+	}
+
 }

@@ -73,7 +73,7 @@ var viewport = new Viewport(),
     body = viewport.document,
     niceHTML = [
     	'<h1 align="center">He<u>adi</u>ng 1</h1>',
-    	'<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja</p>',
+    	'<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     	'<h2>Heading 2</h2>',
     	'<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     	'<h3>Heading 3</h3>',
@@ -118,7 +118,7 @@ var viewport = new Viewport(),
     	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
     	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
     	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
-    ].join( '' );
+    ].join( '\n' );
 
 body.innerHTML( niceHTML );
 

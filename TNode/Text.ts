@@ -23,7 +23,7 @@ class TNode_Text extends TNode {
 		this._text = String( textContents || '' );
 	}
 
-	public textContents( c: string ): string {
+	public textContents( c: string = null ): string {
 		if ( c === null ) {
 			return this._text;
 		} else {
@@ -62,8 +62,28 @@ class TNode_Text extends TNode {
 					this.documentElement.fragment.add( FragmentItem.EOL );
 				}
 			}
-			this.FRAGMENT_END = this.documentElement.fragment.length();
+			this.FRAGMENT_END = this.documentElement.fragment.length() - 1;
 		}
+	}
+
+	public textContentsFragment( indexStart: number, indexEnd: number ): string {
+		var out: string = '',
+		    i: number = 0,
+		    len: number = 0,
+		    j: number = 0;
+
+		for ( i=this.FRAGMENT_START; i <= indexEnd; i++ ) {
+			if ( this.EOL_POS && this.EOL_POS[i] ) {
+				// nothing
+			} else {
+				if ( i >= indexStart ) {
+					out = out + ( this._text[j] || '' );
+				}
+				j++;
+			}
+		}
+
+		return out;
 	}
 
 }

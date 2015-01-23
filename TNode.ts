@@ -11,6 +11,7 @@ class TNode extends Events {
 	public remove(): TNode {
 		if ( this.parentNode ) {
 			this.parentNode.removeChild( this );
+			this.parentNode = null;
 		}
 		return this;
 	}

@@ -12,6 +12,13 @@ var FragmentItem;
     FragmentItem[FragmentItem["CHARACTER"] = 3] = "CHARACTER";
     FragmentItem[FragmentItem["WHITE_SPACE"] = 4] = "WHITE_SPACE";
 })(FragmentItem || (FragmentItem = {}));
+// used in Fragment_Contextual_Item as type
+var FragmentCItem;
+(function (FragmentCItem) {
+    FragmentCItem[FragmentCItem["NODE_START"] = 0] = "NODE_START";
+    FragmentCItem[FragmentCItem["NODE_END"] = 1] = "NODE_END";
+    FragmentCItem[FragmentCItem["TEXT"] = 2] = "TEXT";
+})(FragmentCItem || (FragmentCItem = {}));
 var TRange_Type;
 (function (TRange_Type) {
     TRange_Type[TRange_Type["TEXT"] = 0] = "TEXT";
@@ -148,6 +155,7 @@ var TNode = (function (_super) {
     TNode.prototype.remove = function () {
         if (this.parentNode) {
             this.parentNode.removeChild(this);
+            this.parentNode = null;
         }
         return this;
     };
@@ -183,6 +191,7 @@ var TNode_Text = (function (_super) {
         this._text = String(textContents || '');
     }
     TNode_Text.prototype.textContents = function (c) {
+        if (c === void 0) { c = null; }
         if (c === null) {
             return this._text;
         }
@@ -215,8 +224,22 @@ var TNode_Text = (function (_super) {
                     this.documentElement.fragment.add(2 /* EOL */);
                 }
             }
-            this.FRAGMENT_END = this.documentElement.fragment.length();
+            this.FRAGMENT_END = this.documentElement.fragment.length() - 1;
         }
+    };
+    TNode_Text.prototype.textContentsFragment = function (indexStart, indexEnd) {
+        var out = '', i = 0, len = 0, j = 0;
+        for (i = this.FRAGMENT_START; i <= indexEnd; i++) {
+            if (this.EOL_POS && this.EOL_POS[i]) {
+            }
+            else {
+                if (i >= indexStart) {
+                    out = out + (this._text[j] || '');
+                }
+                j++;
+            }
+        }
+        return out;
     };
     TNode_Text.$FragmentTypes = {
         "\n": 4 /* WHITE_SPACE */,
@@ -271,7 +294,7 @@ var TNode_Element = (function (_super) {
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
             if (this.childNodes[i] == node) {
                 this.childNodes.splice(i, 1);
-                for (var j = i; j < len; j++) {
+                for (var j = i, len = this.childNodes.length; j < len; j++) {
                     this.childNodes[j].siblingIndex = j;
                 }
                 this.requestRelayout();
@@ -540,7 +563,8 @@ var TNode_Element = (function (_super) {
                     }
                     break;
                 case '#text':
-                    scope.appendChild(scope.documentElement.createTextNode(nodesList[i].value));
+                    if (nodesList[i].value)
+                        scope.appendChild(scope.documentElement.createTextNode(nodesList[i].value));
                     break;
                 default:
                     break;
@@ -703,6 +727,26 @@ var TNode_Element = (function (_super) {
         }
         else
             return null;
+    };
+    // removes the empty nodes from the document
+    TNode_Element.prototype.removeOrphanNodes = function () {
+        if (this.childNodes) {
+            if (!this.childNodes.length) {
+                this.remove();
+            }
+            else {
+                for (var i = this.childNodes.length - 1; i >= 0; i--) {
+                    if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                        this.childNodes[i].removeOrphanNodes();
+                    }
+                    else {
+                        if (this.childNodes[i].textContents() == '') {
+                            this.childNodes[i].remove();
+                        }
+                    }
+                }
+            }
+        }
     };
     return TNode_Element;
 })(TNode);
@@ -1071,8 +1115,9 @@ var HTML_Body = (function (_super) {
     };
     // full document relayout. this function computes where to draw
     // objects in the canvas.
-    HTML_Body.prototype.relayout = function () {
-        if (!this._needRelayout) {
+    HTML_Body.prototype.relayout = function (force) {
+        if (force === void 0) { force = false; }
+        if (!this._needRelayout && force == false) {
             console.log('body.relayout: up to date.');
             return;
         }
@@ -1097,6 +1142,22 @@ var HTML_Body = (function (_super) {
         //console.log( this._layout.serialize() );
         this.bakeIntoFragment();
         this._needRelayout = false;
+        if (force) {
+            this._needRepaint = true;
+            this.repaint();
+        }
+    };
+    HTML_Body.prototype.removeOrphanNodes = function () {
+        for (var i = this.childNodes.length - 1; i >= 0; i--) {
+            if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                this.childNodes[i].removeOrphanNodes();
+            }
+            else {
+                if (this.childNodes[i].textContents() == '') {
+                    this.childNodes[i].remove();
+                }
+            }
+        }
     };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
@@ -1251,6 +1312,9 @@ var HTML_Image = (function (_super) {
                 ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
             }
         }
+    };
+    HTML_Image.prototype.removeOrphanNodes = function () {
+        // void, intentionally.
     };
     return HTML_Image;
 })(TNode_Element);
@@ -4431,9 +4495,247 @@ var Fragment_Contextual = (function () {
     function Fragment_Contextual(fragment, indexStart, indexEnd) {
         if (indexStart === void 0) { indexStart = 0; }
         if (indexEnd === void 0) { indexEnd = 0; }
+        this.fragment = fragment;
+        this.start = 0;
+        this.end = 0;
+        this.parts = [];
+        var tmp = 0;
+        if (indexStart > indexEnd) {
+            tmp = indexStart;
+            indexStart = indexEnd;
+            indexEnd = tmp;
+        }
+        this.start = indexStart;
+        this.end = indexEnd;
     }
+    // compute the parts of the contextual fragment.
+    Fragment_Contextual.prototype.compute = function () {
+        var i = 0, currentNode = null, element = null, at, iStart = 0, iStop = 0;
+        this.parts = [];
+        if (this.start == this.end) {
+            return;
+        }
+        for (i = this.start; i <= this.end; i++) {
+            at = this.fragment.at(i);
+            switch (at) {
+                case 0 /* NODE_START */:
+                    if (currentNode !== null) {
+                        this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
+                        currentNode = null;
+                    }
+                    this.parts.push(new Fragment_Contextual_NodeStart(element = this.fragment.getNodeAtIndex(i)));
+                    break;
+                case 1 /* NODE_END */:
+                    if (currentNode !== null) {
+                        this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
+                        currentNode = null;
+                    }
+                    this.parts.push(new Fragment_Contextual_NodeEnd(element = this.fragment.getNodeAtIndex(i)));
+                    currentNode = null;
+                    break;
+                case 2 /* EOL */:
+                case 3 /* CHARACTER */:
+                case 4 /* WHITE_SPACE */:
+                    //console.log( i, at == FragmentItem.EOL ? 'eol' : ( at == FragmentItem.CHARACTER ? 'chr' : 'ws' ) );
+                    if (currentNode === null) {
+                        currentNode = this.fragment.getNodeAtIndex(i);
+                        iStart = i;
+                        iStop = i;
+                    }
+                    else {
+                        iStop = i;
+                    }
+                    break;
+            }
+        }
+        if (currentNode !== null) {
+            this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
+            currentNode = null;
+        }
+    };
+    Fragment_Contextual.prototype.toString = function (format, closeTags) {
+        if (format === void 0) { format = 'text/html'; }
+        if (closeTags === void 0) { closeTags = false; }
+        this.compute();
+        var out = [''], stack = 0, i = 0, len = 0, flush = [];
+        if (format == 'text/html' || format == null || format == 'html' || format == '') {
+            if (!closeTags) {
+                for (i = 0, len = this.parts.length; i < len; i++) {
+                    out.push(this.parts[i].toString());
+                }
+            }
+            else {
+                for (i = 0, len = this.parts.length; i < len; i++) {
+                    out.push(this.parts[i].toString());
+                    switch (this.parts[i].type) {
+                        case 2 /* TEXT */:
+                            break;
+                        case 0 /* NODE_START */:
+                            stack++;
+                            flush.push(this.parts[i].node);
+                            break;
+                        case 1 /* NODE_END */:
+                            if (stack == 0) {
+                                out.unshift(this.parts[i].node.xmlBeginning());
+                            }
+                            else {
+                                stack--;
+                                flush.pop();
+                            }
+                            break;
+                    }
+                }
+                while (flush.length > 0) {
+                    out.push(flush.pop().xmlEnding());
+                }
+            }
+        }
+        else if (format == 'text/plain' || format == 'text') {
+            var blockNodeNames = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr', 'p', 'ul', 'li', 'table'];
+            for (i = 0, len = this.parts.length; i < len; i++) {
+                switch (this.parts[i].type) {
+                    case 2 /* TEXT */:
+                        out.push(this.parts[i].toString());
+                        break;
+                    case 1 /* NODE_END */:
+                        if (blockNodeNames.indexOf(this.parts[i].node.nodeName) >= 0) {
+                            out.push("\n\n");
+                        }
+                        else if (this.parts[i].node.nodeName == 'td') {
+                            out.push('\t|\t');
+                        }
+                        break;
+                }
+            }
+        }
+        else
+            throw "Invalid format. Allowed 'text/html' and 'text/plain' as first argument.";
+        return out.join('');
+    };
+    // this should erase the contents of the fragment from the document, and mark the fragment as unusable...
+    Fragment_Contextual.prototype.remove = function () {
+        this.compute();
+        /* Find all the "whole" and the "partial" nodes from the fragment. */
+        var wholeNodes = [], partialNodes = [], i = 0, j = 0, len = this.parts.length, found = null;
+        while (i < len) {
+            switch (this.parts[i].type) {
+                case 2 /* TEXT */:
+                    if (this.parts[i].isWholeNode()) {
+                        wholeNodes.push(this.parts[i]);
+                    }
+                    else {
+                        partialNodes.push(this.parts[i]);
+                    }
+                    i++;
+                    break;
+                case 1 /* NODE_END */:
+                    partialNodes.push(this.parts[i]);
+                    i++;
+                    break;
+                case 0 /* NODE_START */:
+                    found = null;
+                    for (j = i + 1; j < len; j++) {
+                        if (this.parts[j].type == 1 /* NODE_END */ && this.parts[i].node == this.parts[j].node) {
+                            found = j;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        wholeNodes.push(this.parts[i]);
+                        i = found + 1;
+                    }
+                    else {
+                        partialNodes.push(this.parts[i]);
+                        i++;
+                    }
+                    break;
+            }
+        }
+        for (i = 0, len = wholeNodes.length; i < len; i++) {
+            wholeNodes[i].removeFromDocument();
+        }
+        for (i = 0, len = partialNodes.length; i < len; i++) {
+            if (partialNodes[i].type == 2 /* TEXT */) {
+                partialNodes[i].removeSelectedText();
+            }
+        }
+    };
     return Fragment_Contextual;
 })();
+var Fragment_Contextual_Item = (function () {
+    function Fragment_Contextual_Item() {
+        this.type = null;
+    }
+    Fragment_Contextual_Item.prototype.toString = function () {
+        throw "ABSTRACT_METHOD";
+    };
+    Fragment_Contextual_Item.prototype.removeFromDocument = function () {
+        throw "ABSTRACT_METHOD";
+    };
+    return Fragment_Contextual_Item;
+})();
+var Fragment_Contextual_NodeStart = (function (_super) {
+    __extends(Fragment_Contextual_NodeStart, _super);
+    function Fragment_Contextual_NodeStart(node) {
+        _super.call(this);
+        this.node = node;
+        this.type = 0 /* NODE_START */;
+    }
+    Fragment_Contextual_NodeStart.prototype.toString = function () {
+        return this.node.xmlBeginning();
+    };
+    Fragment_Contextual_NodeStart.prototype.removeFromDocument = function () {
+        this.node.remove();
+    };
+    return Fragment_Contextual_NodeStart;
+})(Fragment_Contextual_Item);
+var Fragment_Contextual_NodeEnd = (function (_super) {
+    __extends(Fragment_Contextual_NodeEnd, _super);
+    function Fragment_Contextual_NodeEnd(node) {
+        _super.call(this);
+        this.node = node;
+        this.type = 1 /* NODE_END */;
+    }
+    Fragment_Contextual_NodeEnd.prototype.toString = function () {
+        return this.node.xmlEnding();
+    };
+    Fragment_Contextual_NodeEnd.prototype.removeFromDocument = function () {
+        this.node.remove();
+    };
+    return Fragment_Contextual_NodeEnd;
+})(Fragment_Contextual_Item);
+var Fragment_Contextual_TextNode = (function (_super) {
+    __extends(Fragment_Contextual_TextNode, _super);
+    function Fragment_Contextual_TextNode(node, start, end) {
+        if (start === void 0) { start = null; }
+        if (end === void 0) { end = null; }
+        _super.call(this);
+        this.node = node;
+        this.start = start;
+        this.end = end;
+        this.type = 2 /* TEXT */;
+    }
+    Fragment_Contextual_TextNode.prototype.isWholeNode = function () {
+        return this.node.textContents() == this.node.textContentsFragment(this.start, this.end);
+    };
+    Fragment_Contextual_TextNode.prototype.toString = function () {
+        return this.node.textContentsFragment(this.start, this.end);
+    };
+    Fragment_Contextual_TextNode.prototype.removeFromDocument = function () {
+        this.node.remove();
+    };
+    Fragment_Contextual_TextNode.prototype.removeSelectedText = function () {
+        var out = [];
+        if (this.start > this.node.FRAGMENT_START) {
+            out.push(this.node.textContentsFragment(this.node.FRAGMENT_START, this.start - 1));
+        }
+        if (this.end < this.node.FRAGMENT_END) {
+            out.push(this.node.textContentsFragment(this.end + 1, this.node.FRAGMENT_END));
+        }
+        this.node.textContents(out.join(''));
+    };
+    return Fragment_Contextual_TextNode;
+})(Fragment_Contextual_Item);
 var TRange = (function (_super) {
     __extends(TRange, _super);
     function TRange(target) {
@@ -4448,13 +4750,11 @@ var TRange = (function (_super) {
         (function (me) {
             if (me._anchorNode) {
                 me._anchorNode.on('changed', function () {
-                    console.log('anchor node changed');
                     me.fire('changed');
                 });
             }
             if (me._focusNode) {
                 me._focusNode.on('changed', function () {
-                    console.log('focus node changed');
                     me.fire('changed');
                 });
             }
@@ -4486,19 +4786,29 @@ var TRange = (function (_super) {
             return this._focusNode.fragPos - this._anchorNode.fragPos;
         }
     };
+    // set selection to focusNode (atEnd = true) or anchorNode (atEnd = false).
     TRange.prototype.collapse = function (atEnd) {
         if (atEnd === void 0) { atEnd = false; }
-        if (!atEnd) {
-            if (this._focusNode !== null) {
-                this._anchorNode = this._focusNode;
-                this._focusNode = null;
-                this.fire('changed');
+        if (atEnd) {
+            if (this._focusNode) {
+                this._anchorNode = this.cloneTarget(this._focusNode);
             }
         }
         else {
-            this._focusNode = null;
-            this.fire('changed');
+            if (this._focusNode) {
+                this._focusNode = this.cloneTarget(this._anchorNode);
+            }
         }
+        this.fire('changed');
+    };
+    TRange.prototype.cloneTarget = function (fromTarget) {
+        var target = fromTarget.clone();
+        (function (me) {
+            target.on('changed', function () {
+                me.fire('changed');
+            });
+        })(this);
+        return target;
     };
     TRange.prototype.equalsNode = function (node) {
         return this._focusNode === null && this._anchorNode.target === node;
@@ -4547,10 +4857,37 @@ var TRange = (function (_super) {
     };
     TRange.prototype.createContextualFragment = function () {
         if (this._focusNode === null) {
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._anchorNode.fragPos);
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END);
         }
         else {
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._focusNode.fragPos);
+            var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos);
+            if (this._focusNode.fragPos > this._anchorNode.fragPos) {
+                maxIndex--;
+            }
+            maxIndex += (this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0);
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, minIndex, maxIndex);
+        }
+    };
+    /* Note: DO NOT USE THIS METHOD DIRECTLY.
+       
+       Instead, use Selection.removeContents, as that method should
+       invalidate this range after deletion and create another valid
+       range.
+     */
+    TRange.prototype.removeContents = function () {
+        if (this._focusNode === null) {
+            this._anchorNode.target.remove();
+            return true;
+        }
+        else {
+            if (this.length() !== null) {
+                var fragment = this.createContextualFragment();
+                fragment.remove();
+                return true;
+            }
+            else {
+                return false;
+            }
         }
     };
     return TRange;
@@ -4786,27 +5123,31 @@ var DocSelection = (function (_super) {
         this.range = null;
     }
     DocSelection.prototype.getRange = function () {
-        if (!this.range) {
-            this.range = new TRange(this.viewport.document.fragment.createTargetAt(0 /* DOC_BEGIN */));
-            (function (me) {
-                me.range.on('changed', function () {
-                    me.viewport.document.requestRepaint();
-                });
-            })(this);
-        }
+        if (!this.range)
+            this.range = this.createRange(this.viewport.document.fragment.createTargetAt(0 /* DOC_BEGIN */));
         return this.range;
+    };
+    /* You should create ranges only with this method, do not use
+       the constructor of the range manually.
+
+       This is because events must be added on ranges and this is
+       the optimal point for doing that.
+     */
+    DocSelection.prototype.createRange = function (target) {
+        var rng = new TRange(target);
+        (function (me) {
+            rng.on('changed', function () {
+                me.viewport.document.requestRepaint();
+            });
+        })(this);
+        return rng;
     };
     /* anchors the selection to the target.
     // if the target is a text node, a text selection will be made.
     // if the target is a element, an element selection will be made
     */
     DocSelection.prototype.anchorTo = function (target) {
-        this.range = new TRange(target);
-        (function (me) {
-            me.range.on('changed', function () {
-                me.viewport.document.requestRepaint();
-            });
-        })(this);
+        this.range = this.createRange(target);
         this.viewport.document.requestRepaint();
     };
     /* selection can be focused to a target if it's anchored
@@ -4823,6 +5164,15 @@ var DocSelection = (function (_super) {
     // a null value means that is not applicable.
     DocSelection.prototype.length = function () {
         return this.getRange().length();
+    };
+    // removes the contents of selection.
+    DocSelection.prototype.removeContents = function () {
+        var range = this.getRange();
+        if (this.getRange().removeContents()) {
+            this.viewport.document.removeOrphanNodes();
+            this.viewport.document.relayout(true);
+            range.collapse();
+        }
     };
     return DocSelection;
 })(Events);
@@ -4880,6 +5230,10 @@ var DocSelection = (function (_super) {
 /// <reference path="./Viewport/CommandRouter.ts" />
 /// <reference path="Fragment.ts" />
 /// <reference path="./Fragment/Contextual.ts" />
+/// <reference path="./Fragment/Contextual/Item.ts" />
+/// <reference path="./Fragment/Contextual/NodeStart.ts" />
+/// <reference path="./Fragment/Contextual/NodeEnd.ts" />
+/// <reference path="./Fragment/Contextual/TextNode.ts" />
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />

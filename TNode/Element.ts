@@ -45,7 +45,7 @@ class TNode_Element extends TNode {
 				
 				this.childNodes.splice( i, 1 );
 				
-				for ( var j=i; j<len; j++ ) {
+				for ( var j=i, len = this.childNodes.length; j<len; j++ ) {
 					this.childNodes[j].siblingIndex = j;
 				}
 				
@@ -429,7 +429,8 @@ class TNode_Element extends TNode {
 
 				case '#text':
 
-					scope.appendChild( scope.documentElement.createTextNode( nodesList[i].value ) );
+					if ( nodesList[i].value )
+						scope.appendChild( scope.documentElement.createTextNode( nodesList[i].value ) );
 
 					break;
 
@@ -633,6 +634,34 @@ class TNode_Element extends TNode {
 			}
 
 		} else return null;
+
+	}
+
+	// removes the empty nodes from the document
+	public removeOrphanNodes() {
+
+		if ( this.childNodes ) {
+
+			if ( !this.childNodes.length ) {
+			
+				this.remove();
+			
+			} else {
+			
+				for ( var i=this.childNodes.length - 1; i>=0; i-- ) {
+					
+					if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) {
+						(<TNode_Element>this.childNodes[i]).removeOrphanNodes();
+					} else {
+						if ( (<TNode_Text>this.childNodes[i]).textContents() == '' ) {
+							this.childNodes[i].remove();
+						}
+					}
+				}
+			
+			}
+
+		}
 
 	}
 

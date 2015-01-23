@@ -120,4 +120,8 @@ class HTML_Image extends TNode_Element {
 
 	}
 
+	public removeOrphanNodes() {
+		// void, intentionally.
+	}
+
 }

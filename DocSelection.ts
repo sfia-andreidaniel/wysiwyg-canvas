@@ -8,17 +8,31 @@ class DocSelection extends Events {
 
 	public getRange(): TRange {
 		
-		if ( !this.range ) {
-			this.range = new TRange( this.viewport.document.fragment.createTargetAt( FragmentPos.DOC_BEGIN ) );
-			
-			( function( me ) {
-				me.range.on( 'changed', function() {
-					me.viewport.document.requestRepaint();
-				} );
-			})(this);
-		}
+		if ( !this.range )
+			this.range = this.createRange( this.viewport.document.fragment.createTargetAt( FragmentPos.DOC_BEGIN ) );
 
 		return this.range;
+
+	}
+
+	/* You should create ranges only with this method, do not use
+	   the constructor of the range manually.
+
+	   This is because events must be added on ranges and this is
+	   the optimal point for doing that.
+	 */
+
+	public createRange( target: TRange_Target ): TRange {
+		
+		var rng = new TRange( target );
+
+		( function( me ) {
+			rng.on( 'changed', function() {
+				me.viewport.document.requestRepaint();
+			} );
+		})(this);
+
+		return rng;
 	}
 
 	/* anchors the selection to the target.
@@ -27,14 +41,8 @@ class DocSelection extends Events {
 	*/
 	public anchorTo( target: TRange_Target ) {
 		
-		this.range = new TRange( target );
+		this.range = this.createRange( target );
 		
-		( function( me ) {
-			me.range.on( 'changed', function() {
-				me.viewport.document.requestRepaint();
-			} );
-		})(this);
-
 		this.viewport.document.requestRepaint();
 
 	}
@@ -59,6 +67,25 @@ class DocSelection extends Events {
 	// a null value means that is not applicable.
 	public length(): number {
 		return this.getRange().length();
+	}
+
+	// removes the contents of selection.
+	public removeContents() {
+		
+		var range = this.getRange();
+
+		if ( this.getRange().removeContents() ) {
+
+			this.viewport.document.removeOrphanNodes();
+
+			this.viewport.document.relayout(true);
+
+			range.collapse();
+
+			// resync the caret position if needed.
+
+
+		}
 	}
 
 }

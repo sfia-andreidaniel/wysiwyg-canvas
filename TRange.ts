@@ -17,14 +17,12 @@ class TRange extends Events {
 			
 			if ( me._anchorNode ) {
 				me._anchorNode.on( 'changed', function() {
-					console.log( 'anchor node changed' );
 					me.fire( 'changed' );
 				});
 			}
 
 			if ( me._focusNode ) {
 				me._focusNode.on('changed', function() {
-					console.log( 'focus node changed' );
 					me.fire( 'changed' );
 				} );
 			}
@@ -62,17 +60,38 @@ class TRange extends Events {
 		}
 	}
 
+	// set selection to focusNode (atEnd = true) or anchorNode (atEnd = false).
 	public collapse( atEnd: boolean = false ) {
-		if ( !atEnd ) {
-			if ( this._focusNode !== null ) {
-				this._anchorNode = this._focusNode;
-				this._focusNode = null;
-				this.fire( 'changed' );
+		if ( atEnd ) {
+
+			if ( this._focusNode ) {
+				this._anchorNode = this.cloneTarget( this._focusNode );
 			}
+
 		} else {
-			this._focusNode = null;
-			this.fire('changed');
+
+			if ( this._focusNode ) {
+				this._focusNode = this.cloneTarget( this._anchorNode );
+			}
+
 		}
+		
+		this.fire('changed');
+		
+	}
+
+
+	private cloneTarget( fromTarget: TRange_Target ): TRange_Target {
+
+		var target = fromTarget.clone();
+
+		(function(me){
+			target.on('changed', function() {
+				me.fire('changed');
+			});
+		})(this);
+
+		return target;
 	}
 
 	public equalsNode( node: TNode_Element ): boolean {
@@ -139,9 +158,51 @@ class TRange extends Events {
 
 	public createContextualFragment(): Fragment_Contextual {
 		if ( this._focusNode === null ) {
-			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._anchorNode.fragPos );
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END );
 		} else {
-			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._focusNode.fragPos );
+
+			var minIndex: number = Math.min( this._focusNode.fragPos, this._anchorNode.fragPos ),
+			    maxIndex: number = Math.max( this._focusNode.fragPos, this._anchorNode.fragPos );
+
+			if ( this._focusNode.fragPos > this._anchorNode.fragPos ) {
+				maxIndex--;
+			}
+
+			maxIndex += ( this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0 );
+
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, minIndex, maxIndex );
+		}
+	}
+
+	/* Note: DO NOT USE THIS METHOD DIRECTLY.
+	   
+	   Instead, use Selection.removeContents, as that method should
+	   invalidate this range after deletion and create another valid
+	   range.
+	 */
+	public removeContents(): boolean {
+		if ( this._focusNode === null ) {
+			
+			this._anchorNode.target.remove();
+
+			return true;
+		
+		} else {
+		
+			if ( this.length() !== null ) {
+
+				var fragment: Fragment_Contextual = this.createContextualFragment();
+
+				fragment.remove();
+
+				return true;
+
+			} else {
+			
+				return false;
+			
+			}
+
 		}
 	}
 

@@ -172,7 +172,7 @@ class HTML_Body extends TNode_Element {
 		this.viewport.painter.run();
 	}
 
-	public repaint() {
+	public repaint( ) {
 
 		// repaints the document
 		var now = Date.now();
@@ -196,9 +196,9 @@ class HTML_Body extends TNode_Element {
 
 	// full document relayout. this function computes where to draw
 	// objects in the canvas.
-	public relayout( ) {
+	public relayout( force: boolean = false ) {
 		
-		if ( !this._needRelayout ) {
+		if ( !this._needRelayout && force == false ) {
 			console.log( 'body.relayout: up to date.' );
 			return;
 		}
@@ -235,6 +235,23 @@ class HTML_Body extends TNode_Element {
 		this.bakeIntoFragment();
 		this._needRelayout = false;
 
+		if ( force ) {
+			this._needRepaint = true;
+			this.repaint();
+		}
+
+	}
+
+	public removeOrphanNodes() {
+		for ( var i=this.childNodes.length - 1; i>=0; i-- ) {
+			if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) {
+				(<TNode_Element>this.childNodes[i]).removeOrphanNodes();
+			} else {
+				if ( (<TNode_Text>this.childNodes[i]).textContents() == '' ) {
+					this.childNodes[i].remove();
+				}
+			}
+		}
 	}
 
 }

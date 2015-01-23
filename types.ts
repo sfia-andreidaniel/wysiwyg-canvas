@@ -12,6 +12,13 @@ enum FragmentItem {
 	WHITE_SPACE
 }
 
+// used in Fragment_Contextual_Item as type
+enum FragmentCItem {
+	NODE_START,
+	NODE_END,
+	TEXT
+}
+
 interface TPoint {
 	x: number;
 	y: number;

@@ -53,9 +53,10 @@ class TRange extends Events {
 		}
 	}
 
+	// a null value represents that the length is not available for this range
 	public length(): number {
 		if ( this._focusNode === null ) {
-			return 0;
+			return null;
 		} else {
 			return this._focusNode.fragPos - this._anchorNode.fragPos;
 		}
@@ -92,6 +93,56 @@ class TRange extends Events {
 			return fragmentIndex >= minIndex && fragmentIndex <= maxIndex + ( this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0 );
 
 		} else return false;
+	}
+
+	// if the range has anchor and focus, return the common parent of the nodes of the
+	// range. otherwise return the parent node of the range.
+	public getCommonParent(): TNode_Element {
+		if ( this._focusNode === null ) {
+			return this._anchorNode.target.parentNode;
+		} else {
+			if ( this._anchorNode.target == this._focusNode.target ) {
+				return this._anchorNode.target.parentNode;
+			} else {
+				var parentsA: TNode_Element[] = [],
+				    parentsB: TNode_Element[] = [],
+				    i: number = 0,
+				    cursor: TNode_Element,
+				    found = null;
+
+				cursor = this._anchorNode.target.parentNode;
+
+				while ( cursor ) {
+					parentsA.unshift( cursor );
+					cursor = cursor.parentNode;
+				}
+
+				cursor = this._focusNode.target.parentNode;
+
+				while ( cursor ) {
+					parentsB.unshift( cursor );
+					cursor = cursor.parentNode;
+				}
+
+				i = 0;
+
+				while ( parentsA[i] && parentsB[i] && parentsA[i] === parentsB[i] ) {
+					found = parentsA[i];
+					i++;
+				}
+
+				return found;
+
+			}
+		}
+	}
+
+	public createContextualFragment(): Fragment_Contextual {
+		if ( this._focusNode === null ) {
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._anchorNode.fragPos );
+		} else {
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._focusNode.fragPos );
+		}
 	}
 
 }

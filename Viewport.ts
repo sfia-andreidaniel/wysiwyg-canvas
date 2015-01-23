@@ -15,6 +15,7 @@ class Viewport extends Events {
 
 	public  mouseDriver    : Viewport_MouseDriver    = null;
 	public  keyboardDriver : Viewport_KeyboardDriver = null;
+	public  router         : Viewport_CommandRouter  = null;
 
 
 	constructor( _width: number = null, _height: number = null ) {
@@ -48,6 +49,7 @@ class Viewport extends Events {
 
 		this.mouseDriver    = new Viewport_MouseDriver( this );
 		this.keyboardDriver = new Viewport_KeyboardDriver( this );
+		this.router         = new Viewport_CommandRouter( this );
 
 	}
 
@@ -167,6 +169,9 @@ class Viewport extends Events {
 		} else return null;
 	}
 
+	public execCommand( command: EditorCommand, ...args: any[] ) {
+		this.router.dispatchCommand.call( this.router, command, args );
+	}
 
 }
 

@@ -303,18 +303,27 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	public xmlBeginning(): string {
+		return '<' + this.nodeName + ( this.childNodes.length ? '' : '/' ) + '>';
+	}
+
+	public xmlEnding(): string {
+		if ( !this.childNodes.length ) {
+			return '';
+		} else {
+			return '</' + this.nodeName + '>';
+		}
+	}
+
 	public outerHTML( setter: string = null ) {
 		if ( setter === null ) {
 			// getter
-			if ( this.childNodes.length ) {
-				return '<' + this.nodeName + '>' + this.innerHTML() + '</' + this.nodeName + '>';
-			} else {
-				return '<' + this.nodeName + ' />';
-			}
+			return this.xmlBeginning() + this.innerHTML() + this.xmlEnding();
 		} else {
 			throw "node.outerHTML: Setter not implemented yet!";
 		}
 	}
+
 
 	public requestRelayout() {
 		if ( this.documentElement ) {

@@ -22,6 +22,38 @@ var FragmentPos;
     FragmentPos[FragmentPos["DOC_BEGIN"] = 0] = "DOC_BEGIN";
     FragmentPos[FragmentPos["DOC_END"] = 1] = "DOC_END";
 })(FragmentPos || (FragmentPos = {}));
+var KbEventSource;
+(function (KbEventSource) {
+    KbEventSource[KbEventSource["CANVAS"] = 0] = "CANVAS";
+    KbEventSource[KbEventSource["PASTE_ADAPTER"] = 1] = "PASTE_ADAPTER";
+})(KbEventSource || (KbEventSource = {}));
+var CaretPos;
+(function (CaretPos) {
+    CaretPos[CaretPos["LINE_HORIZONTAL"] = 0] = "LINE_HORIZONTAL";
+    CaretPos[CaretPos["LINE_VERTICAL"] = 1] = "LINE_VERTICAL";
+    CaretPos[CaretPos["CHARACTER"] = 2] = "CHARACTER";
+    CaretPos[CaretPos["VIEWPORT"] = 3] = "VIEWPORT";
+})(CaretPos || (CaretPos = {}));
+var EditorCommand;
+(function (EditorCommand) {
+    EditorCommand[EditorCommand["INSERT_TEXT"] = 0] = "INSERT_TEXT";
+    EditorCommand[EditorCommand["DELETE_TEXT"] = 1] = "DELETE_TEXT";
+    EditorCommand[EditorCommand["NEW_LINE"] = 2] = "NEW_LINE";
+    EditorCommand[EditorCommand["MOVE"] = 3] = "MOVE";
+    EditorCommand[EditorCommand["BOLD"] = 4] = "BOLD";
+    EditorCommand[EditorCommand["ITALIC"] = 5] = "ITALIC";
+    EditorCommand[EditorCommand["UNDERLINE"] = 6] = "UNDERLINE";
+    EditorCommand[EditorCommand["ALIGN"] = 7] = "ALIGN";
+    EditorCommand[EditorCommand["COPY"] = 8] = "COPY";
+    EditorCommand[EditorCommand["CUT"] = 9] = "CUT";
+    EditorCommand[EditorCommand["PASTE"] = 10] = "PASTE";
+    EditorCommand[EditorCommand["INDENT"] = 11] = "INDENT";
+    EditorCommand[EditorCommand["UNINDENT"] = 12] = "UNINDENT";
+    EditorCommand[EditorCommand["VALIGN"] = 13] = "VALIGN";
+    EditorCommand[EditorCommand["FONT"] = 14] = "FONT";
+    EditorCommand[EditorCommand["COLOR"] = 15] = "COLOR";
+    EditorCommand[EditorCommand["SIZE"] = 16] = "SIZE";
+})(EditorCommand || (EditorCommand = {}));
 var Events = (function () {
     function Events() {
     }
@@ -424,16 +456,22 @@ var TNode_Element = (function (_super) {
             this.setInnerNodes(nodes);
         }
     };
+    TNode_Element.prototype.xmlBeginning = function () {
+        return '<' + this.nodeName + (this.childNodes.length ? '' : '/') + '>';
+    };
+    TNode_Element.prototype.xmlEnding = function () {
+        if (!this.childNodes.length) {
+            return '';
+        }
+        else {
+            return '</' + this.nodeName + '>';
+        }
+    };
     TNode_Element.prototype.outerHTML = function (setter) {
         if (setter === void 0) { setter = null; }
         if (setter === null) {
             // getter
-            if (this.childNodes.length) {
-                return '<' + this.nodeName + '>' + this.innerHTML() + '</' + this.nodeName + '>';
-            }
-            else {
-                return '<' + this.nodeName + ' />';
-            }
+            return this.xmlBeginning() + this.innerHTML() + this.xmlEnding();
         }
         else {
             throw "node.outerHTML: Setter not implemented yet!";
@@ -3551,6 +3589,7 @@ var Viewport = (function (_super) {
         this.selection = null;
         this.mouseDriver = null;
         this.keyboardDriver = null;
+        this.router = null;
         this.context = this.canvas.getContext('2d');
         this.canvas.tabIndex = 0;
         this.canvas.setAttribute('data-object-type', 'html-viewport');
@@ -3567,6 +3606,7 @@ var Viewport = (function (_super) {
         this.height(_height === null ? this._height : _height);
         this.mouseDriver = new Viewport_MouseDriver(this);
         this.keyboardDriver = new Viewport_KeyboardDriver(this);
+        this.router = new Viewport_CommandRouter(this);
     }
     Viewport.prototype.width = function (newWidth) {
         if (newWidth === void 0) { newWidth = null; }
@@ -3661,6 +3701,13 @@ var Viewport = (function (_super) {
         }
         else
             return null;
+    };
+    Viewport.prototype.execCommand = function (command) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        this.router.dispatchCommand.call(this.router, command, args);
     };
     return Viewport;
 })(Events);
@@ -3773,9 +3820,501 @@ var Viewport_KeyboardDriver = (function (_super) {
     function Viewport_KeyboardDriver(viewport) {
         _super.call(this);
         this.viewport = null;
+        this.pasteAdapter = document.createElement('div');
+        this.focusedElement = 0 /* CANVAS */;
+        this.viewport = viewport;
+        this.pasteAdapter.tabIndex = 0;
+        this.pasteAdapter.style.width = '10px';
+        this.pasteAdapter.style.height = '10px';
+        this.pasteAdapter.style.display = 'block';
+        this.pasteAdapter.style.opacity = '0';
+        this.pasteAdapter.style.position = 'absolute';
+        this.pasteAdapter.style.left = '-30px';
+        this.pasteAdapter.style.top = '-30px';
+        (function (me) {
+            me.viewport.canvas.addEventListener('keydown', function (DOMEvent) {
+                me.onkeydown(DOMEvent, 0 /* CANVAS */);
+            }, true);
+            me.viewport.canvas.addEventListener('keyup', function (DOMEvent) {
+                me.onkeyup(DOMEvent, 0 /* CANVAS */);
+            }, true);
+            me.viewport.canvas.addEventListener('keypress', function (DOMEvent) {
+                me.onkeypress(DOMEvent, 0 /* CANVAS */);
+            }, true);
+            me.pasteAdapter.addEventListener('keydown', function (DOMEvent) {
+                me.onkeydown(DOMEvent, 1 /* PASTE_ADAPTER */);
+            });
+            me.pasteAdapter.addEventListener('keyup', function (DOMEvent) {
+                me.onkeyup(DOMEvent, 1 /* PASTE_ADAPTER */);
+            });
+            me.pasteAdapter.addEventListener('keypress', function (DOMEvent) {
+                me.onkeypress(DOMEvent, 1 /* PASTE_ADAPTER */);
+            });
+        })(this);
+    }
+    Viewport_KeyboardDriver.prototype.onkeyup = function (DOMEvent, eventSource) {
+        if (eventSource == 1 /* PASTE_ADAPTER */ && DOMEvent.keyCode == 17) {
+            document.body.removeChild(this.pasteAdapter);
+            this.viewport.canvas.focus();
+            console.log('kb: canvas');
+            return;
+        }
+    };
+    Viewport_KeyboardDriver.prototype.onkeypress = function (DOMEvent, eventSource) {
+        var chr = String.fromCharCode(DOMEvent.charCode), key = DOMEvent.keyCode;
+        if (!DOMEvent.ctrlKey && chr && chr != '\n') {
+            this.viewport.execCommand(0 /* INSERT_TEXT */, chr);
+        }
+    };
+    Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent, eventSource) {
+        if (eventSource == 0 /* CANVAS */ && DOMEvent.keyCode == 17) {
+            document.body.appendChild(this.pasteAdapter);
+            this.pasteAdapter.focus();
+            return;
+        }
+        var cancelEvent = false;
+        switch (DOMEvent.keyCode) {
+            case 9:
+                cancelEvent = true;
+                this.viewport.execCommand(DOMEvent.shiftKey ? 12 /* UNINDENT */ : 11 /* INDENT */);
+                break;
+            case 66:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(4 /* BOLD */);
+                    cancelEvent = true;
+                }
+                break;
+            case 73:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(5 /* ITALIC */);
+                    cancelEvent = true;
+                }
+                break;
+            case 85:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(6 /* UNDERLINE */);
+                    cancelEvent = true;
+                }
+                break;
+            case 76:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(7 /* ALIGN */, 'left');
+                    cancelEvent = true;
+                }
+                break;
+            case 69:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(7 /* ALIGN */, 'center');
+                    cancelEvent = true;
+                }
+                break;
+            case 74:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(7 /* ALIGN */, 'justified');
+                    cancelEvent = true;
+                }
+                break;
+            case 67:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(8 /* COPY */);
+                    cancelEvent = true;
+                }
+                break;
+            case 88:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(9 /* CUT */);
+                    cancelEvent = true;
+                }
+                break;
+            case 86:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(10 /* PASTE */);
+                    cancelEvent = true;
+                }
+                break;
+            case 189:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(16 /* SIZE */, '-1');
+                    cancelEvent = true;
+                }
+                break;
+            case 107:
+            case 187:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(16 /* SIZE */, '+1');
+                    cancelEvent = true;
+                }
+                break;
+            case 13:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(2 /* NEW_LINE */, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 46:
+                if (!DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
+                    this.viewport.execCommand(1 /* DELETE_TEXT */, 1);
+                    cancelEvent = true;
+                }
+                break;
+            case 8:
+                if (!DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
+                    this.viewport.execCommand(1 /* DELETE_TEXT */, -1);
+                    cancelEvent = true;
+                }
+                break;
+            case 36:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 0 /* LINE_HORIZONTAL */, -1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 35:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 0 /* LINE_HORIZONTAL */, 1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 37:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 2 /* CHARACTER */, -1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 39:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 2 /* CHARACTER */, 1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 38:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 1 /* LINE_VERTICAL */, -1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 40:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 1 /* LINE_VERTICAL */, 1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 33:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 3 /* VIEWPORT */, -1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            case 34:
+                if (!DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(3 /* MOVE */, 3 /* VIEWPORT */, 1, DOMEvent.shiftKey);
+                    cancelEvent = true;
+                }
+                break;
+            default:
+                break;
+        }
+        if (cancelEvent) {
+            DOMEvent.preventDefault();
+            DOMEvent.stopPropagation();
+        }
+    };
+    return Viewport_KeyboardDriver;
+})(Events);
+var Viewport_CommandRouter = (function (_super) {
+    __extends(Viewport_CommandRouter, _super);
+    function Viewport_CommandRouter(viewport) {
+        _super.call(this);
         this.viewport = viewport;
     }
-    return Viewport_KeyboardDriver;
+    Viewport_CommandRouter.prototype.commandName = function (command) {
+        switch (command) {
+            case 0 /* INSERT_TEXT */:
+                return 'insertText';
+                break;
+            case 1 /* DELETE_TEXT */:
+                return 'deleteText';
+                break;
+            case 2 /* NEW_LINE */:
+                return 'newLine';
+                break;
+            case 3 /* MOVE */:
+                return 'moveCaret';
+                break;
+            case 4 /* BOLD */:
+                return 'bold';
+                break;
+            case 5 /* ITALIC */:
+                return 'italic';
+                break;
+            case 6 /* UNDERLINE */:
+                return 'underline';
+                break;
+            case 7 /* ALIGN */:
+                return 'align';
+                break;
+            case 8 /* COPY */:
+                return 'copy';
+                break;
+            case 9 /* CUT */:
+                return 'cut';
+                break;
+            case 10 /* PASTE */:
+                return 'paste';
+                break;
+            case 11 /* INDENT */:
+                return 'indent';
+                break;
+            case 12 /* UNINDENT */:
+                return 'unindent';
+                break;
+            case 13 /* VALIGN */:
+                return 'verticalAlign';
+                break;
+            case 14 /* FONT */:
+                return 'setFont';
+                break;
+            case 15 /* COLOR */:
+                return 'setColor';
+                break;
+            case 16 /* SIZE */:
+                return 'setSize';
+                break;
+            default:
+                throw "ERR_UNKNOWN_COMMAND";
+                break;
+        }
+    };
+    Viewport_CommandRouter.prototype.ensureArgs = function (args, minArgs, maxArgs) {
+        return args && args.length >= minArgs && args.length <= maxArgs;
+    };
+    Viewport_CommandRouter.prototype.dispatchCommand = function (command, args) {
+        var commandName = this.commandName(command);
+        console.log('dispatchCommand: ' + commandName + '(' + JSON.stringify(args) + ')');
+        switch (command) {
+            case 0 /* INSERT_TEXT */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " require 1 argument of type string[1]";
+                }
+                else {
+                    this.insertText(String(args[0]));
+                }
+                break;
+            case 1 /* DELETE_TEXT */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " require 1 argument of type integer";
+                }
+                else {
+                    this.deleteText(~~args[0]);
+                }
+                break;
+            case 2 /* NEW_LINE */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " require a maximum 1 argument of type boolean";
+                }
+                else {
+                    if (args.length == 1) {
+                        this.newLine(!!args[0]);
+                    }
+                    else {
+                        this.newLine();
+                    }
+                }
+            case 3 /* MOVE */:
+                if (!this.ensureArgs(args, 3, 3)) {
+                    throw "Command: " + commandName + " require 3 arguments of type CaretPos, int, boolean.";
+                }
+                else {
+                    this.moveCaret(args[0], args[1], args[2]);
+                }
+                break;
+            case 4 /* BOLD */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " require one optional argument of type boolean.";
+                }
+                else {
+                    this.bold(args.length ? !!args[0] : null);
+                }
+                break;
+            case 5 /* ITALIC */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " require one optional argument of type boolean.";
+                }
+                else {
+                    this.italic(args.length ? !!args[0] : null);
+                }
+                break;
+            case 6 /* UNDERLINE */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " require one optional argument of type boolean.";
+                }
+                else {
+                    this.underline(args.length ? !!args[0] : null);
+                }
+                break;
+            case 7 /* ALIGN */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " require a single string argument.";
+                }
+                else {
+                    this.align(String(args[0]));
+                }
+                break;
+            case 8 /* COPY */:
+                if (!this.ensureArgs(args, 0, 0)) {
+                    throw "Command: " + commandName + " doesn't require any arguments!";
+                }
+                else {
+                    this.copy();
+                }
+                break;
+            case 9 /* CUT */:
+                if (!this.ensureArgs(args, 0, 0)) {
+                    throw "Command: " + commandName + " doesn't require any arguments!";
+                }
+                else {
+                    this.cut();
+                }
+                break;
+            case 10 /* PASTE */:
+                if (!this.ensureArgs(args, 0, 2)) {
+                    throw "Command: " + commandName + " require 2 optional args of type string!";
+                }
+                else {
+                    this.paste(args.length == 0 ? null : String(args[0]), args.length == 2 ? args[1] : null);
+                }
+                break;
+            case 11 /* INDENT */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " requires a single optional number argument!";
+                }
+                else {
+                    this.indent(args.length ? ~~args[0] : null);
+                }
+                break;
+            case 12 /* UNINDENT */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " requires a single optional number argument!";
+                }
+                else {
+                    this.unindent(args.length ? ~~args[0] : null);
+                }
+                break;
+            case 13 /* VALIGN */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single argument of type string!";
+                }
+                else {
+                    this.valign(String(args[0] || 'normal'));
+                }
+                break;
+            case 14 /* FONT */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single string argument!";
+                }
+                else {
+                    this.font(String(args[0] || "Arial"));
+                }
+                break;
+            case 15 /* COLOR */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single argument!";
+                }
+                else {
+                    this.color(String(args[0] || ''));
+                }
+                break;
+            case 16 /* SIZE */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single argument of type string!";
+                }
+                else {
+                    this.size(String(args[0] || ''));
+                }
+                break;
+            default:
+                throw "ERR_UNKNOWN_COMMAND";
+                break;
+        }
+    };
+    // inserts a string @ caret position.
+    Viewport_CommandRouter.prototype.insertText = function (str) {
+    };
+    // negative values delete characters in the left of the caret,
+    // positive values delete characters in the right of the caret
+    Viewport_CommandRouter.prototype.deleteText = function (amount) {
+    };
+    // inserts a new line in document. if forceBRTag is set (not null)
+    // a <br> tag will be inserted instead of creating a new paragraph.
+    Viewport_CommandRouter.prototype.newLine = function (forceBRTag) {
+        if (forceBRTag === void 0) { forceBRTag = null; }
+    };
+    // moves the caret, and optionally extends the selection to the
+    // new caret position.
+    Viewport_CommandRouter.prototype.moveCaret = function (movementType, amount, expandSelection) {
+    };
+    // sets the boldness of the text. if state is null, then the boldness is toggled.
+    Viewport_CommandRouter.prototype.bold = function (state) {
+        if (state === void 0) { state = null; }
+    };
+    // makes text italic or not. if state is null, the state is toggled.
+    Viewport_CommandRouter.prototype.italic = function (state) {
+        if (state === void 0) { state = null; }
+    };
+    // underlines or not the text. if state is null, the state is toggled.
+    Viewport_CommandRouter.prototype.underline = function (state) {
+        if (state === void 0) { state = null; }
+    };
+    // sets the text alignment.
+    // @param alignment: string = enum( 'left', 'right', 'center', 'justified' ).
+    // any other values will be considered "left".
+    Viewport_CommandRouter.prototype.align = function (alignment) {
+        if (alignment === void 0) { alignment = 'left'; }
+    };
+    // copies the selection into the clipboard.
+    Viewport_CommandRouter.prototype.copy = function () {
+    };
+    // cuts the selection into the clipboard.
+    Viewport_CommandRouter.prototype.cut = function () {
+    };
+    // pastes a text of format contentType.
+    // @content: string. if null, the content from the clipboard will be 
+    // used instead.
+    // @contentType: the type of the content. allowed values can be "text" or "html".
+    Viewport_CommandRouter.prototype.paste = function (content, contentType) {
+        if (content === void 0) { content = null; }
+        if (contentType === void 0) { contentType = null; }
+    };
+    // indents text with a number of tabs on the left. A tab width is 20px.
+    Viewport_CommandRouter.prototype.indent = function (tabs) {
+        if (tabs === void 0) { tabs = null; }
+    };
+    // unindents text with a number of tabs on the left. A tab width is 20px.
+    Viewport_CommandRouter.prototype.unindent = function (tabs) {
+        if (tabs === void 0) { tabs = null; }
+    };
+    // sets the text alignment as "sup", "sub", or "normal".
+    // "sup" stands for superscript
+    // "sub" stands for subscript
+    Viewport_CommandRouter.prototype.valign = function (verticalAlignmentType) {
+        if (verticalAlignmentType === void 0) { verticalAlignmentType = 'normal'; }
+    };
+    // sets the font of the text.
+    Viewport_CommandRouter.prototype.font = function (fontFamily) {
+        if (fontFamily === void 0) { fontFamily = "Arial"; }
+    };
+    // sets the color of the selected text. if empty value
+    // is used, color is removed.
+    Viewport_CommandRouter.prototype.color = function (colorName) {
+        if (colorName === void 0) { colorName = ""; }
+    };
+    // sets the font size. value can be also relative
+    // using + or -. Eg: fontSize( "+1" ) will increase the text size
+    // with 1 value.
+    Viewport_CommandRouter.prototype.size = function (fontSize) {
+        if (fontSize === void 0) { fontSize = ''; }
+    };
+    return Viewport_CommandRouter;
 })(Events);
 var Fragment = (function () {
     function Fragment(document) {
@@ -3888,6 +4427,13 @@ var Fragment = (function () {
     };
     return Fragment;
 })();
+var Fragment_Contextual = (function () {
+    function Fragment_Contextual(fragment, indexStart, indexEnd) {
+        if (indexStart === void 0) { indexStart = 0; }
+        if (indexEnd === void 0) { indexEnd = 0; }
+    }
+    return Fragment_Contextual;
+})();
 var TRange = (function (_super) {
     __extends(TRange, _super);
     function TRange(target) {
@@ -3931,9 +4477,10 @@ var TRange = (function (_super) {
             return 1 /* ELEMENT */;
         }
     };
+    // a null value represents that the length is not available for this range
     TRange.prototype.length = function () {
         if (this._focusNode === null) {
-            return 0;
+            return null;
         }
         else {
             return this._focusNode.fragPos - this._anchorNode.fragPos;
@@ -3966,6 +4513,45 @@ var TRange = (function (_super) {
         }
         else
             return false;
+    };
+    // if the range has anchor and focus, return the common parent of the nodes of the
+    // range. otherwise return the parent node of the range.
+    TRange.prototype.getCommonParent = function () {
+        if (this._focusNode === null) {
+            return this._anchorNode.target.parentNode;
+        }
+        else {
+            if (this._anchorNode.target == this._focusNode.target) {
+                return this._anchorNode.target.parentNode;
+            }
+            else {
+                var parentsA = [], parentsB = [], i = 0, cursor, found = null;
+                cursor = this._anchorNode.target.parentNode;
+                while (cursor) {
+                    parentsA.unshift(cursor);
+                    cursor = cursor.parentNode;
+                }
+                cursor = this._focusNode.target.parentNode;
+                while (cursor) {
+                    parentsB.unshift(cursor);
+                    cursor = cursor.parentNode;
+                }
+                i = 0;
+                while (parentsA[i] && parentsB[i] && parentsA[i] === parentsB[i]) {
+                    found = parentsA[i];
+                    i++;
+                }
+                return found;
+            }
+        }
+    };
+    TRange.prototype.createContextualFragment = function () {
+        if (this._focusNode === null) {
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._anchorNode.fragPos);
+        }
+        else {
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos, this._focusNode.fragPos);
+        }
     };
     return TRange;
 })(Events);
@@ -4232,6 +4818,12 @@ var DocSelection = (function (_super) {
             focus.set(target);
         }
     };
+    // returns the length of the selection.
+    // note that this value has nothing to do with the number of selected characters.
+    // a null value means that is not applicable.
+    DocSelection.prototype.length = function () {
+        return this.getRange().length();
+    };
     return DocSelection;
 })(Events);
 /// <reference path="Types.ts" />
@@ -4285,7 +4877,9 @@ var DocSelection = (function (_super) {
 /// <reference path="Viewport.ts" />
 /// <reference path="./Viewport/MouseDriver.ts" />
 /// <reference path="./Viewport/KeyboardDriver.ts" />
+/// <reference path="./Viewport/CommandRouter.ts" />
 /// <reference path="Fragment.ts" />
+/// <reference path="./Fragment/Contextual.ts" />
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />

@@ -56,8 +56,12 @@
 /// <reference path="Viewport.ts" />
 /// <reference path="./Viewport/MouseDriver.ts" />
 /// <reference path="./Viewport/KeyboardDriver.ts" />
+/// <reference path="./Viewport/CommandRouter.ts" />
 
 /// <reference path="Fragment.ts" />
+/// <reference path="./Fragment/Contextual.ts" />
+/// <reference path="./Fragment/Contextual/Item.ts" />
+
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />

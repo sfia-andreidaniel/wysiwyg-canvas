@@ -54,4 +54,11 @@ class DocSelection extends Events {
 
 	}
 
+	// returns the length of the selection.
+	// note that this value has nothing to do with the number of selected characters.
+	// a null value means that is not applicable.
+	public length(): number {
+		return this.getRange().length();
+	}
+
 }

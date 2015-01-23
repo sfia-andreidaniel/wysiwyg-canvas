@@ -158,11 +158,12 @@ class TRange extends Events {
 
 	public createContextualFragment(): Fragment_Contextual {
 		if ( this._focusNode === null ) {
-			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END );
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END, false );
 		} else {
 
 			var minIndex: number = Math.min( this._focusNode.fragPos, this._anchorNode.fragPos ),
-			    maxIndex: number = Math.max( this._focusNode.fragPos, this._anchorNode.fragPos );
+			    maxIndex: number = Math.max( this._focusNode.fragPos, this._anchorNode.fragPos ),
+			    isEmpty: boolean = minIndex == maxIndex;
 
 			if ( this._focusNode.fragPos > this._anchorNode.fragPos ) {
 				maxIndex--;
@@ -170,7 +171,7 @@ class TRange extends Events {
 
 			maxIndex += ( this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0 );
 
-			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, minIndex, maxIndex );
+			return new Fragment_Contextual( this._anchorNode.target.documentElement.fragment, minIndex, maxIndex, isEmpty );
 		}
 	}
 
@@ -204,6 +205,28 @@ class TRange extends Events {
 			}
 
 		}
+	}
+
+	public setAnchorAsFocus() {
+		if ( this._focusNode ) {
+			this._anchorNode.target = this._focusNode.target;
+			this._anchorNode.fragPos = this._anchorNode.fragPos;
+			this.fire( 'changed' );
+		}
+	}
+
+	public setFocusAsAnchor() {
+		if ( this._focusNode ) {
+			this._focusNode.target = this._anchorNode.target;
+			this._focusNode.fragPos = this._anchorNode.fragPos;
+			this.fire( 'changed' );
+		}
+	}
+
+	public setFocusAndAnchorTo( target: TRange_Target ) {
+		this._focusNode = this.cloneTarget( target );
+		this._anchorNode = this.cloneTarget( target );
+		this.fire( 'changed' );
 	}
 
 }

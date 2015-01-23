@@ -10,13 +10,8 @@ class Viewport_KeyboardDriver extends Events {
 		this.viewport = viewport;
 
 		this.pasteAdapter.tabIndex = 0;
-		this.pasteAdapter.style.width = '10px';
-		this.pasteAdapter.style.height= '10px';
-		this.pasteAdapter.style.display = 'block';
-		this.pasteAdapter.style.opacity = '0';
-		this.pasteAdapter.style.position = 'absolute';
-		this.pasteAdapter.style.left = '-30px';
-		this.pasteAdapter.style.top = '-30px';
+		this.pasteAdapter.style.cssText = "width: 0px; height: 0px; display: block; opacity: 0; position: absolute; left: 0px; top: -40px";
+		this.pasteAdapter.setAttribute( 'contenteditable', 'true' );
 
 		( function( me ) {
 
@@ -77,6 +72,7 @@ class Viewport_KeyboardDriver extends Events {
 		
 		if ( eventSource == KbEventSource.CANVAS && DOMEvent.keyCode == 17 ) { // ctrl key
 			document.body.appendChild( this.pasteAdapter );
+			this.pasteAdapter.innerHTML = '';
 			this.pasteAdapter.focus();
 			return;
 		}
@@ -206,15 +202,19 @@ class Viewport_KeyboardDriver extends Events {
 			case 37: // left
 				if ( !DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.MOVE, CaretPos.CHARACTER, -1, DOMEvent.shiftKey );
-					cancelEvent = true;
+				} else {
+					this.viewport.execCommand( EditorCommand.MOVE, CaretPos.WORD, -1, DOMEvent.shiftKey );
 				}
+				cancelEvent = true;
 				break;
 
 			case 39: // right
 				if ( !DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.MOVE, CaretPos.CHARACTER, 1, DOMEvent.shiftKey );
-					cancelEvent = true;
+				} else {
+					this.viewport.execCommand( EditorCommand.MOVE, CaretPos.WORD, 1, DOMEvent.shiftKey );
 				}
+				cancelEvent = true;
 				break;
 
 			case 38: // up

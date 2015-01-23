@@ -133,11 +133,21 @@ class Layout_BlockChar extends Layout {
 		return topPlacement;
 	}
 
-	protected paintCaret( ctx: any, x: number, y: number, height: number ) {
+	protected paintCaret( ctx: any, x: number, y: number, height: number, scrollLeft: number, scrollTop: number ) {
+		var doc: HTML_Body = this.ownerNode().documentElement;
 		ctx.save();
 		ctx.fillStyle = '#000';
-		ctx.fillRect( Math.min( this.offsetLeft + this.offsetWidth, x - .5 ), y - 2, 2, ( height + 2 ) * 1.12 );
+		ctx.fillRect( 
+			doc.caretPosition.x = Math.min( this.offsetLeft + this.offsetWidth, x - .5 ),
+			doc.caretPosition.y = y - 2,
+			doc.caretPosition.width = 2,
+			doc.caretPosition.height = ( height + 2 ) * 1.12
+		);
+
+		doc.caretPosition.x += scrollLeft;
+		doc.caretPosition.y += scrollTop;
 		ctx.restore();
+		doc.caretPosition.visible = true;
 	}
 
 	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
@@ -174,7 +184,8 @@ class Layout_BlockChar extends Layout {
 		    lastTextNode: TNode_Text = null,
 		    range: TRange = node.documentElement.viewport.selection.getRange(),
 		    caret: TRange_Target = range.focusNode(),
-		    saveColor: string = '';
+		    saveColor: string = '',
+		    isPaintedSelected: boolean = node.isPaintedSelected;
 
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -216,7 +227,7 @@ class Layout_BlockChar extends Layout {
 						currentNode = this.lines[i].words[j].characters[k].node.parentNode;
 
 						ctx.font = currentNode.style.fontStyleText();
-						ctx.fillStyle = saveColor = currentNode.style.color();
+						ctx.fillStyle = isPaintedSelected ? 'white' : ( saveColor = currentNode.style.color() );
 						isUnderline = currentNode.style.textDecoration() == 'underline';
 						
 						valign = currentNode.style.verticalAlign();
@@ -247,10 +258,10 @@ class Layout_BlockChar extends Layout {
 
 					size = this.lines[i].words[j].characters[k].computeSize();
 
-					if ( caret && range.contains( fragPos ) ) {
+					if ( caret && range.contains( fragPos ) && !isPaintedSelected ) {
 
 						ctx.fillStyle = 'blue';
-						ctx.fillRect( startX, startY, size[0] + ( wordGap && k == l - 1 ? this.lines[i].wordGap : 0 ) + .5, this.lines[i].size[1] + 1 );
+						ctx.fillRect( startX, ~~startY, size[0] + ( wordGap && k == l - 1 ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
 						ctx.fillStyle = 'white';
 
 						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
@@ -273,7 +284,7 @@ class Layout_BlockChar extends Layout {
 
 					if ( caret && caret.fragPos == fragPos ) {
 						//paint caret @ this pos
-						this.paintCaret( ctx, startX, startY, lineDiff );
+						this.paintCaret( ctx, startX, startY, lineDiff, scrollLeft, scrollTop );
 					}
 
 					startX += size[0];
@@ -289,7 +300,7 @@ class Layout_BlockChar extends Layout {
 
 			if ( caret && caret.fragPos == fragPos ) {
 				// paint caret @ this pos
-				this.paintCaret( ctx, startX, startY, lineDiff );
+				this.paintCaret( ctx, startX, startY, lineDiff, scrollLeft, scrollTop );
 			}
 
 			startY += this.lines[i].size[1];

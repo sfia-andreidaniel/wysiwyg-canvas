@@ -1,6 +1,7 @@
 class Events {
 
 	private $EVENTS_QUEUE : {};
+	private $EVENTS_ENABLED: boolean = true;
 
 	constructor(){}
 
@@ -27,11 +28,20 @@ class Events {
 
 	public fire( eventName, ...args ) {
 
-		if ( this.$EVENTS_QUEUE && this.$EVENTS_QUEUE[ eventName ] ) {
-			for ( var i=0, len = this.$EVENTS_QUEUE[ eventName ].length; i<len; i++ ) {
-				this.$EVENTS_QUEUE[ eventName ][i].apply( this, args );
+		if ( this.$EVENTS_ENABLED ) {
+
+			if ( this.$EVENTS_QUEUE && this.$EVENTS_QUEUE[ eventName ] ) {
+				for ( var i=0, len = this.$EVENTS_QUEUE[ eventName ].length; i<len; i++ ) {
+					this.$EVENTS_QUEUE[ eventName ][i].apply( this, args );
+				}
 			}
+
 		}
+	}
+
+	// globally enables or disables all events fired.
+	public setEventingState( enabled: boolean ) {
+		this.$EVENTS_ENABLED = !!enabled;
 	}
 
 }

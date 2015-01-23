@@ -5,6 +5,13 @@ class HTML_Body extends TNode_Element {
 	public  _layout: Layout = null;
 	public  viewport: Viewport = null;
 	public  fragment: Fragment;
+	public  caretPosition: TRect = {
+		"x": 0,
+		"y": 0,
+		"width": 0,
+		"height": 0,
+		"visible": false
+	};
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -187,6 +194,7 @@ class HTML_Body extends TNode_Element {
 
 		this.viewport.context.clearRect( 0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize );
 
+		this.caretPosition.visible = false;
 		this._layout.paint( this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport );
 
 		this._needRepaint = false;

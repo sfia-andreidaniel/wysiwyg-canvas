@@ -7,6 +7,10 @@ class TNode_Element extends TNode {
 	public id: string = '';
 	public className: string = '';
 
+	public isSelectable : boolean = false; // weather the element is rendered as selected when the user clicks on it
+	public isResizable  : boolean = false; // weather the element is rendered with resize handles when it's focused
+	public isPaintedSelected: boolean = false; // weather during the last paint, the element was painted as outer selected.
+
 	constructor( postStyleInit: boolean = false ) {
 		super();
 
@@ -344,9 +348,19 @@ class TNode_Element extends TNode {
 
 		var borderColor: string,
 		    borderWidth: number,
-		    backgroundColor: string;
+		    backgroundColor: string,
+		    range = this.documentElement.viewport.selection.getRange(),
+		    isSelected: boolean = false;
 
-		if ( borderWidth = this.style.borderWidth() ) {
+		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) ) ) {
+			isSelected = true;
+			ctx.fillStyle = 'blue';
+			ctx.fillRect( layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight );
+		}
+
+		this.isPaintedSelected = isSelected;
+
+		if ( ( borderWidth = this.style.borderWidth() ) ) {
 			
 			borderColor = this.style.borderColor();
 			
@@ -361,7 +375,7 @@ class TNode_Element extends TNode {
 			}
 		}
 
-		if ( backgroundColor = this.style.backgroundColor() ) {
+		if ( ( backgroundColor = this.style.backgroundColor() ) && !isSelected ) {
 			ctx.fillStyle = backgroundColor;
 			ctx.fillRect( layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
 		}

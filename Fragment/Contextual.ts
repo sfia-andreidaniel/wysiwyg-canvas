@@ -5,7 +5,7 @@ class Fragment_Contextual {
 
 	public parts: Fragment_Contextual_Item[] = [];
 
-	constructor( public fragment: Fragment, indexStart: number = 0, indexEnd: number = 0 ) {
+	constructor( public fragment: Fragment, indexStart: number = 0, indexEnd: number = 0, public isEmpty: boolean = false ) {
 		var tmp: number = 0;
 		
 		if ( indexStart > indexEnd ) {
@@ -27,11 +27,11 @@ class Fragment_Contextual {
 		    iStart: number = 0,
 		    iStop: number = 0;
 
-		this.parts = [];
-
-		if ( this.start == this.end ) {
+		if ( this.isEmpty ) {
 			return;
 		}
+
+		this.parts = [];
 
 		for ( i = this.start; i <= this.end; i++ ) {
 

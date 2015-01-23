@@ -1,6 +1,6 @@
 echo off
 
-del /Q *.js
+del /S /Q *.js
 
 cls
 echo compile...

@@ -115,6 +115,17 @@ class Viewport extends Events {
 		}
 	}
 
+	// attempts to scroll the document to the last known painted caret position.
+	// note that this is not guaranteed.
+	public scrollToCaret() {
+		if ( this.document.caretPosition.y - 20 < this._scrollTop ) {
+			this.scrollTop( this.document.caretPosition.y - 20 );
+		} else
+		if ( this.document.caretPosition.y + this.document.caretPosition.height + 50 > this._scrollTop + this._height ) {
+			this.scrollTop( this.document.caretPosition.y - this._height + 50 );
+		}
+	}
+
 	// paints the scrollbars on the canvas context
 	public paintScrollbars() {
 

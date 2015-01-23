@@ -4,6 +4,8 @@ class HTML_Image extends TNode_Element {
 	private loaded: boolean = false; // is the image loaded successfully
 	private error: boolean = false; // an error occured after loading
 
+	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
+
 	constructor( src: string = null ) {
 		super();
 		this.nodeName = 'img';
@@ -112,7 +114,13 @@ class HTML_Image extends TNode_Element {
 
 			} else {
 
+				if ( this.isPaintedSelected )
+					ctx.globalAlpha = .5;
+
 				ctx.drawImage( this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight );
+
+				if ( this.isPaintedSelected )
+					ctx.globalAlpha = 1;
 
 			}
 

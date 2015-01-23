@@ -182,7 +182,11 @@ class Viewport_CommandRouter extends Events {
 	// negative values delete characters in the left of the caret,
 	// positive values delete characters in the right of the caret
 	public deleteText( amount: number ) {
+		if ( this.viewport.selection.getRange().length() ) {
+			this.viewport.selection.removeContents();
+		} else {
 
+		}
 	}
 
 	// inserts a new line in document. if forceBRTag is set (not null)
@@ -194,7 +198,46 @@ class Viewport_CommandRouter extends Events {
 	// moves the caret, and optionally extends the selection to the
 	// new caret position.
 	public moveCaret( movementType: CaretPos, amount: number, expandSelection: boolean ) {
+		
+		var range: TRange = viewport.selection.getRange(),
+		    focus: TRange_Target = range.focusNode();
 
+		if ( range.length() == null || !focus ) {
+			return;
+		} else {
+			if ( !expandSelection ) {
+				range.collapse( true );
+			}
+		}
+
+		range.setEventingState( false );
+
+		switch ( movementType ) {
+			case CaretPos.CHARACTER:
+				focus.moveByCharacters( amount );
+				if ( !expandSelection ) {
+					range.collapse( true );
+				}
+				this.viewport.scrollToCaret();
+				this.viewport.document.requestRepaint();
+				break;
+			case CaretPos.WORD:
+				focus.moveByWords( amount );
+				if ( !expandSelection ) {
+					range.collapse( true );
+				}
+				this.viewport.scrollToCaret();
+				this.viewport.document.requestRepaint();
+				break;
+			case CaretPos.VIEWPORT:
+				break;
+			case CaretPos.LINE_HORIZONTAL:
+				break;
+			case CaretPos.LINE_VERTICAL:
+				break;
+		}
+
+		range.setEventingState( true );
 	}
 
 	// sets the boldness of the text. if state is null, then the boldness is toggled.

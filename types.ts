@@ -24,6 +24,14 @@ interface TPoint {
 	y: number;
 }
 
+interface TRect {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	visible?: boolean;
+}
+
 enum TRange_Type {
 	TEXT,
 	ELEMENT
@@ -43,6 +51,7 @@ enum CaretPos {
 	LINE_HORIZONTAL,
 	LINE_VERTICAL,
 	CHARACTER,
+	WORD,
 	VIEWPORT
 }
 

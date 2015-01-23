@@ -13,6 +13,8 @@ class HTML_TableCell extends TNode_Element {
 	public edgeTop   : HTML_Table_Edge = null;
 	public edgeBottom: HTML_Table_Edge = null;
 
+	public isSelectable: boolean = true;
+
 	constructor() {
 		super( true );
 		this.style = new TStyle_TableCell( this );

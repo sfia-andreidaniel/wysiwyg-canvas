@@ -39,7 +39,8 @@ var CaretPos;
     CaretPos[CaretPos["LINE_HORIZONTAL"] = 0] = "LINE_HORIZONTAL";
     CaretPos[CaretPos["LINE_VERTICAL"] = 1] = "LINE_VERTICAL";
     CaretPos[CaretPos["CHARACTER"] = 2] = "CHARACTER";
-    CaretPos[CaretPos["VIEWPORT"] = 3] = "VIEWPORT";
+    CaretPos[CaretPos["WORD"] = 3] = "WORD";
+    CaretPos[CaretPos["VIEWPORT"] = 4] = "VIEWPORT";
 })(CaretPos || (CaretPos = {}));
 var EditorCommand;
 (function (EditorCommand) {
@@ -63,6 +64,7 @@ var EditorCommand;
 })(EditorCommand || (EditorCommand = {}));
 var Events = (function () {
     function Events() {
+        this.$EVENTS_ENABLED = true;
     }
     Events.prototype.on = function (eventName, callback) {
         this.$EVENTS_QUEUE = this.$EVENTS_QUEUE || {};
@@ -85,11 +87,17 @@ var Events = (function () {
         for (var _i = 1; _i < arguments.length; _i++) {
             args[_i - 1] = arguments[_i];
         }
-        if (this.$EVENTS_QUEUE && this.$EVENTS_QUEUE[eventName]) {
-            for (var i = 0, len = this.$EVENTS_QUEUE[eventName].length; i < len; i++) {
-                this.$EVENTS_QUEUE[eventName][i].apply(this, args);
+        if (this.$EVENTS_ENABLED) {
+            if (this.$EVENTS_QUEUE && this.$EVENTS_QUEUE[eventName]) {
+                for (var i = 0, len = this.$EVENTS_QUEUE[eventName].length; i < len; i++) {
+                    this.$EVENTS_QUEUE[eventName][i].apply(this, args);
+                }
             }
         }
+    };
+    // globally enables or disables all events fired.
+    Events.prototype.setEventingState = function (enabled) {
+        this.$EVENTS_ENABLED = !!enabled;
     };
     return Events;
 })();
@@ -263,6 +271,9 @@ var TNode_Element = (function (_super) {
         this.nodeName = '';
         this.id = '';
         this.className = '';
+        this.isSelectable = false; // weather the element is rendered as selected when the user clicks on it
+        this.isResizable = false; // weather the element is rendered with resize handles when it's focused
+        this.isPaintedSelected = false; // weather during the last paint, the element was painted as outer selected.
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
@@ -514,8 +525,14 @@ var TNode_Element = (function (_super) {
     /* Paints the node according to layout configuration */
     TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
-        var borderColor, borderWidth, backgroundColor;
-        if (borderWidth = this.style.borderWidth()) {
+        var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
+        if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1))) {
+            isSelected = true;
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
+        }
+        this.isPaintedSelected = isSelected;
+        if ((borderWidth = this.style.borderWidth())) {
             borderColor = this.style.borderColor();
             if (borderColor) {
                 ctx.strokeStyle = borderColor;
@@ -525,7 +542,7 @@ var TNode_Element = (function (_super) {
                 ctx.closePath();
             }
         }
-        if (backgroundColor = this.style.backgroundColor()) {
+        if ((backgroundColor = this.style.backgroundColor()) && !isSelected) {
             ctx.fillStyle = backgroundColor;
             ctx.fillRect(layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
         }
@@ -972,6 +989,13 @@ var HTML_Body = (function (_super) {
         this._needRepaint = true;
         this._layout = null;
         this.viewport = null;
+        this.caretPosition = {
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "visible": false
+        };
         this.fragment = new Fragment(this);
         this.viewport = viewport;
         this.nodeName = 'body';
@@ -1109,6 +1133,7 @@ var HTML_Body = (function (_super) {
             this.relayout();
         }
         this.viewport.context.clearRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
+        this.caretPosition.visible = false;
         this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport);
         this._needRepaint = false;
         console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
@@ -1205,6 +1230,7 @@ var HTML_Image = (function (_super) {
         this.node = document.createElement('img');
         this.loaded = false; // is the image loaded successfully
         this.error = false; // an error occured after loading
+        this.isSelectable = true; // when the user clicks on this element, it is selectable
         this.nodeName = 'img';
         this.style.display('block');
         (function (me) {
@@ -1309,7 +1335,11 @@ var HTML_Image = (function (_super) {
             if (this.error) {
             }
             else {
+                if (this.isPaintedSelected)
+                    ctx.globalAlpha = .5;
                 ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
+                if (this.isPaintedSelected)
+                    ctx.globalAlpha = 1;
             }
         }
     };
@@ -1439,15 +1469,17 @@ var HTML_ListItem = (function (_super) {
     __extends(HTML_ListItem, _super);
     function HTML_ListItem() {
         _super.call(this);
+        this.isSelectable = true;
         this.nodeName = 'li';
         this.style.display('block');
+        this.style.paddingLeft('15');
     }
     HTML_ListItem.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         _super.prototype.paint.call(this, ctx, layout, scrollLeft, scrollTop);
         /* If the parent is a OL, paint my number,
            otherwise paint a disk.
          */
-        ctx.fillStyle = this.style.color();
+        ctx.fillStyle = this.isPaintedSelected ? 'blue' : this.style.color();
         ctx.textAlign = 'right';
         ctx.font = this.style.fontStyleText();
         ctx.textBaseline = 'alphabetic';
@@ -1923,6 +1955,7 @@ var HTML_TableCell = (function (_super) {
         this.edgeRight = null;
         this.edgeTop = null;
         this.edgeBottom = null;
+        this.isSelectable = true;
         this.style = new TStyle_TableCell(this);
         this.nodeName = 'td';
         this.style.display('block');
@@ -3396,11 +3429,15 @@ var Layout_BlockChar = (function (_super) {
         }
         return topPlacement;
     };
-    Layout_BlockChar.prototype.paintCaret = function (ctx, x, y, height) {
+    Layout_BlockChar.prototype.paintCaret = function (ctx, x, y, height, scrollLeft, scrollTop) {
+        var doc = this.ownerNode().documentElement;
         ctx.save();
         ctx.fillStyle = '#000';
-        ctx.fillRect(Math.min(this.offsetLeft + this.offsetWidth, x - .5), y - 2, 2, (height + 2) * 1.12);
+        ctx.fillRect(doc.caretPosition.x = Math.min(this.offsetLeft + this.offsetWidth, x - .5), doc.caretPosition.y = y - 2, doc.caretPosition.width = 2, doc.caretPosition.height = (height + 2) * 1.12);
+        doc.caretPosition.x += scrollLeft;
+        doc.caretPosition.y += scrollTop;
         ctx.restore();
+        doc.caretPosition.visible = true;
     };
     Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
         if (!this.isPaintable(viewport)) {
@@ -3410,7 +3447,7 @@ var Layout_BlockChar = (function (_super) {
         ctx.fillStyle = '#ddd';
         ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
         */
-        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '';
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '', isPaintedSelected = node.isPaintedSelected;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -3439,7 +3476,7 @@ var Layout_BlockChar = (function (_super) {
                     if (currentNode != this.lines[i].words[j].characters[k].node.parentNode) {
                         currentNode = this.lines[i].words[j].characters[k].node.parentNode;
                         ctx.font = currentNode.style.fontStyleText();
-                        ctx.fillStyle = saveColor = currentNode.style.color();
+                        ctx.fillStyle = isPaintedSelected ? 'white' : (saveColor = currentNode.style.color());
                         isUnderline = currentNode.style.textDecoration() == 'underline';
                         valign = currentNode.style.verticalAlign();
                         if (isUnderline) {
@@ -3461,9 +3498,9 @@ var Layout_BlockChar = (function (_super) {
                         }
                     }
                     size = this.lines[i].words[j].characters[k].computeSize();
-                    if (caret && range.contains(fragPos)) {
+                    if (caret && range.contains(fragPos) && !isPaintedSelected) {
                         ctx.fillStyle = 'blue';
-                        ctx.fillRect(startX, startY, size[0] + (wordGap && k == l - 1 ? this.lines[i].wordGap : 0) + .5, this.lines[i].size[1] + 1);
+                        ctx.fillRect(startX, ~~startY, size[0] + (wordGap && k == l - 1 ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
                         ctx.fillStyle = 'white';
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                         if (isUnderline) {
@@ -3479,7 +3516,7 @@ var Layout_BlockChar = (function (_super) {
                     }
                     if (caret && caret.fragPos == fragPos) {
                         //paint caret @ this pos
-                        this.paintCaret(ctx, startX, startY, lineDiff);
+                        this.paintCaret(ctx, startX, startY, lineDiff, scrollLeft, scrollTop);
                     }
                     startX += size[0];
                     fragPos++; // reached end of character, increment the fragment position
@@ -3490,7 +3527,7 @@ var Layout_BlockChar = (function (_super) {
             }
             if (caret && caret.fragPos == fragPos) {
                 // paint caret @ this pos
-                this.paintCaret(ctx, startX, startY, lineDiff);
+                this.paintCaret(ctx, startX, startY, lineDiff, scrollLeft, scrollTop);
             }
             startY += this.lines[i].size[1];
             fragPos++; // reached end of line, increment the fragment position
@@ -3730,6 +3767,16 @@ var Viewport = (function (_super) {
             throw "not implemented scrollLeft";
         }
     };
+    // attempts to scroll the document to the last known painted caret position.
+    // note that this is not guaranteed.
+    Viewport.prototype.scrollToCaret = function () {
+        if (this.document.caretPosition.y - 20 < this._scrollTop) {
+            this.scrollTop(this.document.caretPosition.y - 20);
+        }
+        else if (this.document.caretPosition.y + this.document.caretPosition.height + 50 > this._scrollTop + this._height) {
+            this.scrollTop(this.document.caretPosition.y - this._height + 50);
+        }
+    };
     // paints the scrollbars on the canvas context
     Viewport.prototype.paintScrollbars = function () {
         if (!this.document) {
@@ -3888,13 +3935,8 @@ var Viewport_KeyboardDriver = (function (_super) {
         this.focusedElement = 0 /* CANVAS */;
         this.viewport = viewport;
         this.pasteAdapter.tabIndex = 0;
-        this.pasteAdapter.style.width = '10px';
-        this.pasteAdapter.style.height = '10px';
-        this.pasteAdapter.style.display = 'block';
-        this.pasteAdapter.style.opacity = '0';
-        this.pasteAdapter.style.position = 'absolute';
-        this.pasteAdapter.style.left = '-30px';
-        this.pasteAdapter.style.top = '-30px';
+        this.pasteAdapter.style.cssText = "width: 0px; height: 0px; display: block; opacity: 0; position: absolute; left: 0px; top: -40px";
+        this.pasteAdapter.setAttribute('contenteditable', 'true');
         (function (me) {
             me.viewport.canvas.addEventListener('keydown', function (DOMEvent) {
                 me.onkeydown(DOMEvent, 0 /* CANVAS */);
@@ -3933,6 +3975,7 @@ var Viewport_KeyboardDriver = (function (_super) {
     Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent, eventSource) {
         if (eventSource == 0 /* CANVAS */ && DOMEvent.keyCode == 17) {
             document.body.appendChild(this.pasteAdapter);
+            this.pasteAdapter.innerHTML = '';
             this.pasteAdapter.focus();
             return;
         }
@@ -4042,14 +4085,20 @@ var Viewport_KeyboardDriver = (function (_super) {
             case 37:
                 if (!DOMEvent.ctrlKey) {
                     this.viewport.execCommand(3 /* MOVE */, 2 /* CHARACTER */, -1, DOMEvent.shiftKey);
-                    cancelEvent = true;
                 }
+                else {
+                    this.viewport.execCommand(3 /* MOVE */, 3 /* WORD */, -1, DOMEvent.shiftKey);
+                }
+                cancelEvent = true;
                 break;
             case 39:
                 if (!DOMEvent.ctrlKey) {
                     this.viewport.execCommand(3 /* MOVE */, 2 /* CHARACTER */, 1, DOMEvent.shiftKey);
-                    cancelEvent = true;
                 }
+                else {
+                    this.viewport.execCommand(3 /* MOVE */, 3 /* WORD */, 1, DOMEvent.shiftKey);
+                }
+                cancelEvent = true;
                 break;
             case 38:
                 if (!DOMEvent.ctrlKey) {
@@ -4065,13 +4114,13 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 33:
                 if (!DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(3 /* MOVE */, 3 /* VIEWPORT */, -1, DOMEvent.shiftKey);
+                    this.viewport.execCommand(3 /* MOVE */, 4 /* VIEWPORT */, -1, DOMEvent.shiftKey);
                     cancelEvent = true;
                 }
                 break;
             case 34:
                 if (!DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(3 /* MOVE */, 3 /* VIEWPORT */, 1, DOMEvent.shiftKey);
+                    this.viewport.execCommand(3 /* MOVE */, 4 /* VIEWPORT */, 1, DOMEvent.shiftKey);
                     cancelEvent = true;
                 }
                 break;
@@ -4307,6 +4356,11 @@ var Viewport_CommandRouter = (function (_super) {
     // negative values delete characters in the left of the caret,
     // positive values delete characters in the right of the caret
     Viewport_CommandRouter.prototype.deleteText = function (amount) {
+        if (this.viewport.selection.getRange().length()) {
+            this.viewport.selection.removeContents();
+        }
+        else {
+        }
     };
     // inserts a new line in document. if forceBRTag is set (not null)
     // a <br> tag will be inserted instead of creating a new paragraph.
@@ -4316,6 +4370,41 @@ var Viewport_CommandRouter = (function (_super) {
     // moves the caret, and optionally extends the selection to the
     // new caret position.
     Viewport_CommandRouter.prototype.moveCaret = function (movementType, amount, expandSelection) {
+        var range = viewport.selection.getRange(), focus = range.focusNode();
+        if (range.length() == null || !focus) {
+            return;
+        }
+        else {
+            if (!expandSelection) {
+                range.collapse(true);
+            }
+        }
+        range.setEventingState(false);
+        switch (movementType) {
+            case 2 /* CHARACTER */:
+                focus.moveByCharacters(amount);
+                if (!expandSelection) {
+                    range.collapse(true);
+                }
+                this.viewport.scrollToCaret();
+                this.viewport.document.requestRepaint();
+                break;
+            case 3 /* WORD */:
+                focus.moveByWords(amount);
+                if (!expandSelection) {
+                    range.collapse(true);
+                }
+                this.viewport.scrollToCaret();
+                this.viewport.document.requestRepaint();
+                break;
+            case 4 /* VIEWPORT */:
+                break;
+            case 0 /* LINE_HORIZONTAL */:
+                break;
+            case 1 /* LINE_VERTICAL */:
+                break;
+        }
+        range.setEventingState(true);
     };
     // sets the boldness of the text. if state is null, then the boldness is toggled.
     Viewport_CommandRouter.prototype.bold = function (state) {
@@ -4492,10 +4581,12 @@ var Fragment = (function () {
     return Fragment;
 })();
 var Fragment_Contextual = (function () {
-    function Fragment_Contextual(fragment, indexStart, indexEnd) {
+    function Fragment_Contextual(fragment, indexStart, indexEnd, isEmpty) {
         if (indexStart === void 0) { indexStart = 0; }
         if (indexEnd === void 0) { indexEnd = 0; }
+        if (isEmpty === void 0) { isEmpty = false; }
         this.fragment = fragment;
+        this.isEmpty = isEmpty;
         this.start = 0;
         this.end = 0;
         this.parts = [];
@@ -4511,10 +4602,10 @@ var Fragment_Contextual = (function () {
     // compute the parts of the contextual fragment.
     Fragment_Contextual.prototype.compute = function () {
         var i = 0, currentNode = null, element = null, at, iStart = 0, iStop = 0;
-        this.parts = [];
-        if (this.start == this.end) {
+        if (this.isEmpty) {
             return;
         }
+        this.parts = [];
         for (i = this.start; i <= this.end; i++) {
             at = this.fragment.at(i);
             switch (at) {
@@ -4857,15 +4948,15 @@ var TRange = (function (_super) {
     };
     TRange.prototype.createContextualFragment = function () {
         if (this._focusNode === null) {
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END);
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END, false);
         }
         else {
-            var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos);
+            var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos), isEmpty = minIndex == maxIndex;
             if (this._focusNode.fragPos > this._anchorNode.fragPos) {
                 maxIndex--;
             }
             maxIndex += (this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0);
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, minIndex, maxIndex);
+            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, minIndex, maxIndex, isEmpty);
         }
     };
     /* Note: DO NOT USE THIS METHOD DIRECTLY.
@@ -4889,6 +4980,25 @@ var TRange = (function (_super) {
                 return false;
             }
         }
+    };
+    TRange.prototype.setAnchorAsFocus = function () {
+        if (this._focusNode) {
+            this._anchorNode.target = this._focusNode.target;
+            this._anchorNode.fragPos = this._anchorNode.fragPos;
+            this.fire('changed');
+        }
+    };
+    TRange.prototype.setFocusAsAnchor = function () {
+        if (this._focusNode) {
+            this._focusNode.target = this._anchorNode.target;
+            this._focusNode.fragPos = this._anchorNode.fragPos;
+            this.fire('changed');
+        }
+    };
+    TRange.prototype.setFocusAndAnchorTo = function (target) {
+        this._focusNode = this.cloneTarget(target);
+        this._anchorNode = this.cloneTarget(target);
+        this.fire('changed');
     };
     return TRange;
 })(Events);

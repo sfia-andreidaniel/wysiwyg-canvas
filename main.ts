@@ -1,6 +1,7 @@
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
+/// <reference path="DOM.ts" />
 
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
@@ -71,8 +72,10 @@
 /// <reference path="DocSelection.ts" />
 /// <reference path="./Selection/EditorState.ts" />
 
-var viewport = new Viewport(),
-    body = viewport.document,
+/// <reference path="./HTMLEditor.ts" />
+
+var /* viewport = new Viewport(),
+    body = viewport.document, */
     niceHTML = [
     	'<h1 align="center">He<u>adi</u>ng 1</h1>',
     	'<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
@@ -122,9 +125,14 @@ var viewport = new Viewport(),
     	'<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
     ].join( '\n' );
 
-body.innerHTML( niceHTML );
+// body.innerHTML( niceHTML );
 
 window.addEventListener( 'load', function() {
+	
+	var htmlEditor;
+
+	/*
+
 	document.body.appendChild( viewport.canvas );
 	
 	viewport.selection.editorState.on( 'changed', function( properties: string[] ) {
@@ -133,4 +141,11 @@ window.addEventListener( 'load', function() {
 		}
 	} );
 	viewport.canvas.focus();
+
+	*/
+
+	document.body.appendChild( htmlEditor = window['htmlEditor'] = new window['HTMLEditor']( niceHTML, true, true ) );
+
+	htmlEditor.width = 500;
+	htmlEditor.height = 500;
 });

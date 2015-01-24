@@ -233,7 +233,7 @@ class Viewport_CommandRouter extends Events {
 	// new caret position.
 	public moveCaret( movementType: CaretPos, amount: number, expandSelection: boolean ) {
 		
-		var range: TRange = viewport.selection.getRange(),
+		var range: TRange = this.viewport.selection.getRange(),
 		    focus: TRange_Target = range.focusNode();
 
 		if ( range.length() == null || !focus ) {

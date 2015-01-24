@@ -1,0 +1,46 @@
+div.html-editor {
+	display: block;
+	padding: 0 !important;
+	margin : 0 !important;
+	background-color: white;
+}
+
+div.html-editor > div.toolbar {
+	display: block;
+	position: relative;
+	padding: 0 !important;
+	margin: 0 !important;
+	display: none;
+	background-color: #ddd;
+	height: 40px;
+}
+
+div.html-editor.has-toolbar > div.toolbar {
+	display: block;
+}
+
+div.html-editor > div.body {
+	display: block;
+	background-color: white;
+	position: relative;
+	padding: 0 !important;
+	margin: 0 !important;
+	display: block;
+	background-color: #ddd;
+
+}
+
+div.html-editor > div.statusbar {
+	display: block;
+	position: relative;
+	padding: 0 !important;
+	margin: 0 !important;
+	height: 20px;
+	display: none;
+	background-color: #ddd;
+	height: 20px;
+}
+
+div.html-editor.has-statusbar > div.statusbar {
+	display: block;
+}

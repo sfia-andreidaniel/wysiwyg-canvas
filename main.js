@@ -148,6 +148,59 @@ var Throttler = (function (_super) {
     };
     return Throttler;
 })(Events);
+/* This class handles all the utility for dom working */
+var DOM = (function () {
+    function DOM() {
+    }
+    DOM.hasClass = function (DOMElement, className) {
+        if (!className) {
+            return false;
+        }
+        else {
+            className = String(className);
+        }
+        var classes = String(DOMElement['className'] || '').split(/[\s]+/g), i = 0, len = classes.length;
+        for (i = 0; i < len; i++) {
+            if (classes[i] == className) {
+                return true;
+            }
+        }
+        return false;
+    };
+    DOM.addClass = function (DOMElement, className) {
+        if (!className) {
+            return;
+        }
+        else {
+            className = String(className);
+        }
+        var classes = String(DOMElement['className'] || '').split(/[\s]+/g), i = 0, len = classes.length;
+        for (i = 0; i < len; i++) {
+            if (classes[i] == className) {
+                return;
+            }
+        }
+        classes.push(className);
+        DOMElement['className'] = classes.join(' ');
+    };
+    DOM.removeClass = function (DOMElement, className) {
+        if (!className) {
+            return;
+        }
+        else {
+            className = String(className);
+        }
+        var classes = String(DOMElement['className'] || '').split(/[\s]+/g), i = 0, len = classes.length;
+        for (i = 0; i < len; i++) {
+            if (classes[i] == className) {
+                classes.splice(i, 1);
+                break;
+            }
+        }
+        DOMElement['className'] = classes.join(' ');
+    };
+    return DOM;
+})();
 var TNode = (function (_super) {
     __extends(TNode, _super);
     function TNode() {
@@ -4444,7 +4497,7 @@ var Viewport_CommandRouter = (function (_super) {
     // moves the caret, and optionally extends the selection to the
     // new caret position.
     Viewport_CommandRouter.prototype.moveCaret = function (movementType, amount, expandSelection) {
-        var range = viewport.selection.getRange(), focus = range.focusNode();
+        var range = this.viewport.selection.getRange(), focus = range.focusNode();
         if (range.length() == null || !focus) {
             return;
         }
@@ -5553,9 +5606,110 @@ var Selection_EditorState = (function (_super) {
     };
     return Selection_EditorState;
 })(Events);
+/* We prefere to create a function instead of a class, because we want to parasitate
+   a HTMLDivElement.
+*/
+function HTMLEditor(value, hasToolbars, hasStatusbar) {
+    if (hasToolbars === void 0) { hasToolbars = true; }
+    if (hasStatusbar === void 0) { hasStatusbar = true; }
+    var element = document.createElement('div'), toolbar = element.appendChild(document.createElement('div')), body = element.appendChild(document.createElement('div')), statusbar = element.appendChild(document.createElement('div')), disabled = false, readOnly = false, width = 100, height = 100, toolbars = true, resizer = new Throttler(function () {
+        resize(width, height);
+    }, 10), viewport = new Viewport();
+    element['cssText'] = toolbar['cssText'] = statusbar['cssText'] = body['cssText'] = viewport.canvas['cssText'] = "-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none";
+    DOM.addClass(element, 'html-editor');
+    DOM.addClass(toolbar, 'toolbar');
+    DOM.addClass(statusbar, 'statusbar');
+    DOM.addClass(body, 'body');
+    // append the canvas in the body element of the editor
+    body.appendChild(viewport.canvas);
+    if (hasToolbars) {
+        DOM.addClass(element, 'has-toolbar');
+    }
+    if (hasStatusbar) {
+        DOM.addClass(element, 'has-statusbar');
+    }
+    Object.defineProperty(element, "width", {
+        "get": function () {
+            return width;
+        },
+        "set": function (value) {
+            value = ~~value;
+            width = value;
+            resizer.run();
+        }
+    });
+    Object.defineProperty(element, "height", {
+        "get": function () {
+            return height;
+        },
+        "set": function (value) {
+            value = ~~value;
+            height = value;
+            resizer.run();
+        }
+    });
+    Object.defineProperty(element, "toolbar", {
+        "get": function () {
+            return hasToolbars;
+        },
+        "set": function (value) {
+            hasToolbars = !!value;
+            if (hasToolbars) {
+                DOM.addClass(element, 'has-toolbars');
+            }
+            else {
+                DOM.removeClass(element, 'has-toolbars');
+            }
+            resizer.run();
+        }
+    });
+    Object.defineProperty(element, "statusbar", {
+        "get": function () {
+            return hasStatusbar;
+        },
+        "set": function (value) {
+            hasStatusbar = !!value;
+            if (hasStatusbar) {
+                DOM.addClass(element, 'has-statusbar');
+            }
+            else {
+                DOM.removeClass(element, 'has-statusbar');
+            }
+            resizer.run();
+        }
+    });
+    Object.defineProperty(element, "value", {
+        "get": function () {
+            return viewport.document.innerHTML();
+        },
+        "set": function (html) {
+            if (html === void 0) { html = ' '; }
+            viewport.document.innerHTML(html || ' ');
+        }
+    });
+    function resize(newWidth, newHeight) {
+        element.style.width = newWidth + "px";
+        element.style.height = newHeight + "px";
+        var left = height;
+        if (hasToolbars) {
+            left -= 40;
+        }
+        if (hasStatusbar) {
+            left -= 20;
+        }
+        body['style'].height = left + "px";
+        viewport.height(left);
+        viewport.width(width);
+        element.style.width = width + "px";
+    }
+    element['value'] = value;
+    resize(width, height);
+    return element;
+}
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
+/// <reference path="DOM.ts" />
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
 /// <reference path="./TNode/Element.ts" />
@@ -5615,7 +5769,8 @@ var Selection_EditorState = (function (_super) {
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />
 /// <reference path="./Selection/EditorState.ts" />
-var viewport = new Viewport(), body = viewport.document, niceHTML = [
+/// <reference path="./HTMLEditor.ts" />
+var niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
     '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     '<h2>Heading 2</h2>',
@@ -5663,13 +5818,22 @@ var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>',
     '<p>This is a very nice paragraph at the end of the document. Hope you enjoyed it.</p>'
 ].join('\n');
-body.innerHTML(niceHTML);
+// body.innerHTML( niceHTML );
 window.addEventListener('load', function () {
-    document.body.appendChild(viewport.canvas);
-    viewport.selection.editorState.on('changed', function (properties) {
-        for (var i = 0, len = properties.length; i < len; i++) {
-            document.getElementById(properties[i])['value'] = viewport.selection.editorState.state[properties[i]] + '';
+    var htmlEditor;
+    /*
+
+    document.body.appendChild( viewport.canvas );
+    
+    viewport.selection.editorState.on( 'changed', function( properties: string[] ) {
+        for ( var i=0, len = properties.length; i<len; i++ ) {
+            document.getElementById( properties[i] )['value'] = viewport.selection.editorState.state[ properties[i] ] + '';
         }
-    });
+    } );
     viewport.canvas.focus();
+
+    */
+    document.body.appendChild(htmlEditor = window['htmlEditor'] = new window['HTMLEditor'](niceHTML, true, true));
+    htmlEditor.width = 500;
+    htmlEditor.height = 500;
 });

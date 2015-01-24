@@ -4315,11 +4315,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.ensureArgs = function (args, minArgs, maxArgs) {
         return args && args.length >= minArgs && args.length <= maxArgs;
     };
-    Viewport_CommandRouter.prototype.dispatchCommand = function (command) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
+    Viewport_CommandRouter.prototype.dispatchCommand = function (command, args) {
         var commandName = this.commandName(command);
         console.log('dispatchCommand: ' + commandName + '(' + JSON.stringify(args) + ')');
         switch (command) {
@@ -5642,7 +5638,7 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
     DOM.addClass(toolbar, 'toolbar');
     DOM.addClass(statusbar, 'statusbar');
     DOM.addClass(body, 'body');
-    ui_toolbar = new UI_Toolbar(toolbar, viewport.router);
+    ui_toolbar = new UI_Toolbar(toolbar, viewport.router, viewport.selection.editorState);
     // append the canvas in the body element of the editor
     body.appendChild(viewport.canvas);
     if (hasToolbars) {
@@ -5710,6 +5706,21 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
             viewport.document.innerHTML(html || ' ');
         }
     });
+    Object.defineProperty(element, "viewport", {
+        "get": function () {
+            return viewport;
+        }
+    });
+    Object.defineProperty(element, "router", {
+        "get": function () {
+            return viewport.router;
+        }
+    });
+    Object.defineProperty(element, "state", {
+        "get": function () {
+            return viewport.selection.editorState;
+        }
+    });
     function resize(newWidth, newHeight) {
         element.style.width = newWidth + "px";
         element.style.height = newHeight + "px";
@@ -5726,13 +5737,16 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
         ui_toolbar.resize(width);
         element.style.width = width + "px";
     }
+    viewport.selection.editorState.on('changed', function (properties) {
+        ui_toolbar.updateDocumentState(properties);
+    });
     element['value'] = value;
     resize(width, height);
     return element;
 }
 var UI_Toolbar = (function (_super) {
     __extends(UI_Toolbar, _super);
-    function UI_Toolbar(DOMNodeContainer, router) {
+    function UI_Toolbar(DOMNodeContainer, router, state) {
         _super.call(this);
         /* BlockName, FontStyle, FontSize: width = 255px */
         /* B I U                         : width = 74px  */
@@ -5741,8 +5755,10 @@ var UI_Toolbar = (function (_super) {
         /* Borders and Colors            : width = 107px */
         this.panels = [];
         this.router = null;
+        this.state = null;
         this.node = DOMNodeContainer;
         this.router = router;
+        this.state = state;
         this.panels.push(new UI_Toolbar_Panel_Style(this));
         this.panels.push(new UI_Toolbar_Panel_Formatting(this));
         this.panels.push(new UI_Toolbar_Panel_Alignment(this));
@@ -5751,6 +5767,12 @@ var UI_Toolbar = (function (_super) {
         this.panels.push(new UI_Toolbar_Panel_BordersAndColors(this));
         this.panels.push(new UI_Toolbar_Panel_Multimedia(this));
     }
+    // forward the document state changes to the panels.
+    UI_Toolbar.prototype.updateDocumentState = function (propertiesList) {
+        for (var i = 0, len = this.panels.length; i < len; i++) {
+            this.panels[i].updateDocumentState(propertiesList);
+        }
+    };
     UI_Toolbar.prototype.resize = function (width) {
         width = ~~width;
         for (var i = 0, len = this.panels.length; i < len; i++) {
@@ -5773,6 +5795,8 @@ var UI_Toolbar_Panel = (function (_super) {
         this.node.title = name || 'Toolbar';
         this.width = 10;
     }
+    UI_Toolbar_Panel.prototype.updateDocumentState = function (propertiesList) {
+    };
     UI_Toolbar_Panel.prototype.resizeByParentWidth = function (width) {
     };
     return UI_Toolbar_Panel;
@@ -5826,16 +5850,70 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
         this.btnUnderline = this.node.querySelector('.ui-button.underline');
         (function (me) {
             me.btnBold.addEventListener('click', function () {
-                me.toolbar.router.dispatchCommand(4 /* BOLD */);
+                me.toolbar.router.dispatchCommand(4 /* BOLD */, []);
             }, true);
             me.btnItalic.addEventListener('click', function () {
-                me.toolbar.router.dispatchCommand(5 /* ITALIC */);
+                me.toolbar.router.dispatchCommand(5 /* ITALIC */, []);
             }, true);
             me.btnUnderline.addEventListener('click', function () {
-                me.toolbar.router.dispatchCommand(6 /* UNDERLINE */);
+                me.toolbar.router.dispatchCommand(6 /* UNDERLINE */, []);
             }, true);
         })(this);
     }
+    UI_Toolbar_Panel_Formatting.prototype.updateBoldState = function () {
+        var state = this.toolbar.state.state.bold;
+        DOM.removeClass(this.btnBold, 'state-pressed');
+        DOM.removeClass(this.btnBold, 'state-mixed');
+        if (state) {
+            DOM.addClass(this.btnBold, 'state-pressed');
+        }
+        else {
+            if (state === null) {
+                DOM.addClass(this.btnBold, 'state-mixed');
+            }
+        }
+    };
+    UI_Toolbar_Panel_Formatting.prototype.updateItalicState = function () {
+        var state = this.toolbar.state.state.italic;
+        DOM.removeClass(this.btnItalic, 'state-pressed');
+        DOM.removeClass(this.btnItalic, 'state-mixed');
+        if (state) {
+            DOM.addClass(this.btnItalic, 'state-pressed');
+        }
+        else {
+            if (state === null) {
+                DOM.addClass(this.btnItalic, 'state-mixed');
+            }
+        }
+    };
+    UI_Toolbar_Panel_Formatting.prototype.updateUnderlineState = function () {
+        var state = this.toolbar.state.state.underline;
+        DOM.removeClass(this.btnUnderline, 'state-pressed');
+        DOM.removeClass(this.btnUnderline, 'state-mixed');
+        if (state) {
+            DOM.addClass(this.btnUnderline, 'state-pressed');
+        }
+        else {
+            if (state === null) {
+                DOM.addClass(this.btnUnderline, 'state-mixed');
+            }
+        }
+    };
+    UI_Toolbar_Panel_Formatting.prototype.updateDocumentState = function (propertiesList) {
+        for (var i = 0, len = propertiesList.length; i < len; i++) {
+            switch (propertiesList[i]) {
+                case 'bold':
+                    this.updateBoldState();
+                    break;
+                case 'italic':
+                    this.updateItalicState();
+                    break;
+                case 'underline':
+                    this.updateUnderlineState();
+                    break;
+            }
+        }
+    };
     return UI_Toolbar_Panel_Formatting;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Alignment = (function (_super) {
@@ -5862,19 +5940,56 @@ var UI_Toolbar_Panel_Alignment = (function (_super) {
         this.btnJustified = this.node.querySelector('.ui-button.justified');
         (function (me) {
             me.btnLeft.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'left');
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['left']);
             }, true);
             me.btnRight.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'right');
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['right']);
             }, true);
             me.btnCenter.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'center');
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['center']);
             }, true);
             me.btnJustified.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'justified');
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['justified']);
             }, true);
         })(this);
     }
+    UI_Toolbar_Panel_Alignment.prototype.updateState = function () {
+        var state = this.toolbar.state.state.textAlign, btns = [
+            this.btnLeft,
+            this.btnRight,
+            this.btnCenter,
+            this.btnJustified
+        ], i;
+        for (i = 0; i < 4; i++) {
+            DOM.removeClass(btns[i], 'state-pressed');
+            DOM.removeClass(btns[i], 'state-mixed');
+        }
+        switch (state) {
+            case 'left':
+                DOM.addClass(this.btnLeft, 'state-pressed');
+                break;
+            case 'right':
+                DOM.addClass(this.btnRight, 'state-pressed');
+                break;
+            case 'center':
+                DOM.addClass(this.btnCenter, 'state-pressed');
+                break;
+            case 'justified':
+                DOM.addClass(this.btnJustified, 'state-pressed');
+                break;
+            case null:
+                DOM.addClass(this.btnLeft, 'state-mixed');
+                DOM.addClass(this.btnRight, 'state-mixed');
+                DOM.addClass(this.btnCenter, 'state-mixed');
+                DOM.addClass(this.btnJustified, 'state-mixed');
+                break;
+        }
+    };
+    UI_Toolbar_Panel_Alignment.prototype.updateDocumentState = function (propertiesList) {
+        if (propertiesList.indexOf('textAlign') >= 0) {
+            this.updateState();
+        }
+    };
     return UI_Toolbar_Panel_Alignment;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
@@ -5895,10 +6010,10 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(17 /* LIST */, 'ul', true);
+                me.toolbar.router.dispatchCommand(17 /* LIST */, ['ul', true]);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(17 /* LIST */, 'ol', true);
+                me.toolbar.router.dispatchCommand(17 /* LIST */, ['ol', true]);
             }, true);
         })(this);
     }
@@ -5922,10 +6037,10 @@ var UI_Toolbar_Panel_Indentation = (function (_super) {
         this.btnUnindent = this.node.querySelector('.ui-button.decrease');
         (function (me) {
             me.btnIndent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(11 /* INDENT */);
+                me.toolbar.router.dispatchCommand(11 /* INDENT */, []);
             }, true);
             me.btnUnindent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(12 /* UNINDENT */);
+                me.toolbar.router.dispatchCommand(12 /* UNINDENT */, []);
             }, true);
         })(this);
     }

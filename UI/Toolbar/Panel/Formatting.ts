@@ -24,17 +24,83 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 		( function( me ) {
 			
 			me.btnBold.addEventListener( 'click', function() {
-				me.toolbar.router.dispatchCommand( EditorCommand.BOLD );
+				me.toolbar.router.dispatchCommand( EditorCommand.BOLD, [] );
 			}, true );
 			
 			me.btnItalic.addEventListener( 'click', function() {
-				me.toolbar.router.dispatchCommand( EditorCommand.ITALIC );
+				me.toolbar.router.dispatchCommand( EditorCommand.ITALIC, [] );
 			}, true );
 
 			me.btnUnderline.addEventListener( 'click', function() {
-				me.toolbar.router.dispatchCommand( EditorCommand.UNDERLINE );
+				me.toolbar.router.dispatchCommand( EditorCommand.UNDERLINE, [] );
 			}, true );
 
 		} )( this );
+	}
+
+	private updateBoldState() {
+		
+		var state = this.toolbar.state.state.bold;
+
+		DOM.removeClass( this.btnBold, 'state-pressed' );
+		DOM.removeClass( this.btnBold, 'state-mixed' );
+		
+		if ( state ) {
+			DOM.addClass( this.btnBold, 'state-pressed' );
+		} else {
+			if( state === null ) {
+				DOM.addClass( this.btnBold, 'state-mixed' );
+			}
+		}
+
+	}
+
+	private updateItalicState() {
+
+		var state = this.toolbar.state.state.italic;
+
+		DOM.removeClass( this.btnItalic, 'state-pressed' );
+		DOM.removeClass( this.btnItalic, 'state-mixed' );
+		
+		if ( state ) {
+			DOM.addClass( this.btnItalic, 'state-pressed' );
+		} else {
+			if( state === null ) {
+				DOM.addClass( this.btnItalic, 'state-mixed' );
+			}
+		}
+
+	}
+
+	private updateUnderlineState() {
+
+		var state = this.toolbar.state.state.underline;
+		
+		DOM.removeClass( this.btnUnderline, 'state-pressed' );
+		DOM.removeClass( this.btnUnderline, 'state-mixed' );
+
+		if ( state ) {
+			DOM.addClass( this.btnUnderline, 'state-pressed' );
+		} else {
+			if( state === null ) {
+				DOM.addClass( this.btnUnderline, 'state-mixed' );
+			}
+		}
+	}
+
+	public updateDocumentState( propertiesList: string[] ) {
+		for ( var i=0, len = propertiesList.length; i<len; i++ ) {
+			switch ( propertiesList[i] ) {
+				case 'bold':
+					this.updateBoldState();
+					break;
+				case 'italic':
+					this.updateItalicState();
+					break;
+				case 'underline':
+					this.updateUnderlineState();
+					break;
+			}
+		}
 	}
 }

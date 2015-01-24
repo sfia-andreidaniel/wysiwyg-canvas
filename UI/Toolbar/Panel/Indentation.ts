@@ -21,11 +21,11 @@ class UI_Toolbar_Panel_Indentation extends UI_Toolbar_Panel {
 		( function( me ) {
 
 			me.btnIndent.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.INDENT );
+				me.toolbar.router.dispatchCommand( EditorCommand.INDENT, [] );
 			}, true );
 			
 			me.btnUnindent.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT );
+				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT, [] );
 			}, true );
 
 		} )( this );

@@ -22,11 +22,11 @@ class UI_Toolbar_Panel_BulletsAndNumbering extends UI_Toolbar_Panel {
 		( function( me ) {
 
 			me.btnUL.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.LIST, 'ul', true );
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ul', true ] );
 			}, true );
 
 			me.btnOL.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.LIST, 'ol', true );
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ol', true ] );
 			}, true );
 
 		} )( this );

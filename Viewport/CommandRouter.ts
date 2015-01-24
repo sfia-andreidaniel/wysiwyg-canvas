@@ -38,7 +38,7 @@ class Viewport_CommandRouter extends Events {
 		return args && args.length >= minArgs && args.length <= maxArgs;
 	}
 
-	public dispatchCommand( command: EditorCommand, ...args: any[] ) {
+	public dispatchCommand( command: EditorCommand, args: any[] ) {
 
 		var commandName: string = this.commandName( command );
 

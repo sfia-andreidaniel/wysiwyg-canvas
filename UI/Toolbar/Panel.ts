@@ -16,6 +16,10 @@ class UI_Toolbar_Panel extends Events {
 		this.width = 10;
 	}
 
+	public updateDocumentState( propertiesList: string [] ) {
+		
+	}
+
 	public resizeByParentWidth( width: number ) {
 
 	}

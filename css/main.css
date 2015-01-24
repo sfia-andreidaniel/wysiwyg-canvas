@@ -107,6 +107,10 @@ div.html-editor > div.toolbar > div.ui-panel div.expander:active {
 	border: 1px inset #ddd;
 }
 
+div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-mixed {
+	background-color: #fff;
+}
+
 div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-pressed,
 div.html-editor > div.toolbar > div.ui-panel div.expander.state-pressed {
 	background-color: #efefef;

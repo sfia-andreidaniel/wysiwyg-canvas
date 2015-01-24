@@ -355,7 +355,7 @@ class TNode_Element extends TNode {
 		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) ) ) {
 			isSelected = true;
 			ctx.fillStyle = 'blue';
-			ctx.fillRect( layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight );
+			ctx.fillRect( ~~( layout.innerLeft - scrollLeft) , ~~( layout.innerTop - scrollTop ), ~~layout.innerWidth, ~~layout.innerHeight );
 		}
 
 		this.isPaintedSelected = isSelected;

@@ -72,18 +72,20 @@ class DocSelection extends Events {
 	// removes the contents of selection.
 	public removeContents() {
 		
-		var range = this.getRange();
+		var range = this.getRange(),
+		    atEnd: boolean = false,
+		    len: number = range.length();
 
-		if ( this.getRange().removeContents() ) {
+		if ( range.removeContents() ) {
 
 			this.viewport.document.removeOrphanNodes();
 
 			this.viewport.document.relayout(true);
 
-			range.collapse();
+			range.collapse( len < 0 );
 
 			// resync the caret position if needed.
-
+			// TODO. Depending on len, walk right or left if current char is a beginning or ending of an element
 
 		}
 	}

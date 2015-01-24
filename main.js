@@ -249,9 +249,55 @@ var TNode_Text = (function (_super) {
         }
         return out;
     };
+    // I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
+    // Don't even try to understand it, cause even I will not be able to understand it in a few hours
+    // from now on
     TNode_Text.prototype.insertTextAtTargetOffset = function (offset, str) {
+        var buff = [], buff1 = [offset - this.FRAGMENT_START, 0], i = 0, j = 0, len = this._text.length, out = '', args, eols = 0, returnValue = 0;
+        for (i = 0; i < len; i++) {
+            buff.push(this._text.charCodeAt(i));
+            if (this.EOL_POS && this.EOL_POS[i]) {
+                buff.push(0);
+            }
+        }
+        for (i = 0, len = str.length; i < len; i++) {
+            buff1.push(str.charCodeAt(i));
+        }
+        for (i = 0; i < offset - this.FRAGMENT_START; i++) {
+            if (buff[i] != 0) {
+                eols++;
+            }
+        }
+        returnValue = eols + str.length;
+        Array.prototype.splice.apply(buff, buff1);
+        for (i = 0, len = buff.length; i < len; i++) {
+            if (buff[i]) {
+                out += String.fromCharCode(buff[i]);
+            }
+        }
+        this.textContents(out);
+        return returnValue;
     };
+    // I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
+    // Don't even try to understand it, cause even I will not be able to understand it in a few hours
+    // from now on
     TNode_Text.prototype.textIndexToFragmentPosition = function (index) {
+        var i = 0, j = 0, len = this._text.length, eol = 0, retVal = this.FRAGMENT_END;
+        for (i = 0; i < len; i++) {
+            if (this.EOL_POS && this.EOL_POS[i]) {
+                eol++;
+            }
+            if (index == i) {
+                retVal = this.FRAGMENT_START + index + eol;
+                break;
+            }
+        }
+        if (retVal == this.FRAGMENT_END && this.documentElement.fragment.at(retVal) == 2 /* EOL */)
+            return retVal;
+        while (retVal > 0 && [3 /* CHARACTER */, 4 /* WHITE_SPACE */].indexOf(this.documentElement.fragment.at(retVal)) == -1) {
+            retVal--;
+        }
+        return retVal;
     };
     TNode_Text.$FragmentTypes = {
         "\n": 4 /* WHITE_SPACE */,
@@ -533,7 +579,7 @@ var TNode_Element = (function (_super) {
         if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1))) {
             isSelected = true;
             ctx.fillStyle = 'blue';
-            ctx.fillRect(layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
+            ctx.fillRect(~~(layout.innerLeft - scrollLeft), ~~(layout.innerTop - scrollTop), ~~layout.innerWidth, ~~layout.innerHeight);
         }
         this.isPaintedSelected = isSelected;
         if ((borderWidth = this.style.borderWidth())) {
@@ -3504,18 +3550,18 @@ var Layout_BlockChar = (function (_super) {
                     size = this.lines[i].words[j].characters[k].computeSize();
                     if (caret && range.contains(fragPos) && !isPaintedSelected) {
                         ctx.fillStyle = 'blue';
-                        ctx.fillRect(startX, ~~startY, size[0] + (wordGap && k == l - 1 ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
+                        ctx.fillRect(startX, ~~startY, size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
                         ctx.fillStyle = 'white';
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                         if (isUnderline) {
-                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
+                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
                         }
                         ctx.fillStyle = saveColor;
                     }
                     else {
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                         if (isUnderline) {
-                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0], underlineWidth);
+                            ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
                         }
                     }
                     if (caret && caret.fragPos == fragPos) {
@@ -5328,11 +5374,11 @@ var DocSelection = (function (_super) {
     };
     // removes the contents of selection.
     DocSelection.prototype.removeContents = function () {
-        var range = this.getRange();
-        if (this.getRange().removeContents()) {
+        var range = this.getRange(), atEnd = false, len = range.length();
+        if (range.removeContents()) {
             this.viewport.document.removeOrphanNodes();
             this.viewport.document.relayout(true);
-            range.collapse();
+            range.collapse(len < 0);
         }
     };
     return DocSelection;

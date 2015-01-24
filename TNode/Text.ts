@@ -86,10 +86,84 @@ class TNode_Text extends TNode {
 		return out;
 	}
 
+	// I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
+	// Don't even try to understand it, cause even I will not be able to understand it in a few hours
+	// from now on
 	public insertTextAtTargetOffset( offset: number, str: string ): number {
+
+		var buff: number[] = [],
+		    buff1: number[]=[ offset - this.FRAGMENT_START, 0 ],
+		    i: number = 0,
+		    j: number = 0,
+		    len: number = this._text.length,
+		    out: string = '',
+		    args: any[],
+		    eols: number = 0,
+		    returnValue: number = 0;
+
+		//build this text
+		for ( i=0; i<len; i++ ) {
+			buff.push( this._text.charCodeAt(i) );
+			if ( this.EOL_POS && this.EOL_POS[i] ) {
+				buff.push( 0 );
+			}
+		}
+
+		// build the other text
+		for ( i=0, len=str.length; i<len; i++ ) {
+			buff1.push( str.charCodeAt(i) );
+		}
+
+		for ( i=0; i<offset - this.FRAGMENT_START; i++ ) {
+			if ( buff[i] != 0 ) {
+				eols++;
+			}
+		}
+
+		returnValue = eols + str.length;
+
+		Array.prototype.splice.apply( buff, buff1 );
+
+		for ( i=0,len=buff.length; i<len; i++ ) {
+			if ( buff[i] ) {
+				out += String.fromCharCode( buff[i] );
+			}
+		}
+
+		this.textContents( out );
+
+		return returnValue;
 	}
 
+	// I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
+	// Don't even try to understand it, cause even I will not be able to understand it in a few hours
+	// from now on
 	public textIndexToFragmentPosition( index: number ): number {
+		var i: number = 0,
+		    j: number = 0,
+		    len: number = this._text.length,
+		    eol: number = 0,
+		    retVal: number = this.FRAGMENT_END;
+
+		for ( i=0; i<len; i++ ) {
+			if ( this.EOL_POS && this.EOL_POS[i] ) {
+				eol++;
+			}
+			if ( index == i ) {
+				retVal = this.FRAGMENT_START + index + eol;
+				break;
+			}
+		}
+
+		if ( retVal == this.FRAGMENT_END && this.documentElement.fragment.at( retVal ) == FragmentItem.EOL )
+			return retVal;
+
+		// decrement retval if @jmp on !text
+		while ( retVal > 0 && [ FragmentItem.CHARACTER, FragmentItem.WHITE_SPACE ].indexOf( this.documentElement.fragment.at( retVal ) ) == -1 ) {
+				retVal--;
+		}
+
+		return retVal;
 	}
 
 }

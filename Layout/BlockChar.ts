@@ -261,13 +261,18 @@ class Layout_BlockChar extends Layout {
 					if ( caret && range.contains( fragPos ) && !isPaintedSelected ) {
 
 						ctx.fillStyle = 'blue';
-						ctx.fillRect( startX, ~~startY, size[0] + ( wordGap && k == l - 1 ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
+						ctx.fillRect( startX, ~~startY, size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
 						ctx.fillStyle = 'white';
 
 						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
 						
 						if ( isUnderline ) {
-							ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
+							ctx.fillRect( 
+								startX, 
+								~~( ( startY + lineDiff ) + 2 + valignShift ), 
+								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
+								underlineWidth 
+							);
 						}
 
 						ctx.fillStyle = saveColor;
@@ -277,7 +282,12 @@ class Layout_BlockChar extends Layout {
 						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );
 						
 						if ( isUnderline ) {
-							ctx.fillRect( startX, ~~( ( startY + lineDiff ) + 2 + valignShift ), size[0], underlineWidth );
+							ctx.fillRect( 
+								startX, 
+								~~( ( startY + lineDiff ) + 2 + valignShift ), 
+								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
+								underlineWidth 
+							);
 						}
 
 					}

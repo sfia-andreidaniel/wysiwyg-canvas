@@ -5764,6 +5764,7 @@ var UI_Toolbar = (function (_super) {
         this.panels.push(new UI_Toolbar_Panel_Alignment(this));
         this.panels.push(new UI_Toolbar_Panel_BulletsAndNumbering(this));
         this.panels.push(new UI_Toolbar_Panel_Indentation(this));
+        this.panels.push(new UI_Toolbar_Panel_TextScripting(this));
         this.panels.push(new UI_Toolbar_Panel_BordersAndColors(this));
         this.panels.push(new UI_Toolbar_Panel_Multimedia(this));
     }
@@ -5805,6 +5806,9 @@ var UI_Toolbar_Panel_Style = (function (_super) {
     __extends(UI_Toolbar_Panel_Style, _super);
     function UI_Toolbar_Panel_Style(toolbar) {
         _super.call(this, toolbar, 'Style');
+        this.nodeName = null;
+        this.fontFamily = null;
+        this.fontSize = null;
         DOM.addClass(this.node, 'ui-panel-style');
         this.node.innerHTML = [
             '<div class="item index-0">',
@@ -5826,7 +5830,42 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             '</div>',
             '</div>'
         ].join('');
+        this.nodeName = this.node.querySelector('input.nodeName');
+        this.fontFamily = this.node.querySelector('input.fontFamily');
+        this.fontSize = this.node.querySelector('input.fontSize');
+        this.dropdownize(this.nodeName);
+        this.dropdownize(this.fontFamily);
+        this.dropdownize(this.fontSize);
     }
+    UI_Toolbar_Panel_Style.prototype.dropdownize = function (input) {
+        var suggestions = (input.getAttribute('data-suggestions') || '').split(','), len = suggestions.length, i = 0;
+        console.warn(suggestions);
+    };
+    UI_Toolbar_Panel_Style.prototype.updateNodeName = function () {
+    };
+    UI_Toolbar_Panel_Style.prototype.updateFontFamily = function () {
+        var family = String(this.toolbar.state.state.fontFamily || '');
+        this.fontFamily.value = family;
+    };
+    UI_Toolbar_Panel_Style.prototype.updateFontSize = function () {
+        var size = String(this.toolbar.state.state.fontSize || '');
+        this.fontSize.value = size;
+    };
+    UI_Toolbar_Panel_Style.prototype.updateDocumentState = function (propertiesList) {
+        for (var i = 0, len = propertiesList.length; i < len; i++) {
+            switch (propertiesList[i]) {
+                case 'nodeName':
+                    this.updateNodeName();
+                    break;
+                case 'fontFamily':
+                    this.updateFontFamily();
+                    break;
+                case 'fontSize':
+                    this.updateFontSize();
+                    break;
+            }
+        }
+    };
     return UI_Toolbar_Panel_Style;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Formatting = (function (_super) {
@@ -6046,6 +6085,60 @@ var UI_Toolbar_Panel_Indentation = (function (_super) {
     }
     return UI_Toolbar_Panel_Indentation;
 })(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_TextScripting = (function (_super) {
+    __extends(UI_Toolbar_Panel_TextScripting, _super);
+    function UI_Toolbar_Panel_TextScripting(toolbar) {
+        _super.call(this, toolbar, 'Indentation');
+        this.toolbar = toolbar;
+        this.btnSubscript = null;
+        this.btnSuperscript = null;
+        DOM.addClass(this.node, 'ui-panel-text-scripting');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button subscript"   title="Subscript"></div>',
+            '<div class="ui-button superscript" title="Superscript"></div>',
+            '</div>',
+        ].join('');
+        this.btnSubscript = this.node.querySelector('.ui-button.subscript');
+        this.btnSuperscript = this.node.querySelector('.ui-button.superscript');
+        (function (me) {
+            me.btnSubscript.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sub']);
+            }, true);
+            me.btnSuperscript.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sup']);
+            }, true);
+        })(this);
+    }
+    UI_Toolbar_Panel_TextScripting.prototype.update = function () {
+        var state = this.toolbar.state.state.verticalAlign, btns = [
+            this.btnSuperscript,
+            this.btnSubscript
+        ], i;
+        for (i = 0; i < 2; i++) {
+            DOM.removeClass(btns[i], 'state-pressed');
+            DOM.removeClass(btns[i], 'state-mixed');
+        }
+        switch (state) {
+            case 'super':
+                DOM.addClass(this.btnSuperscript, 'state-pressed');
+                break;
+            case 'sub':
+                DOM.addClass(this.btnSubscript, 'state-pressed');
+                break;
+            case null:
+                DOM.addClass(this.btnSubscript, 'state-mixed');
+                DOM.addClass(this.btnSuperscript, 'state-mixed');
+                break;
+        }
+    };
+    UI_Toolbar_Panel_TextScripting.prototype.updateDocumentState = function (propertiesList) {
+        if (propertiesList.indexOf('verticalAlign') >= 0) {
+            this.update();
+        }
+    };
+    return UI_Toolbar_Panel_TextScripting;
+})(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
     __extends(UI_Toolbar_Panel_BordersAndColors, _super);
     function UI_Toolbar_Panel_BordersAndColors(toolbar) {
@@ -6147,6 +6240,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./UI/Toolbar/Panel/Alignment.ts" />
 /// <reference path="./UI/Toolbar/Panel/BulletsAndNumbering.ts" />
 /// <reference path="./UI/Toolbar/Panel/Indentation.ts" />
+/// <reference path="./UI/Toolbar/Panel/TextScripting.ts" />
 /// <reference path="./UI/Toolbar/Panel/BordersAndColors.ts" />
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 var niceHTML = [

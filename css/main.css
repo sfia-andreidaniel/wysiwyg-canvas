@@ -108,7 +108,7 @@ div.html-editor > div.toolbar > div.ui-panel div.expander:active {
 }
 
 div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-mixed {
-	background-color: #fff;
+	background-color: #c3c3c3;
 }
 
 div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-pressed,
@@ -179,6 +179,14 @@ div.html-editor .ui-panel-indentation .ui-button.increase {
 
 div.html-editor .ui-panel-indentation .ui-button.decrease {
 	background-position: -41px -41px !important;
+}
+
+div.html-editor .ui-panel-text-scripting .ui-button.subscript {
+	background-position: -21px -101px !important;
+}
+
+div.html-editor .ui-panel-text-scripting .ui-button.superscript {
+	background-position: -41px -101px !important;
 }
 
 div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor {

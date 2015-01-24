@@ -24,9 +24,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="44.590691"
-     inkscape:cy="67.28112"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="164.30894"
+     inkscape:cy="127.49148"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -812,5 +812,53 @@
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90" />
+    <path
+       style="fill:#000000;stroke:none"
+       d="m 46.336157,1039.0493 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
+       id="path3131"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccccccccc"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <text
+       xml:space="preserve"
+       style="font-size:7.45088577px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#fc0f0f;fill-opacity:1;stroke:none;font-family:Sans"
+       x="53.798065"
+       y="1039.5891"
+       id="text3133"
+       sodipodi:linespacing="125%"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"><tspan
+         sodipodi:role="line"
+         id="tspan3135"
+         x="53.798065"
+         y="1039.5891"
+         style="font-weight:bold;fill:#fc0f0f;fill-opacity:1">2</tspan></text>
+    <path
+       sodipodi:nodetypes="ccccccccccccc"
+       inkscape:connector-curvature="0"
+       id="path3137"
+       d="m 25.433613,1039.226 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
+       style="fill:#000000;stroke:none"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <text
+       sodipodi:linespacing="125%"
+       id="text3139"
+       y="1047.4883"
+       x="32.869667"
+       style="font-size:7.2711463px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000080;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90"><tspan
+         style="font-weight:bold;fill:#000080;fill-opacity:1"
+         y="1047.4883"
+         x="32.869667"
+         id="tspan3141"
+         sodipodi:role="line">2</tspan></text>
   </g>
 </svg>

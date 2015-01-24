@@ -1,5 +1,11 @@
 class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
+	
+	public nodeName: HTMLInputElement   = null;
+	public fontFamily: HTMLInputElement = null;
+	public fontSize: HTMLInputElement   = null;
+
 	constructor( toolbar: UI_Toolbar ) {
+		
 		super( toolbar, 'Style' );
 
 		DOM.addClass( this.node, 'ui-panel-style')
@@ -25,5 +31,53 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 			'</div>'
 		].join( '' );
 
+		this.nodeName   = <HTMLInputElement>this.node.querySelector( 'input.nodeName' );
+		this.fontFamily = <HTMLInputElement>this.node.querySelector( 'input.fontFamily' );
+		this.fontSize   = <HTMLInputElement>this.node.querySelector( 'input.fontSize' );
+
+		this.dropdownize( this.nodeName );
+		this.dropdownize( this.fontFamily );
+		this.dropdownize( this.fontSize );
+
+	}
+
+	private dropdownize( input: HTMLInputElement ) {
+
+		var suggestions : string[] = ( input.getAttribute( 'data-suggestions' ) || '' ).split( ',' ),
+		    len: number = suggestions.length,
+		    i: number = 0;
+
+		console.warn( suggestions );
+
+	}
+
+	private updateNodeName() {
+
+	}
+
+	private updateFontFamily() {
+		var family: string = String( this.toolbar.state.state.fontFamily || '' );
+		this.fontFamily.value = family;
+	}
+
+	private updateFontSize() {
+		var size: string = String( this.toolbar.state.state.fontSize || '' );
+		this.fontSize.value = size;
+	}
+
+	public updateDocumentState( propertiesList: string[] ) {
+		for ( var i=0, len = propertiesList.length; i<len; i++ ) {
+			switch ( propertiesList[i] ) {
+				case 'nodeName':
+					this.updateNodeName();
+					break;
+				case 'fontFamily':
+					this.updateFontFamily();
+					break;
+				case 'fontSize':
+					this.updateFontSize();
+					break;
+			}
+		}
 	}
 }

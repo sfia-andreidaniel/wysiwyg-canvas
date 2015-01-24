@@ -25,6 +25,7 @@ class UI_Toolbar extends Events {
 		this.panels.push( new UI_Toolbar_Panel_Alignment           ( this ) );
 		this.panels.push( new UI_Toolbar_Panel_BulletsAndNumbering ( this ) );
 		this.panels.push( new UI_Toolbar_Panel_Indentation         ( this ) );
+		this.panels.push( new UI_Toolbar_Panel_TextScripting       ( this ) );
 		this.panels.push( new UI_Toolbar_Panel_BordersAndColors    ( this ) );
 		this.panels.push( new UI_Toolbar_Panel_Multimedia          ( this ) );
 	

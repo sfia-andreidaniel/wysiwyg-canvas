@@ -1,11 +1,32 @@
 class DocSelection extends Events {
 
-	public range: TRange = null;
+	private   range         : TRange   = null;	             // the selection range. user can obtain the range via the getRange() method
+	public    viewport      : Viewport = null;               // viewport for which this selection is applied
 
-	constructor ( public viewport: Viewport ) {
+	protected stateComputer : Throttler = null;              // a throttler that computes the editor state when the selection is changed
+	public    editorState   : Selection_EditorState = null;
+
+	// selection is painted with two colors, depending on
+	// the focus state of the viewport
+	static $Colors = {
+		"focus": "#3399ff",
+		"blur" : "#ddddd"
+	};
+
+	constructor ( viewport: Viewport ) {
 		super();
+		
+		this.viewport    = viewport;
+		this.editorState = new Selection_EditorState( this );
+
+		(function(me){
+			me.stateComputer = new Throttler( function() {
+				me.editorState.compute();
+			}, 100);
+		})(this);
 	}
 
+	// obtains an instance of the range of the selection.
 	public getRange(): TRange {
 		
 		if ( !this.range )
@@ -29,6 +50,7 @@ class DocSelection extends Events {
 		( function( me ) {
 			rng.on( 'changed', function() {
 				me.viewport.document.requestRepaint();
+				me.stateComputer.run();
 			} );
 		})(this);
 
@@ -65,6 +87,7 @@ class DocSelection extends Events {
 	// returns the length of the selection.
 	// note that this value has nothing to do with the number of selected characters.
 	// a null value means that is not applicable.
+	// value can also be negative, depending on selection direction.
 	public length(): number {
 		return this.getRange().length();
 	}

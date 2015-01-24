@@ -5326,9 +5326,19 @@ var DocSelection = (function (_super) {
     __extends(DocSelection, _super);
     function DocSelection(viewport) {
         _super.call(this);
+        this.range = null; // the selection range. user can obtain the range via the getRange() method
+        this.viewport = null; // viewport for which this selection is applied
+        this.stateComputer = null; // a throttler that computes the editor state when the selection is changed
+        this.editorState = null;
         this.viewport = viewport;
-        this.range = null;
+        this.editorState = new Selection_EditorState(this);
+        (function (me) {
+            me.stateComputer = new Throttler(function () {
+                me.editorState.compute();
+            }, 100);
+        })(this);
     }
+    // obtains an instance of the range of the selection.
     DocSelection.prototype.getRange = function () {
         if (!this.range)
             this.range = this.createRange(this.viewport.document.fragment.createTargetAt(0 /* DOC_BEGIN */));
@@ -5345,6 +5355,7 @@ var DocSelection = (function (_super) {
         (function (me) {
             rng.on('changed', function () {
                 me.viewport.document.requestRepaint();
+                me.stateComputer.run();
             });
         })(this);
         return rng;
@@ -5369,6 +5380,7 @@ var DocSelection = (function (_super) {
     // returns the length of the selection.
     // note that this value has nothing to do with the number of selected characters.
     // a null value means that is not applicable.
+    // value can also be negative, depending on selection direction.
     DocSelection.prototype.length = function () {
         return this.getRange().length();
     };
@@ -5381,7 +5393,43 @@ var DocSelection = (function (_super) {
             range.collapse(len < 0);
         }
     };
+    // selection is painted with two colors, depending on
+    // the focus state of the viewport
+    DocSelection.$Colors = {
+        "focus": "#3399ff",
+        "blur": "#ddddd"
+    };
     return DocSelection;
+})(Events);
+// in order to build rich interfaces around the editor,
+// we need the editorstate class, for knowing what states
+// to display on the inputs of the toolbars of the editor
+var Selection_EditorState = (function (_super) {
+    __extends(Selection_EditorState, _super);
+    function Selection_EditorState(selection) {
+        _super.call(this);
+        this.selection = null;
+        // the computed state.
+        this.state = null;
+        this.selection = selection;
+        this.state = this.createEditorState();
+    }
+    Selection_EditorState.prototype.createEditorState = function () {
+        return {
+            bold: null,
+            italic: null,
+            underline: null,
+            textAlign: null,
+            fontFamily: null,
+            fontSize: null,
+            fontColor: null,
+            verticalAlign: null
+        };
+    };
+    Selection_EditorState.prototype.compute = function () {
+        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState();
+    };
+    return Selection_EditorState;
 })(Events);
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
@@ -5444,6 +5492,7 @@ var DocSelection = (function (_super) {
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />
+/// <reference path="./Selection/EditorState.ts" />
 var viewport = new Viewport(), body = viewport.document, niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
     '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',

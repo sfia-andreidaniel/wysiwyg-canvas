@@ -67,7 +67,9 @@
 
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
+
 /// <reference path="DocSelection.ts" />
+/// <reference path="./Selection/EditorState.ts" />
 
 var viewport = new Viewport(),
     body = viewport.document,

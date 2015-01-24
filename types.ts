@@ -84,3 +84,15 @@ enum EditorCommand {
 	SIZE
 
 }
+
+interface EditorState {
+	bold          : boolean;
+	italic        : boolean;
+	underline     : boolean;
+
+	textAlign     : string;
+	fontFamily    : string;
+	fontSize      : number;
+	fontColor     : string;
+	verticalAlign : string;
+}

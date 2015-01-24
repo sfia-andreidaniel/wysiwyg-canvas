@@ -44,3 +44,159 @@ div.html-editor > div.statusbar {
 div.html-editor.has-statusbar > div.statusbar {
 	display: block;
 }
+
+/* Toolbars styling */
+div.html-editor > div.toolbar > div.ui-panel {
+	display: inline-block;
+	float: left;
+	height: 18px;
+	padding: 1px 1px 1px 0px;
+	margin: 0px 2px 0px 0px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel > div.item {
+	display: inline-block;
+	margin: 0px 1px;
+}
+
+div.html-editor > div.toolbar *:focus {
+	outline: none;
+}
+
+div.html-editor > div.toolbar > div.ui-panel input[type=text] {
+	padding: 0;
+	width: 20px;
+	margin: 0;
+	border: none;
+	height: 16px;
+	vertical-align: top;
+	font-size: 12px;
+	font-family: Arial;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-button {
+	display: inline-block;
+	width: 18px;
+	height: 18px;
+	margin: 0px 1px;
+	border: 1px solid transparent;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: 0px 0px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > div.expander {
+	display: inline-block;
+	width: 10px;
+	height: 14px;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: 0px -101px;
+	background-color: #ddd;
+	border: 1px solid transparent;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-button:hover,
+div.html-editor > div.toolbar > div.ui-panel div.expander:hover {
+	border: 1px outset #ddd !important;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-button:active,
+div.html-editor > div.toolbar > div.ui-panel div.expander:active {
+	background-color: #bbb !important;
+	border: 1px inset #ddd;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-pressed,
+div.html-editor > div.toolbar > div.ui-panel div.expander.state-pressed {
+	background-color: #efefef;
+	border: 1px inset #ddd;
+}
+
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown {
+	padding: 0px 0px 0px 2px;
+	background-color: white;
+	border: 1px inset #ddd;
+	height: 16px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel input.nodeName {
+	width: 80px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel input.fontFamily {
+	width: 100px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel input.fontSize {
+	width: 25px;
+}
+
+div.html-editor .ui-panel-formatting .ui-button.bold {
+	background-position: -1px -81px !important;
+}
+
+div.html-editor .ui-panel-formatting .ui-button.italic {
+	background-position: -21px -81px !important;
+}
+
+div.html-editor .ui-panel-formatting .ui-button.underline {
+	background-position: -41px -81px !important;
+}
+
+div.html-editor .ui-panel-alignment .ui-button.left {
+	background-position: -1px -61px !important;
+}
+
+div.html-editor .ui-panel-alignment .ui-button.center {
+	background-position: -41px -61px !important;
+}
+
+div.html-editor .ui-panel-alignment .ui-button.right {
+	background-position: -21px -61px !important;
+}
+
+div.html-editor .ui-panel-alignment .ui-button.justified {
+	background-position: -61px -61px !important;
+}
+
+div.html-editor .ui-panel-bullets-and-numbering .ui-button.ol {
+	background-position: -1px -41px !important;
+}
+
+div.html-editor .ui-panel-bullets-and-numbering .ui-button.ul {
+	background-position: -21px -41px !important;
+}
+
+div.html-editor .ui-panel-indentation .ui-button.increase {
+	background-position: -61px -41px !important;
+}
+
+div.html-editor .ui-panel-indentation .ui-button.decrease {
+	background-position: -41px -41px !important;
+}
+
+div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor {
+	background-position: -61px -81px !important;
+}
+
+div.html-editor .ui-panel-borders-and-colors .ui-button.backgroundColor {
+	background-position: -1px -21px !important;
+}
+
+div.html-editor .ui-panel-borders-and-colors .ui-button.color {
+	background-position: -21px -21px !important;
+}
+
+div.html-editor .ui-panel-multimedia .ui-button.link {
+	background-position: -62px -21px !important;
+}
+
+div.html-editor .ui-panel-multimedia .ui-button.picture {
+	background-position: -61px -1px !important;
+}
+
+div.html-editor .ui-panel-multimedia .ui-button.video {
+	background-position: -41px -1px !important;
+}

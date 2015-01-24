@@ -81,7 +81,9 @@ enum EditorCommand {
 
 	FONT,
 	COLOR,
-	SIZE
+	SIZE,
+
+	LIST  // ol, ul
 
 }
 

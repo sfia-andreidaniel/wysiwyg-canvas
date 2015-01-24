@@ -73,6 +73,16 @@
 /// <reference path="./Selection/EditorState.ts" />
 
 /// <reference path="./HTMLEditor.ts" />
+/// <reference path="./UI/Toolbar.ts" />
+/// <reference path="./UI/Toolbar/Panel.ts" />
+/// <reference path="./UI/Toolbar/Panel/Style.ts" />
+/// <reference path="./UI/Toolbar/Panel/Formatting.ts" />
+/// <reference path="./UI/Toolbar/Panel/Alignment.ts" />
+/// <reference path="./UI/Toolbar/Panel/BulletsAndNumbering.ts" />
+/// <reference path="./UI/Toolbar/Panel/Indentation.ts" />
+/// <reference path="./UI/Toolbar/Panel/BordersAndColors.ts" />
+/// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
+
 
 var /* viewport = new Viewport(),
     body = viewport.document, */

@@ -12,6 +12,7 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 	    width    : number = 100,
 	    height   : number = 100,
 	    toolbars : boolean = true,
+	    ui_toolbar: UI_Toolbar,
 	    resizer  : Throttler = new Throttler( function() {
 		    	resize( width, height );
 		    }, 10 ),
@@ -24,6 +25,8 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 	DOM.addClass( toolbar,   'toolbar' );
 	DOM.addClass( statusbar, 'statusbar' );
 	DOM.addClass( body,      'body' );
+
+	ui_toolbar = new UI_Toolbar( <HTMLElement>toolbar, viewport.router );
 
 	// append the canvas in the body element of the editor
 	body.appendChild( viewport.canvas );
@@ -58,7 +61,7 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 		}
 	} );
 
-	Object.defineProperty( element, "toolbar", {
+	Object.defineProperty( element, "toolbars", {
 		"get": function() {
 			return hasToolbars;
 		},
@@ -119,6 +122,8 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 
 		viewport.height( left );
 		viewport.width( width );
+
+		ui_toolbar.resize( width );
 
 		element.style.width = width + "px";
 

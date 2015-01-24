@@ -26,6 +26,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.FONT:		return 'setFont';	 break;
 			case EditorCommand.COLOR:		return 'setColor';   break;
 			case EditorCommand.SIZE:		return 'setSize';	 break;
+			case EditorCommand.LIST:        return 'list';       break;
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
 				break;
@@ -37,7 +38,7 @@ class Viewport_CommandRouter extends Events {
 		return args && args.length >= minArgs && args.length <= maxArgs;
 	}
 
-	public dispatchCommand( command: EditorCommand, args: any[] ) {
+	public dispatchCommand( command: EditorCommand, ...args: any[] ) {
 
 		var commandName: string = this.commandName( command );
 
@@ -166,6 +167,13 @@ class Viewport_CommandRouter extends Events {
 					throw "Command: " + commandName + " requires a single argument of type string!";
 				} else {
 					this.size( String( args[0] || '' ) );
+				}
+				break;
+			case EditorCommand.LIST:
+				if ( !this.ensureArgs( args, 2, 2 ) ) {
+					throw "Command: " + commandName + " requires two arguments: string, boolean";
+				} else {
+					this.list( String( args[0] || 'ul' ), !!args[1] );
 				}
 				break;
 			default:
@@ -348,6 +356,11 @@ class Viewport_CommandRouter extends Events {
 	// using + or -. Eg: fontSize( "+1" ) will increase the text size
 	// with 1 value.
 	public size( fontSize: string = '' ) {
+
+	}
+
+	// wraps into ul or ol the blocks.
+	public list( listType: string, on: boolean = true ) {
 
 	}
 

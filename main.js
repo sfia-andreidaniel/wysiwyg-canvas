@@ -61,6 +61,7 @@ var EditorCommand;
     EditorCommand[EditorCommand["FONT"] = 14] = "FONT";
     EditorCommand[EditorCommand["COLOR"] = 15] = "COLOR";
     EditorCommand[EditorCommand["SIZE"] = 16] = "SIZE";
+    EditorCommand[EditorCommand["LIST"] = 17] = "LIST"; // ol, ul
 })(EditorCommand || (EditorCommand = {}));
 var Events = (function () {
     function Events() {
@@ -1235,7 +1236,9 @@ var HTML_Body = (function (_super) {
         if (this._needRelayout) {
             this.relayout();
         }
-        this.viewport.context.clearRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
+        //this.viewport.context.clearRect( 0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize );
+        this.viewport.context.fillStyle = 'white';
+        this.viewport.context.fillRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
         this.caretPosition.visible = false;
         this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport);
         this._needRepaint = false;
@@ -4301,6 +4304,9 @@ var Viewport_CommandRouter = (function (_super) {
             case 16 /* SIZE */:
                 return 'setSize';
                 break;
+            case 17 /* LIST */:
+                return 'list';
+                break;
             default:
                 throw "ERR_UNKNOWN_COMMAND";
                 break;
@@ -4309,7 +4315,11 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.ensureArgs = function (args, minArgs, maxArgs) {
         return args && args.length >= minArgs && args.length <= maxArgs;
     };
-    Viewport_CommandRouter.prototype.dispatchCommand = function (command, args) {
+    Viewport_CommandRouter.prototype.dispatchCommand = function (command) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
         var commandName = this.commandName(command);
         console.log('dispatchCommand: ' + commandName + '(' + JSON.stringify(args) + ')');
         switch (command) {
@@ -4453,6 +4463,14 @@ var Viewport_CommandRouter = (function (_super) {
                     this.size(String(args[0] || ''));
                 }
                 break;
+            case 17 /* LIST */:
+                if (!this.ensureArgs(args, 2, 2)) {
+                    throw "Command: " + commandName + " requires two arguments: string, boolean";
+                }
+                else {
+                    this.list(String(args[0] || 'ul'), !!args[1]);
+                }
+                break;
             default:
                 throw "ERR_UNKNOWN_COMMAND";
                 break;
@@ -4594,6 +4612,10 @@ var Viewport_CommandRouter = (function (_super) {
     // with 1 value.
     Viewport_CommandRouter.prototype.size = function (fontSize) {
         if (fontSize === void 0) { fontSize = ''; }
+    };
+    // wraps into ul or ol the blocks.
+    Viewport_CommandRouter.prototype.list = function (listType, on) {
+        if (on === void 0) { on = true; }
     };
     return Viewport_CommandRouter;
 })(Events);
@@ -5612,7 +5634,7 @@ var Selection_EditorState = (function (_super) {
 function HTMLEditor(value, hasToolbars, hasStatusbar) {
     if (hasToolbars === void 0) { hasToolbars = true; }
     if (hasStatusbar === void 0) { hasStatusbar = true; }
-    var element = document.createElement('div'), toolbar = element.appendChild(document.createElement('div')), body = element.appendChild(document.createElement('div')), statusbar = element.appendChild(document.createElement('div')), disabled = false, readOnly = false, width = 100, height = 100, toolbars = true, resizer = new Throttler(function () {
+    var element = document.createElement('div'), toolbar = element.appendChild(document.createElement('div')), body = element.appendChild(document.createElement('div')), statusbar = element.appendChild(document.createElement('div')), disabled = false, readOnly = false, width = 100, height = 100, toolbars = true, ui_toolbar, resizer = new Throttler(function () {
         resize(width, height);
     }, 10), viewport = new Viewport();
     element['cssText'] = toolbar['cssText'] = statusbar['cssText'] = body['cssText'] = viewport.canvas['cssText'] = "-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none";
@@ -5620,6 +5642,7 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
     DOM.addClass(toolbar, 'toolbar');
     DOM.addClass(statusbar, 'statusbar');
     DOM.addClass(body, 'body');
+    ui_toolbar = new UI_Toolbar(toolbar, viewport.router);
     // append the canvas in the body element of the editor
     body.appendChild(viewport.canvas);
     if (hasToolbars) {
@@ -5648,7 +5671,7 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
             resizer.run();
         }
     });
-    Object.defineProperty(element, "toolbar", {
+    Object.defineProperty(element, "toolbars", {
         "get": function () {
             return hasToolbars;
         },
@@ -5700,12 +5723,244 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
         body['style'].height = left + "px";
         viewport.height(left);
         viewport.width(width);
+        ui_toolbar.resize(width);
         element.style.width = width + "px";
     }
     element['value'] = value;
     resize(width, height);
     return element;
 }
+var UI_Toolbar = (function (_super) {
+    __extends(UI_Toolbar, _super);
+    function UI_Toolbar(DOMNodeContainer, router) {
+        _super.call(this);
+        /* BlockName, FontStyle, FontSize: width = 255px */
+        /* B I U                         : width = 74px  */
+        /* TextAlign                     : width = 98px  */
+        /* Bullets and Numbering + Indent: width = 99px  */
+        /* Borders and Colors            : width = 107px */
+        this.panels = [];
+        this.router = null;
+        this.node = DOMNodeContainer;
+        this.router = router;
+        this.panels.push(new UI_Toolbar_Panel_Style(this));
+        this.panels.push(new UI_Toolbar_Panel_Formatting(this));
+        this.panels.push(new UI_Toolbar_Panel_Alignment(this));
+        this.panels.push(new UI_Toolbar_Panel_BulletsAndNumbering(this));
+        this.panels.push(new UI_Toolbar_Panel_Indentation(this));
+        this.panels.push(new UI_Toolbar_Panel_BordersAndColors(this));
+        this.panels.push(new UI_Toolbar_Panel_Multimedia(this));
+    }
+    UI_Toolbar.prototype.resize = function (width) {
+        width = ~~width;
+        for (var i = 0, len = this.panels.length; i < len; i++) {
+            this.panels[i].resizeByParentWidth(width);
+        }
+    };
+    return UI_Toolbar;
+})(Events);
+var UI_Toolbar_Panel = (function (_super) {
+    __extends(UI_Toolbar_Panel, _super);
+    function UI_Toolbar_Panel(toolbar, name) {
+        if (name === void 0) { name = 'Toolbar'; }
+        _super.call(this);
+        this.toolbar = toolbar;
+        this.name = name;
+        this.width = 0; // the minWidth of the toolbar, without being resized.
+        this.node = document.createElement('div');
+        DOM.addClass(this.node, 'ui-panel');
+        toolbar.node.appendChild(this.node);
+        this.node.title = name || 'Toolbar';
+        this.width = 10;
+    }
+    UI_Toolbar_Panel.prototype.resizeByParentWidth = function (width) {
+    };
+    return UI_Toolbar_Panel;
+})(Events);
+var UI_Toolbar_Panel_Style = (function (_super) {
+    __extends(UI_Toolbar_Panel_Style, _super);
+    function UI_Toolbar_Panel_Style(toolbar) {
+        _super.call(this, toolbar, 'Style');
+        DOM.addClass(this.node, 'ui-panel-style');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="text-dropdown">',
+            '<input class="nodeName" type="text" data-suggestions="p:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4: Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+            '<div class="expander"></div>',
+            '</div>',
+            '</div>',
+            '<div class="item index-1">',
+            '<div class="text-dropdown">',
+            '<input class="fontFamily" type="text" data-suggestions="Arial,Times New Roman,Courier New" value="" placeholder="Font" />',
+            '<div class="expander"></div>',
+            '</div>',
+            '</div>',
+            '<div class="item index-2">',
+            '<div class="text-dropdown">',
+            '<input class="fontSize" type="text" data-suggestions="8,9,10,12,14,16,18,20,22,24,26,28,30,32" value="" placeholder="Size" />',
+            '<div class="expander"></div>',
+            '</div>',
+            '</div>'
+        ].join('');
+    }
+    return UI_Toolbar_Panel_Style;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_Formatting = (function (_super) {
+    __extends(UI_Toolbar_Panel_Formatting, _super);
+    function UI_Toolbar_Panel_Formatting(toolbar) {
+        _super.call(this, toolbar, 'Style');
+        this.toolbar = toolbar;
+        this.btnBold = null;
+        this.btnItalic = null;
+        this.btnUnderline = null;
+        DOM.addClass(this.node, 'ui-panel-formatting');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button bold state" title="Bold (Ctrl+B)"></div>',
+            '<div class="ui-button italic" title="Italic (Ctrl+I)"></div>',
+            '<div class="ui-button underline" title="Underline (Ctrl+U)"></div>',
+            '</div>',
+        ].join('');
+        this.btnBold = this.node.querySelector('.ui-button.bold');
+        this.btnItalic = this.node.querySelector('.ui-button.italic');
+        this.btnUnderline = this.node.querySelector('.ui-button.underline');
+        (function (me) {
+            me.btnBold.addEventListener('click', function () {
+                me.toolbar.router.dispatchCommand(4 /* BOLD */);
+            }, true);
+            me.btnItalic.addEventListener('click', function () {
+                me.toolbar.router.dispatchCommand(5 /* ITALIC */);
+            }, true);
+            me.btnUnderline.addEventListener('click', function () {
+                me.toolbar.router.dispatchCommand(6 /* UNDERLINE */);
+            }, true);
+        })(this);
+    }
+    return UI_Toolbar_Panel_Formatting;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_Alignment = (function (_super) {
+    __extends(UI_Toolbar_Panel_Alignment, _super);
+    function UI_Toolbar_Panel_Alignment(toolbar) {
+        _super.call(this, toolbar, 'Style');
+        this.toolbar = toolbar;
+        this.btnLeft = null;
+        this.btnRight = null;
+        this.btnCenter = null;
+        this.btnJustified = null;
+        DOM.addClass(this.node, 'ui-panel-alignment');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button left" title="Left (Ctrl+L)"></div>',
+            '<div class="ui-button center" title="Center (Ctrl+E)"></div>',
+            '<div class="ui-button right" title="Right (Ctrl+R)"></div>',
+            '<div class="ui-button justified" title="Justified (Ctrl+J)"></div>',
+            '</div>',
+        ].join('');
+        this.btnLeft = this.node.querySelector('.ui-button.left');
+        this.btnRight = this.node.querySelector('.ui-button.right');
+        this.btnCenter = this.node.querySelector('.ui-button.center');
+        this.btnJustified = this.node.querySelector('.ui-button.justified');
+        (function (me) {
+            me.btnLeft.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'left');
+            }, true);
+            me.btnRight.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'right');
+            }, true);
+            me.btnCenter.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'center');
+            }, true);
+            me.btnJustified.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(7 /* ALIGN */, 'justified');
+            }, true);
+        })(this);
+    }
+    return UI_Toolbar_Panel_Alignment;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
+    __extends(UI_Toolbar_Panel_BulletsAndNumbering, _super);
+    function UI_Toolbar_Panel_BulletsAndNumbering(toolbar) {
+        _super.call(this, toolbar, 'Bullets and Numbering');
+        this.toolbar = toolbar;
+        this.btnUL = null;
+        this.btnOL = null;
+        DOM.addClass(this.node, 'ui-panel-bullets-and-numbering');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button ol" title="Ordered List"></div>',
+            '<div class="ui-button ul" title="Bulleted List"></div>',
+            '</div>',
+        ].join('');
+        this.btnUL = this.node.querySelector('.ui-button.ul');
+        this.btnOL = this.node.querySelector('.ui-button.ol');
+        (function (me) {
+            me.btnUL.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(17 /* LIST */, 'ul', true);
+            }, true);
+            me.btnOL.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(17 /* LIST */, 'ol', true);
+            }, true);
+        })(this);
+    }
+    return UI_Toolbar_Panel_BulletsAndNumbering;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_Indentation = (function (_super) {
+    __extends(UI_Toolbar_Panel_Indentation, _super);
+    function UI_Toolbar_Panel_Indentation(toolbar) {
+        _super.call(this, toolbar, 'Indentation');
+        this.toolbar = toolbar;
+        this.btnIndent = null;
+        this.btnUnindent = null;
+        DOM.addClass(this.node, 'ui-panel-indentation');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button increase" title="Increase Indent (Tab)"></div>',
+            '<div class="ui-button decrease" title="Decrease Indent (Shift + Tab)"></div>',
+            '</div>',
+        ].join('');
+        this.btnIndent = this.node.querySelector('.ui-button.increase');
+        this.btnUnindent = this.node.querySelector('.ui-button.decrease');
+        (function (me) {
+            me.btnIndent.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(11 /* INDENT */);
+            }, true);
+            me.btnUnindent.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(12 /* UNINDENT */);
+            }, true);
+        })(this);
+    }
+    return UI_Toolbar_Panel_Indentation;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
+    __extends(UI_Toolbar_Panel_BordersAndColors, _super);
+    function UI_Toolbar_Panel_BordersAndColors(toolbar) {
+        _super.call(this, toolbar, 'Borders and Colors');
+        DOM.addClass(this.node, 'ui-panel-borders-and-colors');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button borderColor" title="Border Color"></div>',
+            '<div class="ui-button backgroundColor" title="Background Color"></div>',
+            '<div class="ui-button color" title="Color"></div>',
+            '</div>',
+        ].join('');
+    }
+    return UI_Toolbar_Panel_BordersAndColors;
+})(UI_Toolbar_Panel);
+var UI_Toolbar_Panel_Multimedia = (function (_super) {
+    __extends(UI_Toolbar_Panel_Multimedia, _super);
+    function UI_Toolbar_Panel_Multimedia(toolbar) {
+        _super.call(this, toolbar, 'Multimedia');
+        DOM.addClass(this.node, 'ui-panel-multimedia');
+        this.node.innerHTML = [
+            '<div class="item index-0">',
+            '<div class="ui-button link" title="Link"></div>',
+            '<div class="ui-button picture" title="Picture"></div>',
+            '<div class="ui-button video" title="Video"></div>',
+            '</div>',
+        ].join('');
+    }
+    return UI_Toolbar_Panel_Multimedia;
+})(UI_Toolbar_Panel);
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
@@ -5770,6 +6025,15 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
 /// <reference path="DocSelection.ts" />
 /// <reference path="./Selection/EditorState.ts" />
 /// <reference path="./HTMLEditor.ts" />
+/// <reference path="./UI/Toolbar.ts" />
+/// <reference path="./UI/Toolbar/Panel.ts" />
+/// <reference path="./UI/Toolbar/Panel/Style.ts" />
+/// <reference path="./UI/Toolbar/Panel/Formatting.ts" />
+/// <reference path="./UI/Toolbar/Panel/Alignment.ts" />
+/// <reference path="./UI/Toolbar/Panel/BulletsAndNumbering.ts" />
+/// <reference path="./UI/Toolbar/Panel/Indentation.ts" />
+/// <reference path="./UI/Toolbar/Panel/BordersAndColors.ts" />
+/// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 var niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
     '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',

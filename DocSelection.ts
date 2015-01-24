@@ -67,6 +67,8 @@ class DocSelection extends Events {
 		
 		this.viewport.document.requestRepaint();
 
+		this.range.fire( 'changed' );
+
 	}
 
 	/* selection can be focused to a target if it's anchored

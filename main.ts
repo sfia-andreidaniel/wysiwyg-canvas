@@ -126,5 +126,11 @@ body.innerHTML( niceHTML );
 
 window.addEventListener( 'load', function() {
 	document.body.appendChild( viewport.canvas );
+	
+	viewport.selection.editorState.on( 'changed', function( properties: string[] ) {
+		for ( var i=0, len = properties.length; i<len; i++ ) {
+			document.getElementById( properties[i] )['value'] = viewport.selection.editorState.state[ properties[i] ] + '';
+		}
+	} );
 	viewport.canvas.focus();
 });

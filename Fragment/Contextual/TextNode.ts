@@ -2,7 +2,7 @@ class Fragment_Contextual_TextNode extends Fragment_Contextual_Item {
 
 	public type: FragmentCItem = FragmentCItem.TEXT;
 	
-	constructor( private node: TNode_Text, private start: number = null, private end: number = null ) {
+	constructor( public node: TNode_Text, private start: number = null, private end: number = null ) {
 		super();
 	}
 

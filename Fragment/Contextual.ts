@@ -74,6 +74,23 @@ class Fragment_Contextual {
 		}
 	}
 
+	public affectedTextNodes(): TNode_Text[] {
+		var out: TNode_Text[] = [],
+		    i: number,
+		    len: number;
+
+		this.compute();
+
+		for ( i=0, len = this.parts.length; i<len; i++ ) {
+			if ( this.parts[i].type == FragmentCItem.TEXT ) {
+				out.push( ( <TNode_Text>(<Fragment_Contextual_TextNode>this.parts[i]).node ) );
+			}
+		}
+
+		return out;
+
+	}
+
 	public toString( format: string = 'text/html', closeTags: boolean = false ) {
 		this.compute();
 

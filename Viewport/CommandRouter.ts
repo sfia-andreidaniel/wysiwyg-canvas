@@ -272,6 +272,8 @@ class Viewport_CommandRouter extends Events {
 		}
 
 		range.setEventingState( true );
+
+		range.fire( 'changed' );
 	}
 
 	// sets the boldness of the text. if state is null, then the boldness is toggled.

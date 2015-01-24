@@ -4479,6 +4479,7 @@ var Viewport_CommandRouter = (function (_super) {
                 break;
         }
         range.setEventingState(true);
+        range.fire('changed');
     };
     // sets the boldness of the text. if state is null, then the boldness is toggled.
     Viewport_CommandRouter.prototype.bold = function (state) {
@@ -4737,6 +4738,16 @@ var Fragment_Contextual = (function () {
             this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
             currentNode = null;
         }
+    };
+    Fragment_Contextual.prototype.affectedTextNodes = function () {
+        var out = [], i, len;
+        this.compute();
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            if (this.parts[i].type == 2 /* TEXT */) {
+                out.push(this.parts[i].node);
+            }
+        }
+        return out;
     };
     Fragment_Contextual.prototype.toString = function (format, closeTags) {
         if (format === void 0) { format = 'text/html'; }
@@ -5367,6 +5378,7 @@ var DocSelection = (function (_super) {
     DocSelection.prototype.anchorTo = function (target) {
         this.range = this.createRange(target);
         this.viewport.document.requestRepaint();
+        this.range.fire('changed');
     };
     /* selection can be focused to a target if it's anchored
        and if the selection type is text.
@@ -5404,6 +5416,8 @@ var DocSelection = (function (_super) {
 // in order to build rich interfaces around the editor,
 // we need the editorstate class, for knowing what states
 // to display on the inputs of the toolbars of the editor
+// The editorState fires a "changed" event ( propertyNames: string[] ) with the name of the
+// properties that were changed.
 var Selection_EditorState = (function (_super) {
     __extends(Selection_EditorState, _super);
     function Selection_EditorState(selection) {
@@ -5416,18 +5430,126 @@ var Selection_EditorState = (function (_super) {
     }
     Selection_EditorState.prototype.createEditorState = function () {
         return {
-            bold: null,
-            italic: null,
-            underline: null,
-            textAlign: null,
-            fontFamily: null,
-            fontSize: null,
-            fontColor: null,
-            verticalAlign: null
+            bold: undefined,
+            italic: undefined,
+            underline: undefined,
+            textAlign: undefined,
+            fontFamily: undefined,
+            fontSize: undefined,
+            fontColor: undefined,
+            verticalAlign: undefined
         };
     };
     Selection_EditorState.prototype.compute = function () {
-        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState();
+        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, nulls = 0, changed = [], k = '';
+        if (focus && rng.length()) {
+            frag = rng.createContextualFragment();
+            nodes = frag.affectedTextNodes();
+        }
+        else {
+            if (anchor.target.nodeType == 1 /* TEXT */) {
+                nodes.push(anchor.target);
+            }
+        }
+        for (i = 0, len = nodes.length; i < len; i++) {
+            if (nodes[i].parentNode != element) {
+                element = nodes[i].parentNode;
+                if (element) {
+                    fBold = element.style.fontWeight() == 'bold';
+                    fItalic = element.style.fontStyle() == 'italic';
+                    fUnderline = element.style.textDecoration() == 'underline';
+                    fTextAlign = element.style.textAlign() || 'left';
+                    fFontFamily = element.style.fontFamily() || 'Arial';
+                    fFontSize = ~~element.style.fontSize() || 0;
+                    fFontColor = element.style.color() || '#000000';
+                    fVerticalAlign = element.style.verticalAlign() || 'normal';
+                    if (state.bold === undefined) {
+                        state.bold = fBold;
+                    }
+                    else {
+                        if (state.bold !== null && state.bold !== fBold) {
+                            state.bold = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.italic === undefined) {
+                        state.italic = fItalic;
+                    }
+                    else {
+                        if (state.italic !== null && state.italic !== fItalic) {
+                            state.italic = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.underline === undefined) {
+                        state.underline = fUnderline;
+                    }
+                    else {
+                        if (state.underline !== null && state.underline !== fUnderline) {
+                            state.underline = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.textAlign === undefined) {
+                        state.textAlign = fTextAlign;
+                    }
+                    else {
+                        if (state.textAlign !== null && state.textAlign !== fTextAlign) {
+                            state.textAlign = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.fontFamily === undefined) {
+                        state.fontFamily = fFontFamily;
+                    }
+                    else {
+                        if (state.fontFamily !== null && state.fontFamily !== fFontFamily) {
+                            state.fontFamily = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.fontSize === undefined) {
+                        state.fontSize = fFontSize;
+                    }
+                    else {
+                        if (state.fontSize !== null && state.fontSize !== fFontSize) {
+                            state.fontSize = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.fontColor === undefined) {
+                        state.fontColor = fFontColor;
+                    }
+                    else {
+                        if (state.fontColor !== null && state.fontColor !== fFontColor) {
+                            state.fontColor = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.verticalAlign === undefined) {
+                        state.verticalAlign = fVerticalAlign;
+                    }
+                    else {
+                        if (state.verticalAlign !== null && state.verticalAlign !== fVerticalAlign) {
+                            state.verticalAlign = null;
+                            nulls++;
+                        }
+                    }
+                }
+            }
+            if (nulls == 8) {
+                break;
+            }
+        }
+        for (k in state) {
+            if (state[k] !== this.state[k]) {
+                changed.push(k);
+                this.state[k] = state[k];
+            }
+        }
+        if (changed.length) {
+            this.fire('changed', changed);
+        }
     };
     return Selection_EditorState;
 })(Events);
@@ -5544,5 +5666,10 @@ var viewport = new Viewport(), body = viewport.document, niceHTML = [
 body.innerHTML(niceHTML);
 window.addEventListener('load', function () {
     document.body.appendChild(viewport.canvas);
+    viewport.selection.editorState.on('changed', function (properties) {
+        for (var i = 0, len = properties.length; i < len; i++) {
+            document.getElementById(properties[i])['value'] = viewport.selection.editorState.state[properties[i]] + '';
+        }
+    });
     viewport.canvas.focus();
 });

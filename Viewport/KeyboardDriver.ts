@@ -169,7 +169,8 @@ class Viewport_KeyboardDriver extends Events {
 				}
 				break;
 
-			case 13: // enter
+			case 13: // cr
+			case 10: // lf
 				if ( !DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.NEW_LINE, DOMEvent.shiftKey );
 					cancelEvent = true;

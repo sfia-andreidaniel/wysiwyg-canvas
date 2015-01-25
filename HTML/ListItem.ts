@@ -1,6 +1,7 @@
 class HTML_ListItem extends TNode_Element {
 	
-	public isSelectable: boolean = true;
+	public isSelectable    : boolean = true;
+	public isBlockTextNode : boolean = true;
 
 	constructor() {
 		super();

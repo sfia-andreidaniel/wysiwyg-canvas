@@ -69,6 +69,7 @@ class Viewport_CommandRouter extends Events {
 						this.newLine();
 					}
 				}
+				break;
 			case EditorCommand.MOVE:
 				if ( !this.ensureArgs( args, 3, 3 ) ) {
 					throw "Command: " + commandName + " require 3 arguments of type CaretPos, int, boolean."
@@ -233,7 +234,82 @@ class Viewport_CommandRouter extends Events {
 
 	// inserts a new line in document. if forceBRTag is set (not null)
 	// a <br> tag will be inserted instead of creating a new paragraph.
-	public newLine( forceBRTag: boolean = null ) {
+	public newLine( alternateMethod: boolean = null ) {
+		
+		if ( this.viewport.selection.getRange() ) {
+			this.viewport.selection.removeContents();
+		}
+
+		var rng: TRange = this.viewport.selection.getRange(),
+		    len: number = rng.length(),
+		    focus: TRange_Target = rng.focusNode(),
+		    anchor: TRange_Target = rng.anchorNode(),
+		    target: TRange_Target = focus || anchor,
+		    targetNode: TNode_Element = target.target.ownerBlockElement(),
+		    method: TNewLinePolicy,
+		    index: number = target.fragPos,
+		    jumpPosition: number = 0;
+
+		// no target node, no new line ...
+		if ( targetNode === null ) {
+			return;
+		}
+
+		if ( !alternateMethod ) {
+			//default
+			method = targetNode.insertLinePolicy;
+		} else {
+			method = targetNode.alternateInsertLinePolicy;
+		}
+
+		if ( method == TNewLinePolicy.BR ) {
+			
+			jumpPosition = targetNode.createSurgery(
+				index,
+				false
+			);
+
+			// we're expecting that the jump position is a node begin.
+			target.target = this.viewport.document.findNodeAtIndex( jumpPosition );
+			target.fragPos = jumpPosition;
+
+			var breakElement = this.viewport.document.createElement( 'br' );
+
+			// append the break *before* the target.target.
+			target.target.parentNode.appendChild( breakElement, target.target.siblingIndex );
+
+			// force relayout;
+
+			this.viewport.document.relayout( true );
+
+			jumpPosition = breakElement.FRAGMENT_START;
+			target.target = breakElement;
+
+		} else {
+			
+			jumpPosition = targetNode.createSurgery( 
+				index, 
+				true, 
+				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].indexOf( targetNode.nodeName ) >= 0
+					? 'p'
+					: targetNode.nodeName
+			);
+
+			target.target = this.viewport.document.findNodeAtIndex( jumpPosition );
+			target.fragPos = jumpPosition;
+
+		}
+
+		// if we landedd on a node begin, or node end, we move the caret until we find text.
+		// jump to first available character in document
+		while ( jumpPosition < this.viewport.document.fragment.length() && [ FragmentItem.CHARACTER, FragmentItem.WHITE_SPACE, FragmentItem.EOL ].indexOf( this.viewport.document.fragment.at( jumpPosition ) ) == -1 ) {
+			jumpPosition++;
+		}
+
+		target.target = this.viewport.document.findNodeAtIndex( jumpPosition );
+		target.fragPos = jumpPosition;
+
+		rng.collapse( true );
 
 	}
 

@@ -36,4 +36,24 @@ class TNode extends Events {
 		throw "ABSTRACT";
 	}
 
+	public ownerBlockElement(): TNode_Element {
+		throw "ABSTRACT";
+	}
+
+	public elementsBeforeMyself( includingMe: boolean ): TNode[] {
+		if ( !this.parentNode ) {
+			throw "ERR_NODE_NOT_ATTACHED!";
+		} else {
+			return this.parentNode.childNodes.slice( 0, includingMe ? this.siblingIndex + 1 : this.siblingIndex );
+		}
+	}
+
+	public elementsAfterMyself( includingMe: boolean ): TNode[] {
+		if ( !this.parentNode ) {
+			throw "ERR_NODE_NOT_ATTACHED!";
+		} else {
+			return this.parentNode.childNodes.slice( includingMe ? this.siblingIndex : this.siblingIndex + 1 );
+		}
+	}
+
 }

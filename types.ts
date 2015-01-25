@@ -98,3 +98,13 @@ interface EditorState {
 	fontColor     : string;
 	verticalAlign : string;
 }
+
+interface TNameValuePair {
+	name: string;
+	value: string;
+}
+
+enum TNewLinePolicy {
+	BR,
+	SURGERY
+};

@@ -1,19 +1,23 @@
 class HTML_TableCell extends TNode_Element {
 	
-	public ownerTable: HTML_Table = null;
+	public ownerTable                : HTML_Table      = null;
 	
-	public tableIndex: number = 0; // the index of the cell in it's table
-	public rowIndex  : number = 0; // the index of the cell in it's row
+	public tableIndex                : number          = 0; // the index of the cell in it's table
+	public rowIndex                  : number          = 0; // the index of the cell in it's row
 
-	protected _colSpan: number = 1;
-	protected _rowSpan: number = 1;
+	protected _colSpan               : number          = 1;
+	protected _rowSpan               : number          = 1;
 
-	public edgeLeft  : HTML_Table_Edge = null;
-	public edgeRight : HTML_Table_Edge = null;
-	public edgeTop   : HTML_Table_Edge = null;
-	public edgeBottom: HTML_Table_Edge = null;
+	public edgeLeft                  : HTML_Table_Edge = null;
+	public edgeRight                 : HTML_Table_Edge = null;
+	public edgeTop                   : HTML_Table_Edge = null;
+	public edgeBottom                : HTML_Table_Edge = null;
 
-	public isSelectable: boolean = true;
+	public isSelectable              : boolean         = true;
+	public isBlockTextNode           : boolean         = true;
+
+	public insertLinePolicy          : TNewLinePolicy  = TNewLinePolicy.BR;
+	public alternateInsertLinePolicy : TNewLinePolicy  = TNewLinePolicy.BR;
 
 	constructor() {
 		super( true );

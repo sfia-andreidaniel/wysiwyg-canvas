@@ -1,4 +1,7 @@
 class HTML_Heading2 extends TNode_Element {
+	
+	public isBlockTextNode   : boolean = true;
+
 	constructor() {
 		super();
 		this.nodeName = 'h2';

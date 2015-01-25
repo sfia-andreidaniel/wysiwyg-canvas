@@ -12,6 +12,7 @@
 
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
+/// <reference path="./HTML/BreakElement.ts" />
 /// <reference path="./HTML/Image.ts" />
 /// <reference path="./HTML/Heading1.ts" />
 /// <reference path="./HTML/Heading2.ts" />
@@ -89,7 +90,7 @@ var /* viewport = new Viewport(),
     body = viewport.document, */
     niceHTML = [
     	'<h1 align="center">He<u>adi</u>ng 1</h1>',
-    	'<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
+    	'<p align="justified">The element above <br />this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     	'<h2>Heading 2</h2>',
     	'<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     	'<h3>Heading 3</h3>',

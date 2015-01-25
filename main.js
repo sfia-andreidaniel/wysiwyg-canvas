@@ -63,6 +63,12 @@ var EditorCommand;
     EditorCommand[EditorCommand["SIZE"] = 16] = "SIZE";
     EditorCommand[EditorCommand["LIST"] = 17] = "LIST"; // ol, ul
 })(EditorCommand || (EditorCommand = {}));
+var TNewLinePolicy;
+(function (TNewLinePolicy) {
+    TNewLinePolicy[TNewLinePolicy["BR"] = 0] = "BR";
+    TNewLinePolicy[TNewLinePolicy["SURGERY"] = 1] = "SURGERY";
+})(TNewLinePolicy || (TNewLinePolicy = {}));
+;
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -240,6 +246,25 @@ var TNode = (function (_super) {
     TNode.prototype.bakeIntoFragment = function () {
         throw "ABSTRACT";
     };
+    TNode.prototype.ownerBlockElement = function () {
+        throw "ABSTRACT";
+    };
+    TNode.prototype.elementsBeforeMyself = function (includingMe) {
+        if (!this.parentNode) {
+            throw "ERR_NODE_NOT_ATTACHED!";
+        }
+        else {
+            return this.parentNode.childNodes.slice(0, includingMe ? this.siblingIndex + 1 : this.siblingIndex);
+        }
+    };
+    TNode.prototype.elementsAfterMyself = function (includingMe) {
+        if (!this.parentNode) {
+            throw "ERR_NODE_NOT_ATTACHED!";
+        }
+        else {
+            return this.parentNode.childNodes.slice(includingMe ? this.siblingIndex : this.siblingIndex + 1);
+        }
+    };
     return TNode;
 })(Events);
 var TNode_Text = (function (_super) {
@@ -289,16 +314,22 @@ var TNode_Text = (function (_super) {
             this.FRAGMENT_END = this.documentElement.fragment.length() - 1;
         }
     };
+    /* Fixed bug. */
     TNode_Text.prototype.textContentsFragment = function (indexStart, indexEnd) {
-        var out = '', i = 0, len = 0, j = 0;
-        for (i = this.FRAGMENT_START; i <= indexEnd; i++) {
+        var out = '', i = 0, len = 0, j = 0, eols = 0;
+        j = this.FRAGMENT_START;
+        for (i = 0, len = this._text.length; i < len; i++) {
+            if (j >= indexStart && j <= indexEnd) {
+                out += this._text[i];
+            }
             if (this.EOL_POS && this.EOL_POS[i]) {
+                j += 2;
             }
             else {
-                if (i >= indexStart) {
-                    out = out + (this._text[j] || '');
-                }
-                j++;
+                j += 1;
+            }
+            if (j > indexEnd) {
+                break;
             }
         }
         return out;
@@ -353,6 +384,9 @@ var TNode_Text = (function (_super) {
         }
         return retVal;
     };
+    TNode_Text.prototype.ownerBlockElement = function () {
+        return this.parentNode.ownerBlockElement();
+    };
     TNode_Text.$FragmentTypes = {
         "\n": 4 /* WHITE_SPACE */,
         "\t": 4 /* WHITE_SPACE */,
@@ -378,6 +412,10 @@ var TNode_Element = (function (_super) {
         this.isSelectable = false; // weather the element is rendered as selected when the user clicks on it
         this.isResizable = false; // weather the element is rendered with resize handles when it's focused
         this.isPaintedSelected = false; // weather during the last paint, the element was painted as outer selected.
+        this.isBlockTextNode = false; // on elements in which user can write, this property must be set to true.
+        // what happens when a user press enter, the element is "cutted", or a <br /> tag is inserted at cursor position
+        this.insertLinePolicy = 1 /* SURGERY */;
+        this.alternateInsertLinePolicy = 0 /* BR */;
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
@@ -869,6 +907,114 @@ var TNode_Element = (function (_super) {
             }
         }
     };
+    TNode_Element.prototype.ownerBlockElement = function () {
+        if (this.isBlockTextNode) {
+            return this;
+        }
+        else {
+            if (this.parentNode) {
+                return this.parentNode.ownerBlockElement();
+            }
+            else {
+                return null;
+            }
+        }
+    };
+    /* A very special function.
+
+       @fragmentIndex: an index somewhere *between* node fragment start and node fragment end.
+
+       @createNodeAfter: boolean: weather to create a node after this node, or to make the
+                         surgery inside of the node
+
+       @nodeNameAfter argument is taken in consideration only if 2nd argument is true:
+            - if nodeNameAfter === null, a node with the same name as this node will be used.
+            - otherwise, a node with a nodeNameAfter will be appended in this document.
+
+        returns the FRAGMENT_START of the right cutted part.
+
+    */
+    TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
+        if (createNodeAfter === void 0) { createNodeAfter = true; }
+        if (nodeNameAfter === void 0) { nodeNameAfter = null; }
+        console.warn('create surgery: BEGIN');
+        var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
+        if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
+            throw "ERR_SURGERY_OUTSIDE_BOUNDS!";
+        }
+        if ((atFragmentIndex == this.FRAGMENT_START + 1) && createNodeAfter === false) {
+            return atFragmentIndex;
+        }
+        if ((atFragmentIndex == this.FRAGMENT_END - 1) && createNodeAfter === false) {
+            return this.FRAGMENT_END;
+        }
+        // find the exact element which has the atFragmentIndex position
+        splitNode = this.findNodeAtIndex(atFragmentIndex);
+        if (splitNode.nodeType == 1 /* TEXT */ && splitNode.FRAGMENT_START != atFragmentIndex && splitNode.FRAGMENT_END + 1 != atFragmentIndex) {
+            // we split at text
+            t1 = splitNode.textContentsFragment(splitNode.FRAGMENT_START, atFragmentIndex - 1);
+            t2 = splitNode.textContentsFragment(atFragmentIndex, splitNode.FRAGMENT_END);
+            leftCol = new TNode_Collection([splitNode]);
+            rightCol = new TNode_Collection(splitNode.elementsAfterMyself(true));
+            rightCol.addFirst(this.documentElement.createTextNode(t2 || ' '));
+            splitNode.textContents(t1 || ' ');
+            splitNode.parentNode.appendChild(rightCol.at(0), splitNode.siblingIndex + 1);
+            lParent = splitNode.parentNode;
+            rParent = this.documentElement.createElement(lParent.nodeName);
+            rightCol = rightCol.wrapIn(rParent);
+            leftCol = leftCol.wrapIn(lParent);
+        }
+        else {
+            // we split before or after an element
+            if (atFragmentIndex == splitNode.FRAGMENT_START) {
+                //before
+                leftCol = new TNode_Collection(splitNode.elementsBeforeMyself(false));
+                rightCol = new TNode_Collection(splitNode.elementsAfterMyself(true));
+            }
+            else {
+                leftCol = new TNode_Collection(splitNode.elementsBeforeMyself(true));
+                rightCol = new TNode_Collection(splitNode.elementsAfterMyself(false));
+            }
+            lParent = splitNode.parentNode;
+            rParent = this.documentElement.createElement(lParent.nodeName);
+            rightCol.wrapIn(rParent);
+        }
+        while (lParent != this) {
+            leftCol = new TNode_Collection(lParent.elementsBeforeMyself(true));
+            rightCol = new TNode_Collection(lParent.elementsAfterMyself(false));
+            rightCol.addFirst(rParent);
+            rParent = this.documentElement.createElement(lParent.parentNode.nodeName);
+            rightCol.wrapIn(rParent);
+            lParent = lParent.parentNode;
+        }
+        if (createNodeAfter) {
+            if (nodeNameAfter === null || nodeNameAfter == this.nodeName) {
+            }
+            else {
+                (rightCol = new TNode_Collection(rParent.childNodes)).wrapIn(rParent = this.documentElement.createElement(nodeNameAfter));
+                rightCol.wrapIn(rParent);
+            }
+            this.parentNode.appendChild(rParent, this.siblingIndex + 1);
+            if (rParent.innerHTML() == '') {
+                rParent.appendChild(this.documentElement.createTextNode(' '));
+            }
+        }
+        else {
+            rightCol = new TNode_Collection(rParent.childNodes);
+            //console.log( rightCol.innerHTML() );
+            // append all the contents of the rParent to myself
+            rightCol.wrapIn(this);
+            this.documentElement.relayout(true);
+            return atFragmentIndex;
+        }
+        if (this.innerHTML() == '') {
+            this.innerHTML('');
+            this.appendChild(this.documentElement.createTextNode(' '));
+        }
+        // force a document relayout, mandatory!
+        this.documentElement.relayout(true);
+        return rParent.FRAGMENT_START;
+    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -900,6 +1046,30 @@ var TNode_Collection = (function () {
     };
     TNode_Collection.prototype.add = function (node) {
         this.nodes.push(node);
+    };
+    TNode_Collection.prototype.addFirst = function (node) {
+        this.nodes.splice(0, 0, node);
+    };
+    TNode_Collection.prototype.wrapIn = function (node) {
+        for (var i = 0, len = this.nodes.length; i < len; i++) {
+            node.appendChild(this.nodes[i]);
+        }
+        return new TNode_Collection([node]);
+    };
+    TNode_Collection.prototype.innerHTML = function () {
+        var i = 0, len = this.nodes.length, out = [];
+        for (i = 0; i < len; i++) {
+            if (this.nodes[i].nodeType == 1 /* TEXT */) {
+                out.push(this.nodes[i].textContents());
+            }
+            else {
+                out.push(this.nodes[i].outerHTML());
+            }
+        }
+        return out.join('');
+    };
+    TNode_Collection.prototype.at = function (index) {
+        return this.nodes[index];
     };
     return TNode_Collection;
 })();
@@ -1093,6 +1263,7 @@ var HTML_Body = (function (_super) {
         this._needRepaint = true;
         this._layout = null;
         this.viewport = null;
+        this.isBlockTextNode = true; //user can write inside this element ( or sub-elements );
         this.caretPosition = {
             "x": 0,
             "y": 0,
@@ -1135,6 +1306,9 @@ var HTML_Body = (function (_super) {
         switch (elementName) {
             case 'p':
                 node = new HTML_Paragraph();
+                break;
+            case 'br':
+                node = new HTML_BreakElement();
                 break;
             case 'img':
                 node = new HTML_Image(String(args[0] || '') || null);
@@ -1321,12 +1495,25 @@ var HTML_Paragraph = (function (_super) {
     __extends(HTML_Paragraph, _super);
     function HTML_Paragraph() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'p';
         this.style.display('block');
         this.style.marginTop('5');
         this.style.marginBottom('10');
     }
     return HTML_Paragraph;
+})(TNode_Element);
+var HTML_BreakElement = (function (_super) {
+    __extends(HTML_BreakElement, _super);
+    function HTML_BreakElement() {
+        _super.call(this);
+        this.nodeName = 'br';
+        this.style.display('block');
+    }
+    HTML_BreakElement.prototype.removeOrphanNodes = function () {
+        // void, intentionally.
+    };
+    return HTML_BreakElement;
 })(TNode_Element);
 var HTML_Image = (function (_super) {
     __extends(HTML_Image, _super);
@@ -1458,6 +1645,7 @@ var HTML_Heading1 = (function (_super) {
     __extends(HTML_Heading1, _super);
     function HTML_Heading1() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'h1';
         this.style.display('block');
         this.style.fontSize('18');
@@ -1469,6 +1657,7 @@ var HTML_Heading2 = (function (_super) {
     __extends(HTML_Heading2, _super);
     function HTML_Heading2() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'h2';
         this.style.display('block');
         this.style.fontSize('17');
@@ -1480,6 +1669,7 @@ var HTML_Heading3 = (function (_super) {
     __extends(HTML_Heading3, _super);
     function HTML_Heading3() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'h3';
         this.style.display('block');
         this.style.fontSize('17');
@@ -1492,6 +1682,7 @@ var HTML_Heading4 = (function (_super) {
     __extends(HTML_Heading4, _super);
     function HTML_Heading4() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'h4';
         this.style.display('block');
         this.style.fontSize('16');
@@ -1503,6 +1694,7 @@ var HTML_Heading5 = (function (_super) {
     __extends(HTML_Heading5, _super);
     function HTML_Heading5() {
         _super.call(this);
+        this.isBlockTextNode = true;
         this.nodeName = 'h5';
         this.style.display('block');
         this.style.fontSize('15');
@@ -1576,6 +1768,7 @@ var HTML_ListItem = (function (_super) {
     function HTML_ListItem() {
         _super.call(this);
         this.isSelectable = true;
+        this.isBlockTextNode = true;
         this.nodeName = 'li';
         this.style.display('block');
         this.style.paddingLeft('15');
@@ -2062,6 +2255,9 @@ var HTML_TableCell = (function (_super) {
         this.edgeTop = null;
         this.edgeBottom = null;
         this.isSelectable = true;
+        this.isBlockTextNode = true;
+        this.insertLinePolicy = 0 /* BR */;
+        this.alternateInsertLinePolicy = 0 /* BR */;
         this.style = new TStyle_TableCell(this);
         this.nodeName = 'td';
         this.style.display('block');
@@ -4164,6 +4360,7 @@ var Viewport_KeyboardDriver = (function (_super) {
                 }
                 break;
             case 13:
+            case 10:
                 if (!DOMEvent.ctrlKey) {
                     this.viewport.execCommand(2 /* NEW_LINE */, DOMEvent.shiftKey);
                     cancelEvent = true;
@@ -4347,6 +4544,7 @@ var Viewport_CommandRouter = (function (_super) {
                         this.newLine();
                     }
                 }
+                break;
             case 3 /* MOVE */:
                 if (!this.ensureArgs(args, 3, 3)) {
                     throw "Command: " + commandName + " require 3 arguments of type CaretPos, int, boolean.";
@@ -4505,8 +4703,47 @@ var Viewport_CommandRouter = (function (_super) {
     };
     // inserts a new line in document. if forceBRTag is set (not null)
     // a <br> tag will be inserted instead of creating a new paragraph.
-    Viewport_CommandRouter.prototype.newLine = function (forceBRTag) {
-        if (forceBRTag === void 0) { forceBRTag = null; }
+    Viewport_CommandRouter.prototype.newLine = function (alternateMethod) {
+        if (alternateMethod === void 0) { alternateMethod = null; }
+        if (this.viewport.selection.getRange()) {
+            this.viewport.selection.removeContents();
+        }
+        var rng = this.viewport.selection.getRange(), len = rng.length(), focus = rng.focusNode(), anchor = rng.anchorNode(), target = focus || anchor, targetNode = target.target.ownerBlockElement(), method, index = target.fragPos, jumpPosition = 0;
+        // no target node, no new line ...
+        if (targetNode === null) {
+            return;
+        }
+        if (!alternateMethod) {
+            //default
+            method = targetNode.insertLinePolicy;
+        }
+        else {
+            method = targetNode.alternateInsertLinePolicy;
+        }
+        if (method == 0 /* BR */) {
+            jumpPosition = targetNode.createSurgery(index, false);
+            // we're expecting that the jump position is a node begin.
+            target.target = this.viewport.document.findNodeAtIndex(jumpPosition);
+            target.fragPos = jumpPosition;
+            var breakElement = this.viewport.document.createElement('br');
+            // append the break *before* the target.target.
+            target.target.parentNode.appendChild(breakElement, target.target.siblingIndex);
+            // force relayout;
+            this.viewport.document.relayout(true);
+            jumpPosition = breakElement.FRAGMENT_START;
+            target.target = breakElement;
+        }
+        else {
+            jumpPosition = targetNode.createSurgery(index, true, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].indexOf(targetNode.nodeName) >= 0 ? 'p' : targetNode.nodeName);
+            target.target = this.viewport.document.findNodeAtIndex(jumpPosition);
+            target.fragPos = jumpPosition;
+        }
+        while (jumpPosition < this.viewport.document.fragment.length() && [3 /* CHARACTER */, 4 /* WHITE_SPACE */, 2 /* EOL */].indexOf(this.viewport.document.fragment.at(jumpPosition)) == -1) {
+            jumpPosition++;
+        }
+        target.target = this.viewport.document.findNodeAtIndex(jumpPosition);
+        target.fragPos = jumpPosition;
+        rng.collapse(true);
     };
     // moves the caret, and optionally extends the selection to the
     // new caret position.
@@ -5813,7 +6050,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.node.innerHTML = [
             '<div class="item index-0">',
             '<div class="text-dropdown">',
-            '<input class="nodeName" type="text" data-suggestions="p:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4: Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+            '<input class="nodeName" type="text" data-suggestions="p:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
             '<div class="expander"></div>',
             '</div>',
             '</div>',
@@ -5833,15 +6070,227 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.nodeName = this.node.querySelector('input.nodeName');
         this.fontFamily = this.node.querySelector('input.fontFamily');
         this.fontSize = this.node.querySelector('input.fontSize');
-        this.dropdownize(this.nodeName);
-        this.dropdownize(this.fontFamily);
-        this.dropdownize(this.fontSize);
+        (function (me) {
+            me.dropdownize(me.nodeName, function (v) {
+                me.setNodeName(v);
+            }, true);
+            me.dropdownize(me.fontFamily, function (v) {
+                me.setFontFamily(v);
+            }, false);
+            me.dropdownize(me.fontSize, function (v) {
+                me.setFontSize(v);
+            }, false);
+        })(this);
     }
-    UI_Toolbar_Panel_Style.prototype.dropdownize = function (input) {
-        var suggestions = (input.getAttribute('data-suggestions') || '').split(','), len = suggestions.length, i = 0;
-        console.warn(suggestions);
+    UI_Toolbar_Panel_Style.prototype.setNodeName = function (nodeName) {
+        console.log('setnodename: ' + nodeName);
+    };
+    UI_Toolbar_Panel_Style.prototype.setFontFamily = function (fontFamily) {
+        console.log('setfontfamily: ' + fontFamily);
+    };
+    UI_Toolbar_Panel_Style.prototype.setFontSize = function (fontSize) {
+        console.log('setfontsize: ' + fontSize);
+    };
+    UI_Toolbar_Panel_Style.prototype.dropdownize = function (input, submit, allowSuggestionsOnly) {
+        /* indeed.com corby nn18 nn95nb */
+        if (allowSuggestionsOnly === void 0) { allowSuggestionsOnly = false; }
+        // make the parent of the input focusable
+        input.parentNode['tabIndex'] = 0;
+        var suggestions = (input.getAttribute('data-suggestions') || '').split(','), len = suggestions.length, i = 0, items = [], value, sp, overlay, option, valueOnFocus = '', expander = input.parentNode.querySelector('div.expander');
+        for (i = 0, len = suggestions.length; i < len; i++) {
+            suggestions[i] = suggestions[i].replace(/(^[\s]+|[\s]+$)/g, '');
+            if (suggestions[i]) {
+                sp = suggestions[i].split(':');
+                if (sp.length == 1) {
+                    items.push({
+                        "name": sp[0],
+                        "value": sp[0]
+                    });
+                }
+                else {
+                    items.push({
+                        "value": sp[0],
+                        "name": sp.slice(1).join(':')
+                    });
+                }
+            }
+        }
+        overlay = document.createElement('div');
+        DOM.addClass(overlay, 'overlay');
+        // create an overlay object, and append it after the input
+        if (items.length) {
+            for (i = 0, len = items.length; i < len; i++) {
+                option = document.createElement('div');
+                DOM.addClass(option, 'option');
+                option.appendChild(document.createTextNode(items[i].name));
+                option.setAttribute('data-value', items[i].value);
+                overlay.appendChild(option);
+            }
+            input.parentNode.appendChild(overlay);
+        }
+        overlay.addEventListener('click', function (DOMEvent) {
+            var target = DOMEvent.target || DOMEvent.srcElement, which = DOMEvent.which;
+            if (which != 1) {
+                return;
+            }
+            if (!DOM.hasClass(target, 'option')) {
+                return;
+            }
+            input.value = target.textContent;
+            // focus the parentNode of the input, in order to avoid focusing something
+            // else outside our marvelous editor.
+            input.parentNode['focus']();
+            submit(target.getAttribute('data-value'));
+        }, true);
+        overlay.addEventListener('mousedown', function (DOMEvent) {
+            DOMEvent.preventDefault();
+            DOMEvent.stopPropagation();
+        }, true);
+        if (expander) {
+            expander.addEventListener('click', function () {
+                input.focus();
+            }, true);
+        }
+        input.addEventListener('focus', function () {
+            valueOnFocus = input.value;
+            input.select();
+            DOM.addClass(input.parentNode, 'focused');
+            for (var i = 0, items = Array.prototype.slice.call(overlay.childNodes, 0) || [], len = items.length; i < len; i++) {
+                DOM.removeClass(items[i], 'hidden');
+                DOM.removeClass(items[i], 'on');
+            }
+        }, true);
+        input.addEventListener('blur', function () {
+            DOM.removeClass(input.parentNode, 'focused');
+        }, true);
+        var preventFiltering = false, onTextInput = new Throttler(function () {
+            if (preventFiltering) {
+                preventFiltering = false;
+                return;
+            }
+            var value = input.value.toLowerCase(), i = 0, len = items.length, nodes = Array.prototype.slice.call(overlay.childNodes, 0);
+            for (i = 0; i < len; i++) {
+                DOM.removeClass(nodes[i], 'on');
+                if (value == '' || items[i].name.toLowerCase().indexOf(value) >= 0) {
+                    DOM.removeClass(nodes[i], 'hidden');
+                }
+                else {
+                    DOM.addClass(nodes[i], 'hidden');
+                }
+            }
+        }, 10);
+        function onUpArrow() {
+            var opts = [], i = 0, len = 0, childNodes = Array.prototype.slice.call(overlay.childNodes, 0), onIndex = -1, onOption;
+            for (i = 0, len = childNodes.length; i < len; i++) {
+                if (!DOM.hasClass(childNodes[i], 'hidden')) {
+                    opts.push(childNodes[i]);
+                    if (DOM.hasClass(childNodes[i], 'on')) {
+                        onIndex = opts.length - 1;
+                    }
+                }
+            }
+            if (opts.length) {
+                if (onIndex == -1 || onIndex == 0) {
+                    if (onIndex == 0)
+                        DOM.removeClass(opts[0], 'on');
+                    DOM.addClass(onOption = opts[opts.length - 1], 'on');
+                }
+                else {
+                    DOM.removeClass(opts[onIndex], 'on');
+                    DOM.addClass(onOption = opts[onIndex - 1], 'on');
+                }
+                onOption['scrollIntoViewIfNeeded']();
+                // set the value of the control to onOption.textContents
+                input.value = onOption.textContent;
+                input.select();
+                preventFiltering = true;
+            }
+        }
+        function onDownArrow() {
+            var opts = [], i = 0, len = 0, childNodes = Array.prototype.slice.call(overlay.childNodes, 0), onIndex = -1, onOption;
+            for (i = 0, len = childNodes.length; i < len; i++) {
+                if (!DOM.hasClass(childNodes[i], 'hidden')) {
+                    opts.push(childNodes[i]);
+                    if (DOM.hasClass(childNodes[i], 'on')) {
+                        onIndex = opts.length - 1;
+                    }
+                }
+            }
+            if (opts.length) {
+                if (onIndex == -1 || onIndex == opts.length - 1) {
+                    if (onIndex == opts.length - 1)
+                        DOM.removeClass(opts[opts.length - 1], 'on');
+                    DOM.addClass(onOption = opts[0], 'on');
+                }
+                else {
+                    DOM.removeClass(opts[onIndex], 'on');
+                    DOM.addClass(onOption = opts[onIndex + 1], 'on');
+                }
+                onOption['scrollIntoViewIfNeeded']();
+                // set the value of the control to onOption.textContents
+                input.value = onOption.textContent;
+                input.select();
+                preventFiltering = true;
+            }
+        }
+        function onEnterKey() {
+            preventFiltering = true;
+            var v = input.value, i = 0, len = 0, valid = false, val = input.value;
+            if (!v) {
+                return;
+            }
+            if (allowSuggestionsOnly) {
+                for (i = 0, len = items.length; i < len; i++) {
+                    if (items[i].name == v) {
+                        valid = true;
+                        val = items[i].value;
+                        break;
+                    }
+                }
+            }
+            else {
+                valid = true;
+            }
+            if (!valid) {
+                return;
+            }
+            input.parentNode['focus']();
+            submit(val);
+        }
+        function changed(event) {
+            var keyCode = event.keyCode;
+            switch (keyCode) {
+                case 38:
+                    onUpArrow();
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                case 40:
+                    onDownArrow();
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                case 13:
+                    onEnterKey();
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                case 27:
+                    input.parentNode['focus']();
+                    input.value = valueOnFocus;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    break;
+                default:
+                    onTextInput.run();
+                    break;
+            }
+            onTextInput.run();
+        }
+        input.addEventListener('keydown', changed, true);
     };
     UI_Toolbar_Panel_Style.prototype.updateNodeName = function () {
+        console.warn("updateNodeName: NOT IMPLEMENTED!");
     };
     UI_Toolbar_Panel_Style.prototype.updateFontFamily = function () {
         var family = String(this.toolbar.state.state.fontFamily || '');
@@ -6180,6 +6629,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./HTMLParser.ts" />
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
+/// <reference path="./HTML/BreakElement.ts" />
 /// <reference path="./HTML/Image.ts" />
 /// <reference path="./HTML/Heading1.ts" />
 /// <reference path="./HTML/Heading2.ts" />
@@ -6245,7 +6695,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 var niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
-    '<p align="justified">The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
+    '<p align="justified">The element above <br />this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     '<h2>Heading 2</h2>',
     '<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     '<h3>Heading 3</h3>',

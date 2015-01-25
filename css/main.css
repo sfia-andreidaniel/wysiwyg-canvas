@@ -17,6 +17,7 @@ div.html-editor > div.toolbar {
 
 div.html-editor.has-toolbar > div.toolbar {
 	display: block;
+	z-index: 2;
 }
 
 div.html-editor > div.body {
@@ -83,6 +84,47 @@ div.html-editor > div.toolbar > div.ui-panel div.ui-button {
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: 0px 0px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown {
+	display: inline-block;
+	position: relative;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay {
+	display: none;
+	position: absolute;
+	top: 100%;
+	left: 0px;
+	right: 0px;
+	background-color: white;
+	outline: 1px solid black;
+	overflow-y: auto;
+	overflow-x: hidden;
+	max-height: 50px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown.focused > .overlay {
+	display: block;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option {
+	display: block;
+	overflow: hidden;
+	white-space: nowrap;
+	font-family: Arial;
+	font-size: 11px;
+	cursor: default;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option.hidden {
+	display: none;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option:hover,
+div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option.on {
+	background-color: blue;
+	color: white;
 }
 
 div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > div.expander {

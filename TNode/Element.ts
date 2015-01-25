@@ -1,15 +1,21 @@
 class TNode_Element extends TNode {
 
-	public childNodes: TNode[] = [];
-	public style: TStyle;
-	public nodeType: TNode_Type = TNode_Type.ELEMENT;
-	public nodeName: string = '';
-	public id: string = '';
-	public className: string = '';
+	public childNodes                : TNode[]        = [];
+	public style                     : TStyle;
+	public nodeType                  : TNode_Type     = TNode_Type.ELEMENT;
+	public nodeName                  : string         = '';
+	public id                        : string         = '';
+	public className                 : string         = '';
 
-	public isSelectable : boolean = false; // weather the element is rendered as selected when the user clicks on it
-	public isResizable  : boolean = false; // weather the element is rendered with resize handles when it's focused
-	public isPaintedSelected: boolean = false; // weather during the last paint, the element was painted as outer selected.
+	public isSelectable              : boolean        = false; // weather the element is rendered as selected when the user clicks on it
+	public isResizable               : boolean        = false; // weather the element is rendered with resize handles when it's focused
+	public isPaintedSelected         : boolean        = false; // weather during the last paint, the element was painted as outer selected.
+
+	public isBlockTextNode           : boolean        = false; // on elements in which user can write, this property must be set to true.
+	
+	// what happens when a user press enter, the element is "cutted", or a <br /> tag is inserted at cursor position
+	public insertLinePolicy          : TNewLinePolicy = TNewLinePolicy.SURGERY;
+	public alternateInsertLinePolicy : TNewLinePolicy = TNewLinePolicy.BR;
 
 	constructor( postStyleInit: boolean = false ) {
 		super();
@@ -677,6 +683,166 @@ class TNode_Element extends TNode {
 
 		}
 
+	}
+
+	public ownerBlockElement(): TNode_Element {
+		if ( this.isBlockTextNode ) {
+			return this;
+		} else {
+			if ( this.parentNode ) {
+				return this.parentNode.ownerBlockElement();
+			} else {
+				return null;
+			}
+		}
+	}
+
+	/* A very special function.
+
+	   @fragmentIndex: an index somewhere *between* node fragment start and node fragment end.
+
+	   @createNodeAfter: boolean: weather to create a node after this node, or to make the
+	                     surgery inside of the node
+
+	   @nodeNameAfter argument is taken in consideration only if 2nd argument is true:
+	   		- if nodeNameAfter === null, a node with the same name as this node will be used.
+	   		- otherwise, a node with a nodeNameAfter will be appended in this document.
+
+		returns the FRAGMENT_START of the right cutted part.
+
+	*/
+
+	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
+		
+		console.warn( 'create surgery: BEGIN' );
+
+		var splitNode: TNode,
+			lParent: TNode_Element,
+			rParent: TNode_Element = null,
+			t1: string = '',
+			t2: string = '',
+			leftCol : TNode_Collection,
+			rightCol: TNode_Collection,
+			rNode: TNode_Text;
+
+		if ( atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END ) {
+			throw "ERR_SURGERY_OUTSIDE_BOUNDS!";
+		}
+
+		if ( ( atFragmentIndex == this.FRAGMENT_START + 1 ) && createNodeAfter === false ) {	 
+			return atFragmentIndex;
+		}
+
+		if ( ( atFragmentIndex == this.FRAGMENT_END - 1 ) && createNodeAfter === false ) {
+			return this.FRAGMENT_END;
+		}
+
+		// find the exact element which has the atFragmentIndex position
+
+		splitNode = this.findNodeAtIndex( atFragmentIndex );
+
+		if ( splitNode.nodeType == TNode_Type.TEXT && splitNode.FRAGMENT_START != atFragmentIndex && splitNode.FRAGMENT_END + 1 != atFragmentIndex ) {
+			// we split at text
+			t1 = (<TNode_Text>splitNode).textContentsFragment( splitNode.FRAGMENT_START, atFragmentIndex - 1 );
+			
+			t2 = (<TNode_Text>splitNode).textContentsFragment( atFragmentIndex, splitNode.FRAGMENT_END );
+			
+			leftCol = new TNode_Collection( [ splitNode ] );
+
+			rightCol = new TNode_Collection( splitNode.elementsAfterMyself( true ) );
+
+			rightCol.addFirst( this.documentElement.createTextNode( t2 || ' ' ) );
+
+			(<TNode_Text>splitNode).textContents( t1 || ' ' );
+
+			splitNode.parentNode.appendChild( rightCol.at(0), splitNode.siblingIndex + 1 );
+
+			lParent = splitNode.parentNode;
+			rParent = this.documentElement.createElement( lParent.nodeName );
+
+			rightCol = rightCol.wrapIn( rParent );
+			leftCol  = leftCol.wrapIn( lParent );
+
+		} else {
+			// we split before or after an element
+			if ( atFragmentIndex == splitNode.FRAGMENT_START ) {
+				//before
+				
+				leftCol = new TNode_Collection( splitNode.elementsBeforeMyself( false ) );
+				rightCol= new TNode_Collection( splitNode.elementsAfterMyself( true ) );
+
+			} else {
+
+				leftCol = new TNode_Collection( splitNode.elementsBeforeMyself( true ) );
+				rightCol = new TNode_Collection( splitNode.elementsAfterMyself( false ) );
+
+			}
+
+			lParent = splitNode.parentNode;
+			rParent = this.documentElement.createElement( lParent.nodeName );
+
+			rightCol.wrapIn( rParent );
+		}
+
+		while ( lParent != this ) {
+
+			leftCol = new TNode_Collection( lParent.elementsBeforeMyself( true) );
+			rightCol= new TNode_Collection( lParent.elementsAfterMyself( false ) );
+
+			rightCol.addFirst( rParent );
+
+			rParent = this.documentElement.createElement( lParent.parentNode.nodeName );
+
+			rightCol.wrapIn( rParent );
+
+			lParent = lParent.parentNode;
+			
+		}
+
+		if ( createNodeAfter ) {
+
+			if ( nodeNameAfter === null || nodeNameAfter == this.nodeName ) {
+				// nothing, rParent is good.
+				//console.log( 'rNOTHING!' + rParent.innerHTML() );
+			} else {
+				( rightCol = new TNode_Collection( rParent.childNodes ) ).wrapIn( rParent = this.documentElement.createElement( nodeNameAfter ) );
+				rightCol.wrapIn( rParent );
+				//console.warn( 'rightCol: ' + rightCol.innerHTML() );
+
+			}
+
+			this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
+
+			if ( rParent.innerHTML() == '' ) {
+				rParent.appendChild( this.documentElement.createTextNode( ' ' ) );
+			}
+
+		} else {
+
+			rightCol = new TNode_Collection( rParent.childNodes );
+
+			//console.log( rightCol.innerHTML() );
+
+			// append all the contents of the rParent to myself
+			rightCol.wrapIn( this );
+
+			this.documentElement.relayout(true);
+
+			return atFragmentIndex;
+
+		}
+
+		if ( this.innerHTML() == '' ) {
+
+			this.innerHTML('');
+			this.appendChild( this.documentElement.createTextNode( ' ' ) );
+
+		}
+
+		// force a document relayout, mandatory!
+		this.documentElement.relayout(true);
+
+		return rParent.FRAGMENT_START;
 	}
 
 }

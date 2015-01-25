@@ -1,10 +1,13 @@
 class HTML_Body extends TNode_Element {
 	
-	private _needRelayout: boolean = true;
-	private _needRepaint: boolean = true;
-	public  _layout: Layout = null;
-	public  viewport: Viewport = null;
-	public  fragment: Fragment;
+	private _needRelayout	 : boolean = true;
+	private _needRepaint 	 : boolean = true;
+	public  _layout 		 : Layout = null;
+	public  viewport 		 : Viewport = null;
+	public  fragment 		 : Fragment;
+
+	public isBlockTextNode   : boolean = true; //user can write inside this element ( or sub-elements );
+
 	public  caretPosition: TRect = {
 		"x": 0,
 		"y": 0,
@@ -83,6 +86,9 @@ class HTML_Body extends TNode_Element {
 		switch ( elementName ) {
 			case 'p':
 				node = new HTML_Paragraph();
+				break;
+			case 'br':
+				node = new HTML_BreakElement();
 				break;
 			case 'img':
 				node = new HTML_Image( String( args[0] || '' ) || null );

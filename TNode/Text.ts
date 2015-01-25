@@ -66,20 +66,27 @@ class TNode_Text extends TNode {
 		}
 	}
 
+	/* Fixed bug. */
 	public textContentsFragment( indexStart: number, indexEnd: number ): string {
 		var out: string = '',
 		    i: number = 0,
 		    len: number = 0,
-		    j: number = 0;
+		    j: number = 0,
+		    eols: number = 0;
 
-		for ( i=this.FRAGMENT_START; i <= indexEnd; i++ ) {
+		j = this.FRAGMENT_START;
+
+		for ( i=0, len = this._text.length; i<len; i++ ) {
+			if ( j >= indexStart && j <= indexEnd ) {
+				out += this._text[i];
+			}
 			if ( this.EOL_POS && this.EOL_POS[i] ) {
-				// nothing
+				j += 2;
 			} else {
-				if ( i >= indexStart ) {
-					out = out + ( this._text[j] || '' );
-				}
-				j++;
+				j+=1;
+			}
+			if ( j > indexEnd ) {
+				break;
 			}
 		}
 
@@ -164,6 +171,10 @@ class TNode_Text extends TNode {
 		}
 
 		return retVal;
+	}
+
+	public ownerBlockElement() {
+		return this.parentNode.ownerBlockElement();
 	}
 
 }

@@ -1001,11 +1001,11 @@ var TNode_Element = (function (_super) {
         }
         else {
             rightCol = new TNode_Collection(rParent.childNodes);
-            //console.log( rightCol.innerHTML() );
+            console.log(rightCol.innerHTML());
             // append all the contents of the rParent to myself
             rightCol.wrapIn(this);
             this.documentElement.relayout(true);
-            return atFragmentIndex;
+            return rightCol.at(0).FRAGMENT_START;
         }
         if (this.innerHTML() == '') {
             this.innerHTML('');

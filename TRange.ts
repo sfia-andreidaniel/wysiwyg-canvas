@@ -238,7 +238,6 @@ class TRange extends Events {
 	}
 
 	public moveLeftUntilCharacterIfNotLandedOnText() {
-		throw "You should not use this!";
 		if ( this._focusNode ) {
 			this._focusNode.moveLeftUntilCharacterIfNotLandedOnText();
 			this._anchorNode.fragPos = this._focusNode.fragPos;

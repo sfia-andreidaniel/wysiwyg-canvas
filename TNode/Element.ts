@@ -51,6 +51,32 @@ class TNode_Element extends TNode {
 		return node;
 	}
 
+	public appendCollection( collection: TNode_Collection, siblingIndex: number = null ) {
+		
+		siblingIndex = siblingIndex === null
+			? this.childNodes.length
+			: siblingIndex;
+
+		var args: any[] = [ siblingIndex, 0 ],
+		    i: number = 0,
+		    len: number = collection.nodes.length;
+
+		for ( i=0; i<len; i++ ) {
+			args.push( collection.nodes[i] );
+			collection.nodes[i].remove();
+		}
+
+		this.childNodes.splice.apply( this.childNodes, args );
+
+		for ( i=0, len = this.childNodes.length; i<len; i++ ) {
+			this.childNodes[i].parentNode = this;
+			this.childNodes[i].siblingIndex = i;
+		}
+
+		this.requestRelayout();
+
+	}
+
 	public removeChild( node: TNode ): TNode {
 		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
 			if ( this.childNodes[i] == node ) {

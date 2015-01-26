@@ -236,12 +236,159 @@ class Viewport_CommandRouter extends Events {
 		
 	}
 
+	private removeCharLeft( currentFragPos: number ) {
+		/* 1. 
+	   
+	   	1.1. There are no more characters until the left of the ownerBlockElement.
+	         Merge current ownerBlockElement() with previous ownerBlockElement
+
+	   	1.2. The exactly previous white-space or character on current document fragment
+	        corresponds to a BR tag.
+	        Delete the br tag.
+
+	   	1.3. The exactly previous white-space or character in the document is a child of
+	        this ownerBlockElement.
+	        
+	        1.3.1. Delete that character. If it's owner parent has no textContents(), also delete
+	        it's parent too.
+
+	        1.3.2. After 1.3.1, the current ownerBlockElement() remains with textContents empty.
+	               Jump to the end of previous ownerBlockElement.
+	   	*/
+
+ 		try {
+
+		   	var document = this.viewport.document,
+		   		fragment = document.fragment,
+		   	    at: FragmentItem,
+		   	    currentNode = document.findNodeAtIndex( currentFragPos ),
+		   	    ownerBlockElement = currentNode.ownerBlockElement(),
+		   	    minFragPos = ownerBlockElement.FRAGMENT_START,
+		   	    rmFragPos  = null,
+		   	    targetRemovalNode: TNode_Text = null,
+		   	    previousBlockElement: TNode = null,
+		   	    myAllNodes: TNode_Collection,
+		   	    prevSibling: TNode,
+		   	    selection = this.viewport.selection,
+		   	    firstNode: TNode,
+		   	    realNumChars: number = 0,
+		   	    rng = selection.getRange();
+
+		   	console.log( [ document, fragment, at, currentNode, ownerBlockElement, currentFragPos ]);
+
+		   	while ( --currentFragPos > minFragPos ) {
+		   		at = fragment.at( currentFragPos );
+		   		if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+		   			rmFragPos = currentFragPos;
+		   			targetRemovalNode = <TNode_Text>document.findNodeAtIndex( rmFragPos );
+		   			break;
+		   		}
+		   	}
+
+		   	if ( rmFragPos === null ) {
+		   		// 1.1
+		   		
+		   		if ( ownerBlockElement == document || !ownerBlockElement.isMergeable ) {
+		   			return; // did all my best, cannot disolve the body or a non-mergeable element.
+		   		}
+
+		   		firstNode = ownerBlockElement.childNodes[0] || null;
+
+		   		prevSibling = ownerBlockElement.previousSibling();
+		   		myAllNodes = new TNode_Collection( ownerBlockElement.childNodes );
+
+		   		if ( prevSibling === null ) {
+		   			// append all my nodes @ my siblingIndex
+		   			(<TNode_Element>ownerBlockElement.parentNode).appendCollection( myAllNodes, ownerBlockElement.siblingIndex );
+		   			ownerBlockElement.remove();
+		   		} else {
+		   			if ( prevSibling.nodeType == TNode_Type.TEXT || !(<TNode_Element>prevSibling).isMergeable ) {
+		   				(<TNode_Element>ownerBlockElement.parentNode).appendCollection( myAllNodes, ownerBlockElement.siblingIndex );
+		   			} else {
+		   				(<TNode_Element>prevSibling).appendCollection( myAllNodes );
+		   			}
+		   			ownerBlockElement.remove();
+		   		}
+
+		   		document.relayout(true);
+
+		   		if ( firstNode ) {
+		   			selection.getRange().focusNode().fragPos = firstNode.FRAGMENT_START;
+		   			selection.getRange().focusNode().target = firstNode;
+		   			selection.getRange().moveLeftUntilCharacterIfNotLandedOnText();
+		   		} else {
+		   			selection.getRange().moveLeftUntilCharacterIfNotLandedOnText(); // re-land selection
+		   		}
+
+		   		selection.getRange().fire( 'changed' );
+
+		   		return;
+		   	
+		   	}
+
+		   	if ( targetRemovalNode.isBR ) {
+		   		//1.2.
+		   		this.moveCaret( CaretPos.CHARACTER, -1, false );
+		   		targetRemovalNode.parentNode.remove();
+		   		return;
+		   	}
+
+		   	// count the number of real characters until first node start.
+
+		   	realNumChars = targetRemovalNode.deleteTextContentsBetweenFragmentPositions( rmFragPos, rmFragPos );
+
+		   	document.removeOrphanNodes();
+
+		   	document.relayout(true);
+
+		   	rng.focusNode().target = targetRemovalNode;
+		   	rng.focusNode().fragPos = targetRemovalNode.textIndexForTextLength( realNumChars );
+		   	rng.collapse( true );
+
+
+	   	} catch ( exception ) {
+	   		console.error( exception );
+	   	}
+		 
+	}
+
+
+
+	private removeCharRight( currentFragPos: number ) {
+
+	}
+
 	// negative values delete characters in the left of the caret,
 	// positive values delete characters in the right of the caret
 	public deleteText( amount: number ) {
-		if ( this.viewport.selection.getRange().length() ) {
+
+		if ( !amount ) {
+			return;
+		}
+
+		var rng = this.viewport.selection.getRange(),
+		    focus = rng.focusNode(); 
+
+		if ( rng.length() ) {
 			this.viewport.selection.removeContents();
 		} else {
+
+			if ( rng.length() === null ) {
+				console.warn( "WILL BE IMPLEMENTED LATER!" );
+			} else {
+
+				// deny deleting more than a character @ once.
+				if ( Math.abs( amount ) != 1 ) {
+					throw "ERR_BAD_ARGUMENT. Allowed argument is -1 or 1.";
+				}
+
+				if ( amount < 1 ) {
+					this.removeCharLeft( focus.fragPos );
+				} else {
+					this.removeCharRight( focus.fragPos );
+				}
+
+			}
 
 		}
 	}

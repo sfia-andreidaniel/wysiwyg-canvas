@@ -340,6 +340,18 @@ var TNode_Text = (function (_super) {
         }
         return out;
     };
+    TNode_Text.prototype.deleteTextContentsBetweenFragmentPositions = function (indexStart, indexEnd) {
+        var out = [], returnValue = 0;
+        if (indexStart > this.FRAGMENT_START) {
+            out.push(this.textContentsFragment(this.FRAGMENT_START, indexStart - 1));
+            returnValue = out[0].length;
+        }
+        if (indexEnd < this.FRAGMENT_END) {
+            out.push(this.textContentsFragment(indexEnd + 1, this.FRAGMENT_END));
+        }
+        this.textContents(out.join(''));
+        return returnValue;
+    };
     // I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
     // Don't even try to understand it, cause even I will not be able to understand it in a few hours
     // from now on
@@ -389,6 +401,22 @@ var TNode_Text = (function (_super) {
             retVal--;
         }
         return retVal;
+    };
+    // @in: text mapping index
+    // @out: fragment index
+    TNode_Text.prototype.textIndexForTextLength = function (index) {
+        var i = 0, j = this.FRAGMENT_START, len = 0;
+        for (i = 0, len = this._text.length; i <= len; i++) {
+            if (index == i) {
+                return j;
+            }
+            if (this.EOL_POS && this.EOL_POS[i]) {
+                j += 2;
+            }
+            else {
+                j++;
+            }
+        }
     };
     TNode_Text.prototype.ownerBlockElement = function () {
         return this.parentNode.ownerBlockElement();
@@ -523,6 +551,21 @@ var TNode_Element = (function (_super) {
         }
         this.requestRelayout();
         return node;
+    };
+    TNode_Element.prototype.appendCollection = function (collection, siblingIndex) {
+        if (siblingIndex === void 0) { siblingIndex = null; }
+        siblingIndex = siblingIndex === null ? this.childNodes.length : siblingIndex;
+        var args = [siblingIndex, 0], i = 0, len = collection.nodes.length;
+        for (i = 0; i < len; i++) {
+            args.push(collection.nodes[i]);
+            collection.nodes[i].remove();
+        }
+        this.childNodes.splice.apply(this.childNodes, args);
+        for (i = 0, len = this.childNodes.length; i < len; i++) {
+            this.childNodes[i].parentNode = this;
+            this.childNodes[i].siblingIndex = i;
+        }
+        this.requestRelayout();
     };
     TNode_Element.prototype.removeChild = function (node) {
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
@@ -2503,6 +2546,13 @@ var HTML_TableCell = (function (_super) {
                 _super.prototype.setAttribute.call(this, attributeName, attributeValue);
                 break;
         }
+    };
+    HTML_TableCell.prototype.removeChild = function (node) {
+        var returnValue = _super.prototype.removeChild.call(this, node);
+        if (this.childNodes.length == 0) {
+            this.appendChild(this.documentElement.createTextNode(' '));
+        }
+        return returnValue;
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -4924,13 +4974,118 @@ var Viewport_CommandRouter = (function (_super) {
         //console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
         range.collapse(true);
     };
+    Viewport_CommandRouter.prototype.removeCharLeft = function (currentFragPos) {
+        /* 1.
+       
+        1.1. There are no more characters until the left of the ownerBlockElement.
+             Merge current ownerBlockElement() with previous ownerBlockElement
+
+        1.2. The exactly previous white-space or character on current document fragment
+            corresponds to a BR tag.
+            Delete the br tag.
+
+        1.3. The exactly previous white-space or character in the document is a child of
+            this ownerBlockElement.
+            
+            1.3.1. Delete that character. If it's owner parent has no textContents(), also delete
+            it's parent too.
+
+            1.3.2. After 1.3.1, the current ownerBlockElement() remains with textContents empty.
+                   Jump to the end of previous ownerBlockElement.
+        */
+        try {
+            var document = this.viewport.document, fragment = document.fragment, at, currentNode = document.findNodeAtIndex(currentFragPos), ownerBlockElement = currentNode.ownerBlockElement(), minFragPos = ownerBlockElement.FRAGMENT_START, rmFragPos = null, targetRemovalNode = null, previousBlockElement = null, myAllNodes, prevSibling, selection = this.viewport.selection, firstNode, realNumChars = 0, rng = selection.getRange();
+            console.log([document, fragment, at, currentNode, ownerBlockElement, currentFragPos]);
+            while (--currentFragPos > minFragPos) {
+                at = fragment.at(currentFragPos);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    rmFragPos = currentFragPos;
+                    targetRemovalNode = document.findNodeAtIndex(rmFragPos);
+                    break;
+                }
+            }
+            if (rmFragPos === null) {
+                // 1.1
+                if (ownerBlockElement == document || !ownerBlockElement.isMergeable) {
+                    return; // did all my best, cannot disolve the body or a non-mergeable element.
+                }
+                firstNode = ownerBlockElement.childNodes[0] || null;
+                prevSibling = ownerBlockElement.previousSibling();
+                myAllNodes = new TNode_Collection(ownerBlockElement.childNodes);
+                if (prevSibling === null) {
+                    // append all my nodes @ my siblingIndex
+                    ownerBlockElement.parentNode.appendCollection(myAllNodes, ownerBlockElement.siblingIndex);
+                    ownerBlockElement.remove();
+                }
+                else {
+                    if (prevSibling.nodeType == 1 /* TEXT */ || !prevSibling.isMergeable) {
+                        ownerBlockElement.parentNode.appendCollection(myAllNodes, ownerBlockElement.siblingIndex);
+                    }
+                    else {
+                        prevSibling.appendCollection(myAllNodes);
+                    }
+                    ownerBlockElement.remove();
+                }
+                document.relayout(true);
+                if (firstNode) {
+                    selection.getRange().focusNode().fragPos = firstNode.FRAGMENT_START;
+                    selection.getRange().focusNode().target = firstNode;
+                    selection.getRange().moveLeftUntilCharacterIfNotLandedOnText();
+                }
+                else {
+                    selection.getRange().moveLeftUntilCharacterIfNotLandedOnText(); // re-land selection
+                }
+                selection.getRange().fire('changed');
+                return;
+            }
+            if (targetRemovalNode.isBR) {
+                //1.2.
+                this.moveCaret(2 /* CHARACTER */, -1, false);
+                targetRemovalNode.parentNode.remove();
+                return;
+            }
+            // count the number of real characters until first node start.
+            console.error("DELETING FROM: " + targetRemovalNode.textContents());
+            realNumChars = targetRemovalNode.deleteTextContentsBetweenFragmentPositions(rmFragPos, rmFragPos);
+            document.removeOrphanNodes();
+            document.relayout(true);
+            console.error("AFTER DEL: " + targetRemovalNode.textContents() + ', REALNUMCHARS: ' + realNumChars);
+            rng.focusNode().target = targetRemovalNode;
+            rng.focusNode().fragPos = targetRemovalNode.textIndexForTextLength(realNumChars);
+            rng.collapse(true);
+        }
+        catch (exception) {
+            console.error(exception);
+        }
+    };
+    Viewport_CommandRouter.prototype.removeCharRight = function (currentFragPos) {
+    };
     // negative values delete characters in the left of the caret,
     // positive values delete characters in the right of the caret
     Viewport_CommandRouter.prototype.deleteText = function (amount) {
-        if (this.viewport.selection.getRange().length()) {
+        if (!amount) {
+            return;
+        }
+        var rng = this.viewport.selection.getRange(), focus = rng.focusNode();
+        if (rng.length()) {
             this.viewport.selection.removeContents();
         }
         else {
+            if (rng.length() === null) {
+                console.warn("WILL BE IMPLEMENTED LATER!");
+            }
+            else {
+                // deny deleting more than a character @ once.
+                if (Math.abs(amount) != 1) {
+                    throw "ERR_BAD_ARGUMENT. Allowed argument is -1 or 1.";
+                }
+                if (amount < 1) {
+                    this.removeCharLeft(focus.fragPos);
+                }
+                else {
+                    this.removeCharRight(focus.fragPos);
+                }
+            }
         }
     };
     // inserts a new line in document. if forceBRTag is set (not null)
@@ -5494,14 +5649,7 @@ var Fragment_Contextual_TextNode = (function (_super) {
         this.node.remove();
     };
     Fragment_Contextual_TextNode.prototype.removeSelectedText = function () {
-        var out = [];
-        if (this.start > this.node.FRAGMENT_START) {
-            out.push(this.node.textContentsFragment(this.node.FRAGMENT_START, this.start - 1));
-        }
-        if (this.end < this.node.FRAGMENT_END) {
-            out.push(this.node.textContentsFragment(this.end + 1, this.node.FRAGMENT_END));
-        }
-        this.node.textContents(out.join(''));
+        this.node.deleteTextContentsBetweenFragmentPositions(this.start, this.end);
     };
     return Fragment_Contextual_TextNode;
 })(Fragment_Contextual_Item);
@@ -5686,7 +5834,6 @@ var TRange = (function (_super) {
         }
     };
     TRange.prototype.moveLeftUntilCharacterIfNotLandedOnText = function () {
-        throw "You should not use this!";
         if (this._focusNode) {
             this._focusNode.moveLeftUntilCharacterIfNotLandedOnText();
             this._anchorNode.fragPos = this._focusNode.fragPos;

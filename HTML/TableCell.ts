@@ -92,4 +92,12 @@ class HTML_TableCell extends TNode_Element {
 
 	}
 
+	public removeChild( node: TNode ): TNode {
+		var returnValue = super.removeChild( node );
+		if ( this.childNodes.length == 0 ) {
+			this.appendChild( this.documentElement.createTextNode( ' ' ) );
+		}
+		return returnValue;
+	}
+
 }

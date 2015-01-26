@@ -99,6 +99,26 @@ class TNode_Text extends TNode {
 		return out;
 	}
 
+	public deleteTextContentsBetweenFragmentPositions( indexStart: number, indexEnd: number ): number {
+		var out: string[] = [],
+			returnValue: number = 0;
+
+		if ( indexStart > this.FRAGMENT_START ) {
+			out.push( this.textContentsFragment( this.FRAGMENT_START, indexStart - 1 ) );
+			returnValue = out[0].length;
+		}
+
+		if ( indexEnd < this.FRAGMENT_END ) {
+			out.push( this.textContentsFragment( indexEnd + 1, this.FRAGMENT_END ) );
+		}
+
+		this.textContents( out.join( '' ) );
+
+		return returnValue;
+
+	}
+
+
 	// I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
 	// Don't even try to understand it, cause even I will not be able to understand it in a few hours
 	// from now on
@@ -178,6 +198,26 @@ class TNode_Text extends TNode {
 
 		return retVal;
 	}
+
+	// @in: text mapping index
+	// @out: fragment index
+	public textIndexForTextLength( index: number ): number {
+		var i: number = 0,
+		    j: number = this.FRAGMENT_START,
+		    len: number = 0;
+
+		for ( i=0, len = this._text.length; i<=len; i++ ) {
+			if ( index == i ) {
+				return j;
+			}
+			if ( this.EOL_POS && this.EOL_POS[i] ) {
+				j += 2;
+			} else {
+				j++;
+			}
+		}
+	}
+
 
 	public ownerBlockElement() {
 		return this.parentNode.ownerBlockElement();

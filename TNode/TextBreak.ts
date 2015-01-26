@@ -14,7 +14,9 @@ class TNode_TextBreak extends TNode_Text {
 	}
 
 	set parentNode( node: TNode_Element ) {
-		console.warn( "Warning: attempting to set another parent!" );
+		if ( node != this._parentNode ) {
+			throw "ERR_NO_MODIFICATION_ALLOWED";
+		}
 	}
 
 	get _text(): string {
@@ -36,7 +38,6 @@ class TNode_TextBreak extends TNode_Text {
 	}
 
 	set documentElement( body: HTML_Body ) {
-		// void
 	}
 
 	public bakeIntoFragment() {
@@ -51,9 +52,25 @@ class TNode_TextBreak extends TNode_Text {
 	}
 
 	public remove(): TNode {
-		console.warn( "Warning: attempting to remove a non removable element!" );
-		return this;
+		throw "ERR_NO_MODIFICATION_ALLOWED";
 	}
 
+	public elementsBeforeMyself( includingMe: boolean ): TNode[] {
+		throw "ERR_DENIED: TNode_TextBreak.elementsAfterMyself";
+	}
+
+	public elementsAfterMyself( includingMe: boolean ): TNode[] {
+		throw "ERR_DENIED: TNode_TextBreak.elementsAfterMyself";
+	}
+
+	public insertTextAtTargetOffset( offset: number, str: string ): number {
+		var nextTextNode: TNode_Text = (<HTML_BreakElement>this.parentNode).nextAvailableTextNode();
+		nextTextNode.textContents( str, true ); // append text @ beginning
+		return -str.length;
+	}
+
+	public textIndexToFragmentPosition( index: number ): number {
+		return (<HTML_BreakElement>this.parentNode).nextAvailableTextNode().textIndexToFragmentPosition( index );
+	}
 
 }

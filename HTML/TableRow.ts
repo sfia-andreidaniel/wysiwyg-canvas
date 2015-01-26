@@ -1,6 +1,7 @@
 class HTML_TableRow extends TNode_Element {
 	
 	public ownerTable: HTML_Table = null;
+	public isMergeable : boolean = false;
 
 	constructor() {
 		super();

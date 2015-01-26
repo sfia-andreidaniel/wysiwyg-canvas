@@ -17,6 +17,8 @@ class TNode_Element extends TNode {
 	public insertLinePolicy          : TNewLinePolicy = TNewLinePolicy.SURGERY;
 	public alternateInsertLinePolicy : TNewLinePolicy = TNewLinePolicy.BR;
 
+	public isMergeable               : boolean        = true; // weather the "mergeWith" method works with this or with another element.
+
 	constructor( postStyleInit: boolean = false ) {
 		super();
 
@@ -713,7 +715,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
 		
-		console.warn( 'create surgery: BEGIN ' + this.nodeName );
+		console.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,
@@ -732,13 +734,25 @@ class TNode_Element extends TNode {
 			return atFragmentIndex;
 		}
 
-		if ( ( atFragmentIndex == this.FRAGMENT_END - 1 ) && createNodeAfter === false ) {
-			return this.FRAGMENT_END;
+		if ( ( atFragmentIndex == this.FRAGMENT_END - 1 ) ) {
+			if ( createNodeAfter === false ) {
+				return atFragmentIndex;
+			} else {
+				rParent = this.documentElement.createElement( nodeNameAfter === null ? this.nodeName : nodeNameAfter );
+				this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
+				return rParent.FRAGMENT_START;
+			}
 		}
 
 		// find the exact element which has the atFragmentIndex position
 
 		splitNode = this.findNodeAtIndex( atFragmentIndex );
+
+		// avoid spliting the TNodeText inside br tags. ( split after ).
+		if ( splitNode.nodeType == TNode_Type.TEXT && (<TNode_Text>splitNode).isBR ) {
+			splitNode = splitNode.parentNode;
+			atFragmentIndex = splitNode.FRAGMENT_END;
+		}
 
 		if ( splitNode.nodeType == TNode_Type.TEXT && splitNode.FRAGMENT_START != atFragmentIndex && splitNode.FRAGMENT_END + 1 != atFragmentIndex ) {
 			// we split at text
@@ -798,6 +812,8 @@ class TNode_Element extends TNode {
 			
 		}
 
+		//console.log( rightCol );
+
 		if ( createNodeAfter ) {
 
 			if ( nodeNameAfter === null || nodeNameAfter == this.nodeName ) {
@@ -820,14 +836,18 @@ class TNode_Element extends TNode {
 
 			rightCol = new TNode_Collection( rParent.childNodes );
 
-			console.log( rightCol.innerHTML() );
+			//console.log( rightCol.innerHTML() );
 
 			// append all the contents of the rParent to myself
 			rightCol.wrapIn( this );
 
 			this.documentElement.relayout(true);
 
-			return rightCol.at(0).FRAGMENT_START;
+			if ( rightCol.length ) {
+				return rightCol.at(0).FRAGMENT_START;
+			} else {
+				return this.FRAGMENT_END - 1;
+			}
 
 		}
 
@@ -842,6 +862,29 @@ class TNode_Element extends TNode {
 		this.documentElement.relayout(true);
 
 		return rParent.FRAGMENT_START;
+	}
+
+	public mergeWith( element: TNode_Element ) {
+
+		if ( this.isMergeable && element.isMergeable ) {
+
+			if ( element.nodeName != 'br' && element.childNodes && element.childNodes.length ) {
+				
+				var nodes = Array.prototype.slice.call( element.childNodes, 0 ),
+				    i: number = 0,
+				    len: number = nodes.length;
+
+				for ( i=0; i<len; i++ ) {
+					this.appendChild( nodes[i] );
+				}
+
+			}
+			
+			element.remove();
+
+		} else {
+			throw "ERR_CANNOT_MERGE_ELEMENTS";
+		}
 	}
 
 }

@@ -418,7 +418,9 @@ var TNode_TextBreak = (function (_super) {
             return this._parentNode;
         },
         set: function (node) {
-            console.warn("Warning: attempting to set another parent!");
+            if (node != this._parentNode) {
+                throw "ERR_NO_MODIFICATION_ALLOWED";
+            }
         },
         enumerable: true,
         configurable: true
@@ -445,7 +447,6 @@ var TNode_TextBreak = (function (_super) {
             }
         },
         set: function (body) {
-            // void
         },
         enumerable: true,
         configurable: true
@@ -460,8 +461,21 @@ var TNode_TextBreak = (function (_super) {
         }
     };
     TNode_TextBreak.prototype.remove = function () {
-        console.warn("Warning: attempting to remove a non removable element!");
-        return this;
+        throw "ERR_NO_MODIFICATION_ALLOWED";
+    };
+    TNode_TextBreak.prototype.elementsBeforeMyself = function (includingMe) {
+        throw "ERR_DENIED: TNode_TextBreak.elementsAfterMyself";
+    };
+    TNode_TextBreak.prototype.elementsAfterMyself = function (includingMe) {
+        throw "ERR_DENIED: TNode_TextBreak.elementsAfterMyself";
+    };
+    TNode_TextBreak.prototype.insertTextAtTargetOffset = function (offset, str) {
+        var nextTextNode = this.parentNode.nextAvailableTextNode();
+        nextTextNode.textContents(str, true); // append text @ beginning
+        return -str.length;
+    };
+    TNode_TextBreak.prototype.textIndexToFragmentPosition = function (index) {
+        return this.parentNode.nextAvailableTextNode().textIndexToFragmentPosition(index);
     };
     return TNode_TextBreak;
 })(TNode_Text);
@@ -482,6 +496,7 @@ var TNode_Element = (function (_super) {
         // what happens when a user press enter, the element is "cutted", or a <br /> tag is inserted at cursor position
         this.insertLinePolicy = 1 /* SURGERY */;
         this.alternateInsertLinePolicy = 0 /* BR */;
+        this.isMergeable = true; // weather the "mergeWith" method works with this or with another element.
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
@@ -1003,7 +1018,7 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
-        console.warn('create surgery: BEGIN ' + this.nodeName);
+        console.warn('create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
         var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             throw "ERR_SURGERY_OUTSIDE_BOUNDS!";
@@ -1011,11 +1026,23 @@ var TNode_Element = (function (_super) {
         if ((atFragmentIndex == this.FRAGMENT_START + 1) && createNodeAfter === false) {
             return atFragmentIndex;
         }
-        if ((atFragmentIndex == this.FRAGMENT_END - 1) && createNodeAfter === false) {
-            return this.FRAGMENT_END;
+        if ((atFragmentIndex == this.FRAGMENT_END - 1)) {
+            if (createNodeAfter === false) {
+                return atFragmentIndex;
+            }
+            else {
+                rParent = this.documentElement.createElement(nodeNameAfter === null ? this.nodeName : nodeNameAfter);
+                this.parentNode.appendChild(rParent, this.siblingIndex + 1);
+                return rParent.FRAGMENT_START;
+            }
         }
         // find the exact element which has the atFragmentIndex position
         splitNode = this.findNodeAtIndex(atFragmentIndex);
+        // avoid spliting the TNodeText inside br tags. ( split after ).
+        if (splitNode.nodeType == 1 /* TEXT */ && splitNode.isBR) {
+            splitNode = splitNode.parentNode;
+            atFragmentIndex = splitNode.FRAGMENT_END;
+        }
         if (splitNode.nodeType == 1 /* TEXT */ && splitNode.FRAGMENT_START != atFragmentIndex && splitNode.FRAGMENT_END + 1 != atFragmentIndex) {
             // we split at text
             t1 = splitNode.textContentsFragment(splitNode.FRAGMENT_START, atFragmentIndex - 1);
@@ -1053,6 +1080,7 @@ var TNode_Element = (function (_super) {
             rightCol.wrapIn(rParent);
             lParent = lParent.parentNode;
         }
+        //console.log( rightCol );
         if (createNodeAfter) {
             if (nodeNameAfter === null || nodeNameAfter == this.nodeName) {
             }
@@ -1067,11 +1095,16 @@ var TNode_Element = (function (_super) {
         }
         else {
             rightCol = new TNode_Collection(rParent.childNodes);
-            console.log(rightCol.innerHTML());
+            //console.log( rightCol.innerHTML() );
             // append all the contents of the rParent to myself
             rightCol.wrapIn(this);
             this.documentElement.relayout(true);
-            return rightCol.at(0).FRAGMENT_START;
+            if (rightCol.length) {
+                return rightCol.at(0).FRAGMENT_START;
+            }
+            else {
+                return this.FRAGMENT_END - 1;
+            }
         }
         if (this.innerHTML() == '') {
             this.innerHTML('');
@@ -1080,6 +1113,20 @@ var TNode_Element = (function (_super) {
         // force a document relayout, mandatory!
         this.documentElement.relayout(true);
         return rParent.FRAGMENT_START;
+    };
+    TNode_Element.prototype.mergeWith = function (element) {
+        if (this.isMergeable && element.isMergeable) {
+            if (element.nodeName != 'br' && element.childNodes && element.childNodes.length) {
+                var nodes = Array.prototype.slice.call(element.childNodes, 0), i = 0, len = nodes.length;
+                for (i = 0; i < len; i++) {
+                    this.appendChild(nodes[i]);
+                }
+            }
+            element.remove();
+        }
+        else {
+            throw "ERR_CANNOT_MERGE_ELEMENTS";
+        }
     };
     return TNode_Element;
 })(TNode);
@@ -1655,7 +1702,7 @@ var HTML_BreakElement = (function (_super) {
     HTML_BreakElement.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
-        throw "Attempting to create surgery inside BR!";
+        throw "ERR_SURGERY_DENIED";
     };
     return HTML_BreakElement;
 })(TNode_Element);
@@ -1963,6 +2010,7 @@ var HTML_Table = (function (_super) {
         _super.call(this);
         this.needCompile = true;
         this.matrix = null;
+        this.isMergeable = false;
         this._cellPadding = 0;
         this._cellSpacing = 0;
         this._border = 0;
@@ -2363,6 +2411,7 @@ var HTML_TableRow = (function (_super) {
     function HTML_TableRow() {
         _super.call(this);
         this.ownerTable = null;
+        this.isMergeable = false;
         this.nodeName = 'tr';
         this.style.display('block');
     }
@@ -2402,6 +2451,7 @@ var HTML_TableCell = (function (_super) {
         this.isBlockTextNode = true;
         this.insertLinePolicy = 0 /* BR */;
         this.alternateInsertLinePolicy = 0 /* BR */;
+        this.isMergeable = false;
         this.style = new TStyle_TableCell(this);
         this.nodeName = 'td';
         this.style.display('block');
@@ -3341,7 +3391,7 @@ var Character_Line = (function () {
         this.words.push(w);
         this.size[0] += size[0];
         this.size[1] = Math.max(size[1], this.size[1]);
-        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1 - (this.words[0].isBR ? 1 : 0))) : 0.00;
+        this.wordGap = (this.words.length > 2 && !this.words[0].isBR) ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0.00;
     };
     Character_Line.prototype.toString = function () {
         var i = 0, len = this.words.length, out = '';
@@ -4846,19 +4896,31 @@ var Viewport_CommandRouter = (function (_super) {
         if (!str) {
             return;
         }
-        var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0;
+        var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0, otherNode = false;
         if (!focus) {
             return;
         }
         // clear existing selection if any.
         if (this.viewport.selection.getRange().length()) {
             this.viewport.selection.removeContents();
+            range = this.viewport.selection.getRange();
+            focus = range.focusNode();
         }
         //console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
         // find the target text node offset
         jump = focus.target.insertTextAtTargetOffset(focus.fragPos, str);
+        if (jump < 0) {
+            jump = -jump;
+            otherNode = true; // we've inserted text into a br, which redirected the text. we need
+        }
         this.viewport.document.relayout(true);
-        focus.fragPos = focus.target.textIndexToFragmentPosition(jump);
+        if (!otherNode) {
+            focus.fragPos = focus.target.textIndexToFragmentPosition(jump);
+        }
+        else {
+            focus.fragPos = focus.target.textIndexToFragmentPosition(jump);
+            focus.target = focus.target.documentElement.findNodeAtIndex(focus.fragPos);
+        }
         //console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
         range.collapse(true);
     };
@@ -4897,7 +4959,7 @@ var Viewport_CommandRouter = (function (_super) {
             target.fragPos = jumpPosition;
             var breakElement = this.viewport.document.createElement('br');
             // append the break *before* the target.target.
-            target.target.parentNode.appendChild(breakElement, target.target.siblingIndex);
+            target.target.parentNode.appendChild(breakElement, target.fragPos == target.target.FRAGMENT_END ? target.target.siblingIndex + 1 : target.target.siblingIndex);
             // force relayout;
             this.viewport.document.relayout(true);
             jumpPosition = breakElement.FRAGMENT_START;
@@ -5213,7 +5275,9 @@ var Fragment_Contextual = (function () {
             }
         }
         if (currentNode !== null) {
-            this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
+            if (!currentNode.isBR) {
+                this.parts.push(new Fragment_Contextual_TextNode(currentNode, iStart, iStop));
+            }
             currentNode = null;
         }
     };
@@ -5290,7 +5354,38 @@ var Fragment_Contextual = (function () {
     Fragment_Contextual.prototype.remove = function () {
         this.compute();
         /* Find all the "whole" and the "partial" nodes from the fragment. */
-        var wholeNodes = [], partialNodes = [], i = 0, j = 0, len = this.parts.length, found = null;
+        var wholeNodes = [], partialNodes = [], i = 0, j = 0, len = this.parts.length, found = null, sp = [], el1, el2;
+        for (var spi = 0, spl = this.parts.length; spi < spl; spi++) {
+            switch (this.parts[spi].type) {
+                case 0 /* NODE_START */:
+                    sp.push(this.parts[spi]);
+                    break;
+                case 1 /* NODE_END */:
+                    sp.push(this.parts[spi]);
+                    break;
+                case 2 /* TEXT */:
+                    if (!/^([\s]+)?$/.test(this.parts[spi].toString())) {
+                        sp.push(this.parts[spi]);
+                    }
+                    break;
+            }
+            if (sp.length > 2) {
+                break;
+            }
+        }
+        if (sp.length == 2 && sp[0].type == 1 /* NODE_END */ && sp[1].type == 0 /* NODE_START */) {
+            el1 = sp[0].node;
+            el2 = sp[1].node;
+            if (el1.isMergeable && el2.isMergeable) {
+                for (i = 0, len = this.parts.length; i < len; i++) {
+                    if (this.parts[i].type == 2 /* TEXT */) {
+                        this.parts[i].removeSelectedText();
+                    }
+                }
+                el1.mergeWith(el2);
+                return;
+            }
+        }
         while (i < len) {
             switch (this.parts[i].type) {
                 case 2 /* TEXT */:

@@ -3,6 +3,8 @@ class HTML_Table extends TNode_Element {
 	public needCompile : boolean = true;
 	public matrix      : HTML_Table_Matrix = null;
 
+	public isMergeable : boolean = false;
+
 	protected _cellPadding = 0;
 	protected _cellSpacing = 0;
 	protected _border      = 0;

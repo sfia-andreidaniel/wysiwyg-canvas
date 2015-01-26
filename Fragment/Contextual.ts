@@ -69,7 +69,9 @@ class Fragment_Contextual {
 		}
 	
 		if ( currentNode !== null ) {
-			this.parts.push( new Fragment_Contextual_TextNode( currentNode, iStart, iStop ) );
+			if ( !( <TNode_Text>currentNode ).isBR ) {
+				this.parts.push( new Fragment_Contextual_TextNode( currentNode, iStart, iStop ) );
+			}
 			currentNode = null;	
 		}
 	}
@@ -155,7 +157,7 @@ class Fragment_Contextual {
 	}
 
 	// this should erase the contents of the fragment from the document, and mark the fragment as unusable...
-	public remove(): any {
+	public remove() {
 		this.compute();
 		
 		/* Find all the "whole" and the "partial" nodes from the fragment. */
@@ -164,7 +166,47 @@ class Fragment_Contextual {
 		    i            : number = 0,
 		    j            : number = 0,
 		    len          : number = this.parts.length,
-		    found        : number = null;
+		    found        : number = null,
+		    sp           : Fragment_Contextual_Item[] = [],
+		    el1          : TNode_Element,
+		    el2          : TNode_Element;
+
+		// detecting nodes merging...
+		for ( var spi=0, spl = this.parts.length; spi < spl; spi++ ) {
+			switch ( this.parts[spi].type ) {
+				case FragmentCItem.NODE_START:
+					sp.push( this.parts[spi] );
+					break;
+				case FragmentCItem.NODE_END:
+					sp.push( this.parts[spi] );
+					break;
+				case FragmentCItem.TEXT:
+					if ( !/^([\s]+)?$/.test( this.parts[spi].toString() ) ) {
+						sp.push( this.parts[spi] );
+					}
+					break;
+			}
+			if ( sp.length > 2 ) {
+				break;
+			}
+		}
+
+		if ( sp.length == 2 && sp[0].type == FragmentCItem.NODE_END && sp[1].type == FragmentCItem.NODE_START ) {
+			el1 = (<Fragment_Contextual_NodeEnd>sp[0]).node;
+			el2 = (<Fragment_Contextual_NodeStart>sp[1]).node;
+			if ( el1.isMergeable && el2.isMergeable ) {
+				
+				for ( i=0, len = this.parts.length; i<len; i++ ) {
+					if ( this.parts[i].type == FragmentCItem.TEXT ) {
+						(<Fragment_Contextual_TextNode>this.parts[i]).removeSelectedText();
+					}
+				}
+
+				el1.mergeWith( el2 );
+				return;
+			}
+		}
+
 
 		while ( i < len ) {
 

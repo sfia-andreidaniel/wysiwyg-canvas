@@ -26,7 +26,7 @@ class HTML_BreakElement extends TNode_Element {
 		return null;
 	}
 
-	private nextAvailableTextNode(): TNode_Text {
+	public nextAvailableTextNode(): TNode_Text {
 		var cursor = this.nextSibling(),
 		    node: TNode_Text = null,
 		    deep: number = 0;
@@ -87,7 +87,7 @@ class HTML_BreakElement extends TNode_Element {
 	}
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
-		throw "Attempting to create surgery inside BR!";
+		throw "ERR_SURGERY_DENIED";
 	}
 
 }

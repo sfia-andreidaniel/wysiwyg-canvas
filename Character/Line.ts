@@ -23,7 +23,7 @@ class Character_Line {
 		this.words.push( w );
 		this.size[0] += size[0];
 		this.size[1] = Math.max( size[1], this.size[1] );
-		this.wordGap = this.words.length > 2 ? ( ( this.maxWidth - this.size[0] ) / ( this.words.length - 1 - ( this.words[0].isBR ? 1 : 0 ) ) ) : 0.00;
+		this.wordGap = ( this.words.length > 2 && !this.words[0].isBR ) ? ( ( this.maxWidth - this.size[0] ) / ( this.words.length - 1 ) ) : 0.00;
 	}
 
 	public toString(): string {

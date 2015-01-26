@@ -19,6 +19,8 @@ class HTML_TableCell extends TNode_Element {
 	public insertLinePolicy          : TNewLinePolicy  = TNewLinePolicy.BR;
 	public alternateInsertLinePolicy : TNewLinePolicy  = TNewLinePolicy.BR;
 
+	public isMergeable               : boolean = false;
+
 	constructor() {
 		super( true );
 		this.style = new TStyle_TableCell( this );

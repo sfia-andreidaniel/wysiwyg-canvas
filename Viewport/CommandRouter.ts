@@ -195,7 +195,8 @@ class Viewport_CommandRouter extends Events {
 		    focus: TRange_Target = range.focusNode(),
 		    len: number = str.length,
 		    nowPos: number,
-		    jump: number = 0;
+		    jump: number = 0,
+		    otherNode: boolean = false;
 
 		if ( !focus ) {
 			return;
@@ -204,6 +205,8 @@ class Viewport_CommandRouter extends Events {
 		// clear existing selection if any.
 		if ( this.viewport.selection.getRange().length() ) {
 			this.viewport.selection.removeContents();
+			range = this.viewport.selection.getRange();
+			focus = range.focusNode();
 		}
 
 		//console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
@@ -211,9 +214,20 @@ class Viewport_CommandRouter extends Events {
 		// find the target text node offset
 		jump = (<TNode_Text>focus.target).insertTextAtTargetOffset( focus.fragPos, str );
 
+		if ( jump < 0 ) {
+			jump = -jump;
+			otherNode = true; // we've inserted text into a br, which redirected the text. we need
+			                  // to recalculate the text
+		}
+
 		this.viewport.document.relayout(true);
 
-		focus.fragPos = (<TNode_Text>focus.target).textIndexToFragmentPosition( jump );
+		if ( !otherNode ) {
+			focus.fragPos = (<TNode_Text>focus.target).textIndexToFragmentPosition( jump );
+		} else {
+			focus.fragPos = (<TNode_Text>focus.target).textIndexToFragmentPosition( jump );
+			focus.target = focus.target.documentElement.findNodeAtIndex( focus.fragPos );
+		}
 
 		//console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
 		
@@ -271,12 +285,13 @@ class Viewport_CommandRouter extends Events {
 
 			// we're expecting that the jump position is a node begin.
 			target.target = this.viewport.document.findNodeAtIndex( jumpPosition );
+
 			target.fragPos = jumpPosition;
 
 			var breakElement = this.viewport.document.createElement( 'br' );
 
 			// append the break *before* the target.target.
-			target.target.parentNode.appendChild( breakElement, target.target.siblingIndex );
+			target.target.parentNode.appendChild( breakElement, target.fragPos == target.target.FRAGMENT_END ? target.target.siblingIndex + 1 : target.target.siblingIndex );
 
 			// force relayout;
 

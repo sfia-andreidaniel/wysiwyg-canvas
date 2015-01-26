@@ -25,22 +25,33 @@ class Layout_BlockChar extends Layout {
 	// routine to build the lines of the block.
 	// it takes in consideration the words, etc.
 	public buildLines( lineWidthInPixels: number ): Character_Line[] {
+
 		var contents          : string = this.textContents(),
 		    contentsWithWords : string = contents.replace( /([\S]+)([\s]+)?/g, '$1$2|' ),
-		    i: number = 0,
 		    len: number = contentsWithWords.length,
-		    j: number = 0,
-		    n: number = 0,
 		    word: Character[] = [],
 		    words: Character_Word[] = [],
 		    line: Character_Line,
 		    ownerNode: TNode_Element = this.ownerNode(),
+		    i: number = 0,
+		    j: number = 0,
+		    n: number = 0,
 		    w: Character_Word,
 		    c: Character;
 
 		for ( i=0; i<len; i++ ) {
 			if ( contentsWithWords[i] == contents[j] ) {
-				word.push( this.chars[j] );
+				
+				// if we find a break character, we create a new word.
+				if ( this.chars[j].isBR ) {
+					if ( word.length ) {
+						words.push( new Character_Word(word) );
+					}
+					word = [ this.chars[j] ];
+				} else {
+					word.push( this.chars[j] );
+				}
+
 				j++;
 			} else {
 				if ( word.length ) {

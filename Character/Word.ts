@@ -2,8 +2,13 @@ class Character_Word {
 	
 	//<constructor> public characters: Character[];
 	private size: number[] = null;
+	public  isBR: boolean;
 
-	constructor ( public characters: Character[] ) {}
+	constructor ( public characters: Character[] ) {
+		if ( this.characters[0].isBR ) {
+			this.isBR = true;
+		}
+	}
 
 	public computeSize(): number[] { /* [0] => width, [1] => height */
 		var i: number,

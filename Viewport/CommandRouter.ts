@@ -206,7 +206,7 @@ class Viewport_CommandRouter extends Events {
 			this.viewport.selection.removeContents();
 		}
 
-		console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
+		//console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
 
 		// find the target text node offset
 		jump = (<TNode_Text>focus.target).insertTextAtTargetOffset( focus.fragPos, str );
@@ -215,7 +215,7 @@ class Viewport_CommandRouter extends Events {
 
 		focus.fragPos = (<TNode_Text>focus.target).textIndexToFragmentPosition( jump );
 
-		console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
+		//console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
 		
 		range.collapse( true );
 

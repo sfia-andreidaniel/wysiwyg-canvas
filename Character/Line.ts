@@ -11,7 +11,11 @@ class Character_Line {
 	// - if the line contains no words
 	// - if the line width + the word width is smaller the the line max allowed physicalWidth
 	public acceptWord( w: Character_Word ) {
-		return !!!(this.words[0]) || (this.size[0] + w.computeSize()[0] < this.maxWidth);
+		if ( this.words.length && w.isBR ) {
+			return false;
+		} else {
+			return !!!(this.words[0]) || (this.size[0] + w.computeSize()[0] < this.maxWidth);
+		}
 	}
 
 	public addWord( w: Character_Word ) {
@@ -19,7 +23,7 @@ class Character_Line {
 		this.words.push( w );
 		this.size[0] += size[0];
 		this.size[1] = Math.max( size[1], this.size[1] );
-		this.wordGap = this.words.length > 2 ? ( ( this.maxWidth - this.size[0] ) / ( this.words.length - 1 ) ) : 0.00;
+		this.wordGap = this.words.length > 2 ? ( ( this.maxWidth - this.size[0] ) / ( this.words.length - 1 - ( this.words[0].isBR ? 1 : 0 ) ) ) : 0.00;
 	}
 
 	public toString(): string {

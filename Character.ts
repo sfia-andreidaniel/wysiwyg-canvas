@@ -4,8 +4,13 @@ class Character {
 	//public index: number;					// the index of the character in it's text node
 
 	private size: number[] = null;
+	public  isBR: boolean;
 
-	constructor( public node: TNode_Text, public index: number ) {}
+	constructor( public node: TNode_Text, public index: number ) {
+		if ( this.node.isBR ) {
+			this.isBR = true;
+		}
+	}
 
 	public letter(): string {
 		return this.node._text[ this.index ];
@@ -19,17 +24,23 @@ class Character {
 		if ( this.size ) {
 			return this.size;
 		} else {
-			if ( !this.node.parentNode ) {
-				return ( this.size = [0,0] );
+
+			if ( this.isBR) {
+
+				return this.size = [0, ( this.node && this.node.parentNode ) ? this.node.parentNode.style.fontSize() : 0 ];
 			} else {
-				var fontSize: number,
-					font: string = 
-						( this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '' ) +
-						( this.node.parentNode.style.fontWeight() == 'bold'  ? 'bold ' : '' ) +
-						( fontSize = this.node.parentNode.style.fontSize() ) + 'px ' +
-						this.node.parentNode.style.fontFamily(),
-				    lineHeight: number = fontSize * this.node.parentNode.style.lineHeight();
-				return ( this.size = [ Character_Metrics.measureCharWidth( font, this.letter() ), lineHeight ] );
+				if ( !this.node.parentNode ) {
+					return ( this.size = [0,0] );
+				} else {
+					var fontSize: number,
+						font: string = 
+							( this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '' ) +
+							( this.node.parentNode.style.fontWeight() == 'bold'  ? 'bold ' : '' ) +
+							( fontSize = this.node.parentNode.style.fontSize() ) + 'px ' +
+							this.node.parentNode.style.fontFamily(),
+					    lineHeight: number = fontSize * this.node.parentNode.style.lineHeight();
+					return ( this.size = [ Character_Metrics.measureCharWidth( font, this.letter() ), lineHeight ] );
+				}
 			}
 		}
 	}

@@ -8,6 +8,7 @@ class TNode_Text extends TNode {
 
 	public _text     : string = '';
 	public nodeType  : TNode_Type = TNode_Type.TEXT;
+	public isBR      : boolean;
 	
 	// on building layout, the EOL_POS will be computed. this is needed on bakeIntoFragment method
 	public EOL_POS   : any = null;
@@ -23,11 +24,16 @@ class TNode_Text extends TNode {
 		this._text = String( textContents || '' );
 	}
 
-	public textContents( c: string = null ): string {
+	public textContents( c: string = null, appendFirst: boolean = false ): string {
 		if ( c === null ) {
 			return this._text;
 		} else {
-			this._text = String( c || '' );
+			
+			if ( appendFirst ) {
+				this._text = String( c || '' ) + this._text;
+			} else {
+				this._text = String( c || '' );
+			}
 			
 			if ( this.parentNode ) {
 				this.parentNode.fire( 'relayout' );

@@ -245,7 +245,6 @@ class TNode_Element extends TNode {
 					} else {
 					
 						lchar = <Layout_BlockChar>( ( function() {
-
 								if ( center[ center.length - 1 ] && center[ center.length - 1 ].hasChars ) {
 									return center[ center.length - 1 ];
 								} else {
@@ -714,7 +713,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
 		
-		console.warn( 'create surgery: BEGIN' );
+		console.warn( 'create surgery: BEGIN ' + this.nodeName );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,

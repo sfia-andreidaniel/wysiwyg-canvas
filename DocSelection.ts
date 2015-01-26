@@ -109,8 +109,7 @@ class DocSelection extends Events {
 
 			range.collapse( len < 0 );
 
-			// resync the caret position if needed.
-			// TODO. Depending on len, walk right or left if current char is a beginning or ending of an element
+			range.moveRightUntilCharacterIfNotLandedOnText();
 
 		}
 	}

@@ -72,6 +72,45 @@ class TRange_Target extends Events {
 
 	}
 
+	private moveRightOnceIfInsideBR() {
+		if ( this.target.nodeType == TNode_Type.TEXT && (<TNode_Text>this.target).isBR ) {
+			this.moveRightUntil( function(at) {
+				return at==FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
+			}, false );
+		}
+	}
+
+	private moveLeftOnceIfInsideBR() {
+		if ( this.target.nodeType == TNode_Type.TEXT && (<TNode_Text>this.target).isBR ) {
+			this.moveLeftUntil( function(at) {
+				return at==FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
+			}, false );
+		}
+	}
+
+	public moveLeftUntilCharacterIfNotLandedOnText() {
+		var at: FragmentItem = this.target.documentElement.fragment.at( this.fragPos );
+		if ( at == FragmentItem.NODE_START || at == FragmentItem.NODE_END ) {
+			console.warn( "Debug: moveLeftUntilCharacterIfNotLandedOnText" );
+			this.moveLeftUntil( function( at ) {
+				return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
+			} );
+
+		}
+	}
+
+	public moveRightUntilCharacterIfNotLandedOnText() {
+		var at: FragmentItem = this.target.documentElement.fragment.at( this.fragPos );
+		if ( at == FragmentItem.NODE_START || at == FragmentItem.NODE_END ) {
+			console.warn( "Debug: moveRightUntilCharacterIfNotLandedOnText" );
+			this.moveRightUntil( function( at ) {
+				return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
+			} );
+			
+		}
+	}
+
+
 	private _moveRight( times: number = 1, ignoreEOL: boolean = false ): boolean {
 
 		times = ~~times;
@@ -86,14 +125,20 @@ class TRange_Target extends Events {
 		    thisFrag: number = this.fragPos;
 
 		for ( i=0; i<times-1; i++ ) {
-			if ( !this.moveRightUntil( function( at: FragmentItem ) { return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; }, false ) ) {
+			if ( !this.moveRightUntil( 
+					function( at: FragmentItem ) {return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; }, false ) ) {
 				this.target = thisNode;
 				this.fragPos = thisFrag;
 				return false;
 			}
 		}
 
-		return this.moveRightUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
+		if ( this.moveRightUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } ) ) {
+			this.moveRightOnceIfInsideBR();
+			return true;
+		} else {
+			return false;
+		}
 
 	}
 
@@ -197,8 +242,12 @@ class TRange_Target extends Events {
 			}
 		}
 
-		return this.moveLeftUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } );
-
+		if ( this.moveLeftUntil( function( at: FragmentItem ) { return ( !ignoreEOL && at == FragmentItem.EOL ) || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE; } ) ) {
+			this.moveLeftOnceIfInsideBR();
+			return true;
+		} else {
+			return false;
+		}
 	}
 
 	private _moveLeftWord( times: number = 1 ): boolean {

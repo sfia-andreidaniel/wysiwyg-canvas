@@ -277,13 +277,19 @@ var TNode_Text = (function (_super) {
         this.EOL_POS = null;
         this._text = String(textContents || '');
     }
-    TNode_Text.prototype.textContents = function (c) {
+    TNode_Text.prototype.textContents = function (c, appendFirst) {
         if (c === void 0) { c = null; }
+        if (appendFirst === void 0) { appendFirst = false; }
         if (c === null) {
             return this._text;
         }
         else {
-            this._text = String(c || '');
+            if (appendFirst) {
+                this._text = String(c || '') + this._text;
+            }
+            else {
+                this._text = String(c || '');
+            }
             if (this.parentNode) {
                 this.parentNode.fire('relayout');
             }
@@ -399,6 +405,66 @@ var TNode_Text = (function (_super) {
     };
     return TNode_Text;
 })(TNode);
+var TNode_TextBreak = (function (_super) {
+    __extends(TNode_TextBreak, _super);
+    function TNode_TextBreak(breakElement) {
+        _super.call(this, "\r");
+        this.isBR = true;
+        this._parentNode = breakElement;
+        this.siblingIndex = 0;
+    }
+    Object.defineProperty(TNode_TextBreak.prototype, "parentNode", {
+        get: function () {
+            return this._parentNode;
+        },
+        set: function (node) {
+            console.warn("Warning: attempting to set another parent!");
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TNode_TextBreak.prototype, "_text", {
+        get: function () {
+            return "\r";
+        },
+        set: function (s) {
+            if (s != "\r" && s) {
+                this.parentNode.appendTextAfter(s.replace(/\r/g, ''));
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(TNode_TextBreak.prototype, "documentElement", {
+        get: function () {
+            if (this.parentNode) {
+                return this.parentNode.documentElement;
+            }
+            else {
+                return null;
+            }
+        },
+        set: function (body) {
+            // void
+        },
+        enumerable: true,
+        configurable: true
+    });
+    TNode_TextBreak.prototype.bakeIntoFragment = function () {
+        if (this.parentNode && this.parentNode.documentElement) {
+            this.FRAGMENT_START = this.parentNode.documentElement.fragment.length();
+            this.documentElement.fragment.add(4 /* WHITE_SPACE */);
+            if (this.EOL_POS && this.EOL_POS[0])
+                this.documentElement.fragment.add(2 /* EOL */);
+            this.FRAGMENT_END = this.documentElement.fragment.length() - 1;
+        }
+    };
+    TNode_TextBreak.prototype.remove = function () {
+        console.warn("Warning: attempting to remove a non removable element!");
+        return this;
+    };
+    return TNode_TextBreak;
+})(TNode_Text);
 var TNode_Element = (function (_super) {
     __extends(TNode_Element, _super);
     function TNode_Element(postStyleInit) {
@@ -937,7 +1003,7 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
-        console.warn('create surgery: BEGIN');
+        console.warn('create surgery: BEGIN ' + this.nodeName);
         var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             throw "ERR_SURGERY_OUTSIDE_BOUNDS!";
@@ -1508,10 +1574,88 @@ var HTML_BreakElement = (function (_super) {
     function HTML_BreakElement() {
         _super.call(this);
         this.nodeName = 'br';
-        this.style.display('block');
+        this.style.display('inline');
+        this.childNodes.push(new TNode_TextBreak(this));
     }
     HTML_BreakElement.prototype.removeOrphanNodes = function () {
         // void, intentionally.
+    };
+    // text written inside of a break element will be appended after the break element.
+    HTML_BreakElement.prototype.appendTextAfter = function (s) {
+        console.warn("Append text after break: " + JSON.stringify(s));
+        this.nextAvailableTextNode().textContents(s, true);
+    };
+    // disable append child and remove child.
+    HTML_BreakElement.prototype.appendChild = function (node, index) {
+        if (index === void 0) { index = null; }
+        return null;
+    };
+    HTML_BreakElement.prototype.removeChild = function (node) {
+        return null;
+    };
+    HTML_BreakElement.prototype.nextAvailableTextNode = function () {
+        var cursor = this.nextSibling(), node = null, deep = 0;
+        while (cursor) {
+            if (cursor.nodeType == 1 /* TEXT */) {
+                return cursor;
+            }
+            else {
+                // if the next element is a break element, we create a text node and append it after this break element
+                if (cursor.nodeName == 'br') {
+                    node = this.documentElement.createTextNode('');
+                    this.parentNode.appendChild(node, this.siblingIndex + 1);
+                    break;
+                }
+                else {
+                    if (cursor.childNodes && cursor.childNodes.length) {
+                        deep++;
+                        cursor = cursor.childNodes[0];
+                    }
+                    else {
+                        if (deep > 0) {
+                            cursor = cursor.parentNode.nextSibling();
+                            deep--;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        if (!node) {
+            node = this.documentElement.createTextNode('');
+            this.parentNode.appendChild(node, this.siblingIndex + 1);
+        }
+        return node;
+    };
+    HTML_BreakElement.prototype.xmlBeginning = function () {
+        return '<br/>';
+    };
+    HTML_BreakElement.prototype.xmlEnding = function () {
+        return '';
+    };
+    HTML_BreakElement.prototype.outerHTML = function (s) {
+        if (s === void 0) { s = null; }
+        if (s !== null) {
+            return _super.prototype.outerHTML.call(this);
+        }
+        else
+            return '<br/>';
+    };
+    HTML_BreakElement.prototype.innerHTML = function (s) {
+        if (s === void 0) { s = null; }
+        if (s === null) {
+            return '';
+        }
+        else {
+            return '';
+        }
+    };
+    HTML_BreakElement.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
+        if (createNodeAfter === void 0) { createNodeAfter = true; }
+        if (nodeNameAfter === void 0) { nodeNameAfter = null; }
+        throw "Attempting to create surgery inside BR!";
     };
     return HTML_BreakElement;
 })(TNode_Element);
@@ -3109,6 +3253,9 @@ var Character = (function () {
         //public node: TElement_Text = null;      // the text node containing the character
         //public index: number;					// the index of the character in it's text node
         this.size = null;
+        if (this.node.isBR) {
+            this.isBR = true;
+        }
     }
     Character.prototype.letter = function () {
         return this.node._text[this.index];
@@ -3121,12 +3268,17 @@ var Character = (function () {
             return this.size;
         }
         else {
-            if (!this.node.parentNode) {
-                return (this.size = [0, 0]);
+            if (this.isBR) {
+                return this.size = [0, (this.node && this.node.parentNode) ? this.node.parentNode.style.fontSize() : 0];
             }
             else {
-                var fontSize, font = (this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '') + (this.node.parentNode.style.fontWeight() == 'bold' ? 'bold ' : '') + (fontSize = this.node.parentNode.style.fontSize()) + 'px ' + this.node.parentNode.style.fontFamily(), lineHeight = fontSize * this.node.parentNode.style.lineHeight();
-                return (this.size = [Character_Metrics.measureCharWidth(font, this.letter()), lineHeight]);
+                if (!this.node.parentNode) {
+                    return (this.size = [0, 0]);
+                }
+                else {
+                    var fontSize, font = (this.node.parentNode.style.fontStyle() == 'italic' ? 'italic ' : '') + (this.node.parentNode.style.fontWeight() == 'bold' ? 'bold ' : '') + (fontSize = this.node.parentNode.style.fontSize()) + 'px ' + this.node.parentNode.style.fontFamily(), lineHeight = fontSize * this.node.parentNode.style.lineHeight();
+                    return (this.size = [Character_Metrics.measureCharWidth(font, this.letter()), lineHeight]);
+                }
             }
         }
     };
@@ -3177,14 +3329,19 @@ var Character_Line = (function () {
     // - if the line contains no words
     // - if the line width + the word width is smaller the the line max allowed physicalWidth
     Character_Line.prototype.acceptWord = function (w) {
-        return !!!(this.words[0]) || (this.size[0] + w.computeSize()[0] < this.maxWidth);
+        if (this.words.length && w.isBR) {
+            return false;
+        }
+        else {
+            return !!!(this.words[0]) || (this.size[0] + w.computeSize()[0] < this.maxWidth);
+        }
     };
     Character_Line.prototype.addWord = function (w) {
         var size = w.computeSize();
         this.words.push(w);
         this.size[0] += size[0];
         this.size[1] = Math.max(size[1], this.size[1]);
-        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0.00;
+        this.wordGap = this.words.length > 2 ? ((this.maxWidth - this.size[0]) / (this.words.length - 1 - (this.words[0].isBR ? 1 : 0))) : 0.00;
     };
     Character_Line.prototype.toString = function () {
         var i = 0, len = this.words.length, out = '';
@@ -3200,6 +3357,9 @@ var Character_Word = (function () {
         this.characters = characters;
         //<constructor> public characters: Character[];
         this.size = null;
+        if (this.characters[0].isBR) {
+            this.isBR = true;
+        }
     }
     Character_Word.prototype.computeSize = function () {
         var i, len, size = [0, 0], charSize;
@@ -3658,10 +3818,19 @@ var Layout_BlockChar = (function (_super) {
     // routine to build the lines of the block.
     // it takes in consideration the words, etc.
     Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
-        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), i = 0, len = contentsWithWords.length, j = 0, n = 0, word = [], words = [], line, ownerNode = this.ownerNode(), w, c;
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), len = contentsWithWords.length, word = [], words = [], line, ownerNode = this.ownerNode(), i = 0, j = 0, n = 0, w, c;
         for (i = 0; i < len; i++) {
             if (contentsWithWords[i] == contents[j]) {
-                word.push(this.chars[j]);
+                // if we find a break character, we create a new word.
+                if (this.chars[j].isBR) {
+                    if (word.length) {
+                        words.push(new Character_Word(word));
+                    }
+                    word = [this.chars[j]];
+                }
+                else {
+                    word.push(this.chars[j]);
+                }
                 j++;
             }
             else {
@@ -4170,6 +4339,7 @@ var Viewport_MouseDriver = (function (_super) {
     Viewport_MouseDriver.prototype.onmousedown = function (DOMEvent) {
         var target = this.viewport.getTargetAtXY(this.translateMouseEventXY(DOMEvent));
         if (target) {
+            window['$1'] = target.target;
             this.mbPressed = true;
             this.viewport.selection.anchorTo(target);
         }
@@ -4684,12 +4854,12 @@ var Viewport_CommandRouter = (function (_super) {
         if (this.viewport.selection.getRange().length()) {
             this.viewport.selection.removeContents();
         }
-        console.log('before: ' + focus.fragPos + ' => ' + JSON.stringify(this.viewport.document.fragment.sliceDebug((nowPos = focus.fragPos - 10), 20, focus.fragPos)));
+        //console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
         // find the target text node offset
         jump = focus.target.insertTextAtTargetOffset(focus.fragPos, str);
         this.viewport.document.relayout(true);
         focus.fragPos = focus.target.textIndexToFragmentPosition(jump);
-        console.log('after: ' + focus.fragPos + ' => ' + JSON.stringify(this.viewport.document.fragment.sliceDebug((nowPos), 20, focus.fragPos)) + ', jump = ' + jump);
+        //console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
         range.collapse(true);
     };
     // negative values delete characters in the left of the caret,
@@ -5413,6 +5583,21 @@ var TRange = (function (_super) {
         this._anchorNode = this.cloneTarget(target);
         this.fire('changed');
     };
+    TRange.prototype.moveRightUntilCharacterIfNotLandedOnText = function () {
+        if (this._focusNode) {
+            this._focusNode.moveRightUntilCharacterIfNotLandedOnText();
+            this._anchorNode.fragPos = this._focusNode.fragPos;
+            this._anchorNode.target = this._focusNode.target;
+        }
+    };
+    TRange.prototype.moveLeftUntilCharacterIfNotLandedOnText = function () {
+        throw "You should not use this!";
+        if (this._focusNode) {
+            this._focusNode.moveLeftUntilCharacterIfNotLandedOnText();
+            this._anchorNode.fragPos = this._focusNode.fragPos;
+            this._anchorNode.target = this._focusNode.target;
+        }
+    };
     return TRange;
 })(Events);
 var TRange_Target = (function (_super) {
@@ -5472,6 +5657,38 @@ var TRange_Target = (function (_super) {
         }
         return false;
     };
+    TRange_Target.prototype.moveRightOnceIfInsideBR = function () {
+        if (this.target.nodeType == 1 /* TEXT */ && this.target.isBR) {
+            this.moveRightUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            }, false);
+        }
+    };
+    TRange_Target.prototype.moveLeftOnceIfInsideBR = function () {
+        if (this.target.nodeType == 1 /* TEXT */ && this.target.isBR) {
+            this.moveLeftUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            }, false);
+        }
+    };
+    TRange_Target.prototype.moveLeftUntilCharacterIfNotLandedOnText = function () {
+        var at = this.target.documentElement.fragment.at(this.fragPos);
+        if (at == 0 /* NODE_START */ || at == 1 /* NODE_END */) {
+            console.warn("Debug: moveLeftUntilCharacterIfNotLandedOnText");
+            this.moveLeftUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            });
+        }
+    };
+    TRange_Target.prototype.moveRightUntilCharacterIfNotLandedOnText = function () {
+        var at = this.target.documentElement.fragment.at(this.fragPos);
+        if (at == 0 /* NODE_START */ || at == 1 /* NODE_END */) {
+            console.warn("Debug: moveRightUntilCharacterIfNotLandedOnText");
+            this.moveRightUntil(function (at) {
+                return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
+            });
+        }
+    };
     TRange_Target.prototype._moveRight = function (times, ignoreEOL) {
         if (times === void 0) { times = 1; }
         if (ignoreEOL === void 0) { ignoreEOL = false; }
@@ -5489,9 +5706,15 @@ var TRange_Target = (function (_super) {
                 return false;
             }
         }
-        return this.moveRightUntil(function (at) {
+        if (this.moveRightUntil(function (at) {
             return (!ignoreEOL && at == 2 /* EOL */) || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
-        });
+        })) {
+            this.moveRightOnceIfInsideBR();
+            return true;
+        }
+        else {
+            return false;
+        }
     };
     TRange_Target.prototype._moveRightWord = function (times) {
         if (times === void 0) { times = 1; }
@@ -5563,9 +5786,15 @@ var TRange_Target = (function (_super) {
                 return false;
             }
         }
-        return this.moveLeftUntil(function (at) {
+        if (this.moveLeftUntil(function (at) {
             return (!ignoreEOL && at == 2 /* EOL */) || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
-        });
+        })) {
+            this.moveLeftOnceIfInsideBR();
+            return true;
+        }
+        else {
+            return false;
+        }
     };
     TRange_Target.prototype._moveLeftWord = function (times) {
         if (times === void 0) { times = 1; }
@@ -5711,6 +5940,7 @@ var DocSelection = (function (_super) {
             this.viewport.document.removeOrphanNodes();
             this.viewport.document.relayout(true);
             range.collapse(len < 0);
+            range.moveRightUntilCharacterIfNotLandedOnText();
         }
     };
     // selection is painted with two colors, depending on
@@ -6624,6 +6854,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="DOM.ts" />
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
+/// <reference path="./TNode/TextBreak.ts" />
 /// <reference path="./TNode/Element.ts" />
 /// <reference path="./TNode/Collection.ts" />
 /// <reference path="./HTMLParser.ts" />
@@ -6695,7 +6926,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 var niceHTML = [
     '<h1 align="center">He<u>adi</u>ng 1</h1>',
-    '<p align="justified">The element above <br />this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
+    '<p align="justified">The element above <br /><b>asd</b><br /><br /><br />this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. The element above this paragraph is a <b><u>Heading 1</u><sup>citat<u>io</u>n needed</sup></b>. alksdjlak jslakjslkajsldasd asldjalsdkjalskdja alksdjlak jslakjslkajsldasd asldjalsdkjalskdja </p>',
     '<h2>Heading 2</h2>',
     '<p>The element above this paragraph is a <b><i>Heading 2</i><sub>citation <i>need</i>ed</sub></b>.</p>',
     '<h3>Heading 3</h3>',

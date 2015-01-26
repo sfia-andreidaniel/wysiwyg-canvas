@@ -63,6 +63,8 @@ class Viewport_MouseDriver extends Events {
 		
 		if ( target ) {
 
+			window['$1'] = target.target;
+
 			this.mbPressed = true;
 
 			this.viewport.selection.anchorTo( target );

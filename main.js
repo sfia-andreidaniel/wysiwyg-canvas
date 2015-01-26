@@ -4994,7 +4994,7 @@ var Viewport_CommandRouter = (function (_super) {
                    Jump to the end of previous ownerBlockElement.
         */
         try {
-            var document = this.viewport.document, fragment = document.fragment, at, currentNode = document.findNodeAtIndex(currentFragPos), ownerBlockElement = currentNode.ownerBlockElement(), minFragPos = ownerBlockElement.FRAGMENT_START, rmFragPos = null, targetRemovalNode = null, previousBlockElement = null, myAllNodes, prevSibling, selection = this.viewport.selection, firstNode, realNumChars = 0, rng = selection.getRange();
+            var document = this.viewport.document, fragment = document.fragment, at, currentNode = document.findNodeAtIndex(currentFragPos), ownerBlockElement = currentNode.ownerBlockElement(), minFragPos = ownerBlockElement.FRAGMENT_START, rmFragPos = null, targetRemovalNode = null, previousBlockElement = null, myAllNodes, prevSibling, selection = this.viewport.selection, firstNode, realNumChars = 0, rng = selection.getRange(), focus;
             console.log([document, fragment, at, currentNode, ownerBlockElement, currentFragPos]);
             while (--currentFragPos > minFragPos) {
                 at = fragment.at(currentFragPos);
@@ -5040,19 +5040,33 @@ var Viewport_CommandRouter = (function (_super) {
             }
             if (targetRemovalNode.isBR) {
                 //1.2.
-                this.moveCaret(2 /* CHARACTER */, -1, false);
+                this.moveCaret(2 /* CHARACTER */, -2, false);
                 targetRemovalNode.parentNode.remove();
+                //this.moveCaret( CaretPos.CHARACTER, -1, false );
+                console.error("B");
                 return;
             }
             // count the number of real characters until first node start.
-            console.error("DELETING FROM: " + targetRemovalNode.textContents());
             realNumChars = targetRemovalNode.deleteTextContentsBetweenFragmentPositions(rmFragPos, rmFragPos);
             document.removeOrphanNodes();
             document.relayout(true);
-            console.error("AFTER DEL: " + targetRemovalNode.textContents() + ', REALNUMCHARS: ' + realNumChars);
-            rng.focusNode().target = targetRemovalNode;
-            rng.focusNode().fragPos = targetRemovalNode.textIndexForTextLength(realNumChars);
+            focus = rng.focusNode();
+            focus.target = targetRemovalNode;
+            focus.fragPos = targetRemovalNode.textIndexForTextLength(realNumChars);
+            if (targetRemovalNode.parentNode === null) {
+                focus.target = document.findNodeAtIndex(focus.fragPos);
+                rng.moveRightUntilCharacterIfNotLandedOnText();
+            }
+            else {
+                if (focus.fragPos > targetRemovalNode.FRAGMENT_END) {
+                    rng.moveRightUntilCharacterIfNotLandedOnText();
+                }
+            }
+            rng = selection.getRange();
+            focus = rng.focusNode();
             rng.collapse(true);
+            console.error(focus.target.parentNode.nodeName);
+            window['$r'] = rng;
         }
         catch (exception) {
             console.error(exception);

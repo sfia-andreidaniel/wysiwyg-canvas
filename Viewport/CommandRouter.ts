@@ -272,7 +272,8 @@ class Viewport_CommandRouter extends Events {
 		   	    selection = this.viewport.selection,
 		   	    firstNode: TNode,
 		   	    realNumChars: number = 0,
-		   	    rng = selection.getRange();
+		   	    rng = selection.getRange(),
+		   	    focus;
 
 		   	console.log( [ document, fragment, at, currentNode, ownerBlockElement, currentFragPos ]);
 
@@ -328,8 +329,10 @@ class Viewport_CommandRouter extends Events {
 
 		   	if ( targetRemovalNode.isBR ) {
 		   		//1.2.
-		   		this.moveCaret( CaretPos.CHARACTER, -1, false );
+		   		this.moveCaret( CaretPos.CHARACTER, -2, false );
 		   		targetRemovalNode.parentNode.remove();
+		   		//this.moveCaret( CaretPos.CHARACTER, -1, false );
+		   		console.error( "B");
 		   		return;
 		   	}
 
@@ -341,10 +344,29 @@ class Viewport_CommandRouter extends Events {
 
 		   	document.relayout(true);
 
-		   	rng.focusNode().target = targetRemovalNode;
-		   	rng.focusNode().fragPos = targetRemovalNode.textIndexForTextLength( realNumChars );
+		   	focus = rng.focusNode();
+
+		   	focus.target = targetRemovalNode;
+
+		   	focus.fragPos = targetRemovalNode.textIndexForTextLength( realNumChars );
+
+		   	if ( targetRemovalNode.parentNode === null ) {
+		   		focus.target = document.findNodeAtIndex( focus.fragPos );
+		   		rng.moveRightUntilCharacterIfNotLandedOnText();
+		   	} else {
+		   		if ( focus.fragPos > targetRemovalNode.FRAGMENT_END ) {
+		   			rng.moveRightUntilCharacterIfNotLandedOnText();
+		   		}
+		   	}
+
+		   	rng = selection.getRange();
+		   	focus = rng.focusNode();
+
 		   	rng.collapse( true );
 
+		   	console.error( focus.target.parentNode.nodeName );
+
+		   	window['$r'] = rng;
 
 	   	} catch ( exception ) {
 	   		console.error( exception );

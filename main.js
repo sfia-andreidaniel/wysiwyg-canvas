@@ -5296,18 +5296,59 @@ var Fragment = (function () {
 })();
 var Fragment_CaretLock = (function () {
     function Fragment_CaretLock(fragment, lockIndex, direction) {
+        if (direction === void 0) { direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */; }
         this.chars = 0;
         this.lockIndex = 0;
+        var at, i = 0, len = 0;
         this.fragment = fragment;
         this.lockIndex = lockIndex;
         this.chars = 0;
+        this.direction = direction;
         if (direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+            for (i = 0; i <= lockIndex; i++) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    len++;
+                }
+            }
+            this.chars = len;
         }
         else {
+            for (i = this.fragment.length() - 1; i >= lockIndex; i--) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    len++;
+                }
+            }
+            this.chars = len;
         }
     }
     Fragment_CaretLock.prototype.getTarget = function () {
-        return null;
+        var at, i = 0, len = 0, n = 0;
+        if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+            for (i = 0, len = this.fragment.length(); i < len; i++) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    n++;
+                    if (n == this.chars) {
+                        return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
+                    }
+                }
+            }
+            return this.fragment.createTargetAt(1 /* DOC_END */);
+        }
+        else {
+            for (len = this.fragment.length() - 1, i = len; i >= 0; i--) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    n++;
+                    if (n == this.chars) {
+                        return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
+                    }
+                }
+            }
+            return this.fragment.createTargetAt(0 /* DOC_BEGIN */);
+        }
     };
     return Fragment_CaretLock;
 })();

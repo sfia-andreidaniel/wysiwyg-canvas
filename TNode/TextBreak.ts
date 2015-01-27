@@ -24,8 +24,8 @@ class TNode_TextBreak extends TNode_Text {
 	}
 
 	set _text( s: string ) {
-		if ( s != "\r" && s ) {
-			(<HTML_BreakElement>this.parentNode).appendTextAfter( s.replace( /\r/g, '' ) );
+		if ( s == '' && this.parentNode ) {
+			this.parentNode.remove();
 		}
 	}
 

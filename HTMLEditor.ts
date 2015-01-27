@@ -103,6 +103,12 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 		}
 	});
 
+	Object.defineProperty( element, "document", {
+		"get": function() {
+			return viewport.document;
+		}
+	} );
+
 	Object.defineProperty( element, "viewport", {
 		"get": function() {
 			return viewport;
@@ -118,6 +124,18 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 	Object.defineProperty( element, "state", {
 		"get": function() {
 			return viewport.selection.editorState;
+		}
+	} );
+
+	Object.defineProperty( element, "selection", {
+		"get": function() {
+			return viewport.selection;
+		}
+	} );
+
+	Object.defineProperty( element, "fragment", {
+		"get": function() {
+			return viewport.document.fragment;
 		}
 	} );
 

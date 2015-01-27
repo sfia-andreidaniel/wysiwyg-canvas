@@ -72,6 +72,7 @@ class TRange_Target extends Events {
 
 	}
 
+	/* These should be removed in the future or optimized better */
 	private moveRightOnceIfInsideBR() {
 		if ( this.target.nodeType == TNode_Type.TEXT && (<TNode_Text>this.target).isBR ) {
 			this.moveRightUntil( function(at) {

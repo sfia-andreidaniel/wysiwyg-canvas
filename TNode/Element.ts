@@ -628,6 +628,10 @@ class TNode_Element extends TNode {
 		} else return false;
 	}
 
+	/* Compares the document position between 2 nodes in DOM.
+	   negative values means the node is Before, positive values means the
+	   node is after
+	 */
 	public compareDocumentPosition( node: TNode_Element ): number {
 		if ( node && this.documentElement && node.documentElement && this.documentElement == node.documentElement ) {
 			this.documentElement.requestRelayoutNowIfNeeded();
@@ -635,6 +639,9 @@ class TNode_Element extends TNode {
 		} else return -1;
 	}
 
+	/* Recursively finds a node that is mapped to the document fragment
+	   at position @index.
+	 */
 	public findNodeAtIndex( index: number ): TNode {
 		
 		var i: number = 0,
@@ -911,6 +918,14 @@ class TNode_Element extends TNode {
 		} else {
 			throw "ERR_CANNOT_MERGE_ELEMENTS";
 		}
+	}
+
+	public lastChild(): TNode {
+		return !this.childNodes ? null : ( this.childNodes[ this.childNodes.length - 1 ] || null );
+	}
+
+	public firstChild(): TNode {
+		return !this.childNodes ? null : ( this.childNodes[ 0 ] || null );
 	}
 
 }

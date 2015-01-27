@@ -199,26 +199,6 @@ class TNode_Text extends TNode {
 		return retVal;
 	}
 
-	// @in: text mapping index
-	// @out: fragment index
-	public textIndexForTextLength( index: number ): number {
-		var i: number = 0,
-		    j: number = this.FRAGMENT_START,
-		    len: number = 0;
-
-		for ( i=0, len = this._text.length; i<=len; i++ ) {
-			if ( index == i ) {
-				return j;
-			}
-			if ( this.EOL_POS && this.EOL_POS[i] ) {
-				j += 2;
-			} else {
-				j++;
-			}
-		}
-	}
-
-
 	public ownerBlockElement() {
 		return this.parentNode.ownerBlockElement();
 	}

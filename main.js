@@ -69,6 +69,11 @@ var TNewLinePolicy;
     TNewLinePolicy[TNewLinePolicy["SURGERY"] = 1] = "SURGERY";
 })(TNewLinePolicy || (TNewLinePolicy = {}));
 ;
+var CaretLockPos;
+(function (CaretLockPos) {
+    CaretLockPos[CaretLockPos["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
+    CaretLockPos[CaretLockPos["FROM_ENDING_OF_DOCUMENT"] = 1] = "FROM_ENDING_OF_DOCUMENT";
+})(CaretLockPos || (CaretLockPos = {}));
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -402,22 +407,6 @@ var TNode_Text = (function (_super) {
         }
         return retVal;
     };
-    // @in: text mapping index
-    // @out: fragment index
-    TNode_Text.prototype.textIndexForTextLength = function (index) {
-        var i = 0, j = this.FRAGMENT_START, len = 0;
-        for (i = 0, len = this._text.length; i <= len; i++) {
-            if (index == i) {
-                return j;
-            }
-            if (this.EOL_POS && this.EOL_POS[i]) {
-                j += 2;
-            }
-            else {
-                j++;
-            }
-        }
-    };
     TNode_Text.prototype.ownerBlockElement = function () {
         return this.parentNode.ownerBlockElement();
     };
@@ -458,8 +447,8 @@ var TNode_TextBreak = (function (_super) {
             return "\r";
         },
         set: function (s) {
-            if (s != "\r" && s) {
-                this.parentNode.appendTextAfter(s.replace(/\r/g, ''));
+            if (s == '' && this.parentNode) {
+                this.parentNode.remove();
             }
         },
         enumerable: true,
@@ -971,6 +960,10 @@ var TNode_Element = (function (_super) {
         else
             return false;
     };
+    /* Compares the document position between 2 nodes in DOM.
+       negative values means the node is Before, positive values means the
+       node is after
+     */
     TNode_Element.prototype.compareDocumentPosition = function (node) {
         if (node && this.documentElement && node.documentElement && this.documentElement == node.documentElement) {
             this.documentElement.requestRelayoutNowIfNeeded();
@@ -979,6 +972,9 @@ var TNode_Element = (function (_super) {
         else
             return -1;
     };
+    /* Recursively finds a node that is mapped to the document fragment
+       at position @index.
+     */
     TNode_Element.prototype.findNodeAtIndex = function (index) {
         var i = 0, len = 0, match;
         if (this.documentElement) {
@@ -1170,6 +1166,12 @@ var TNode_Element = (function (_super) {
         else {
             throw "ERR_CANNOT_MERGE_ELEMENTS";
         }
+    };
+    TNode_Element.prototype.lastChild = function () {
+        return !this.childNodes ? null : (this.childNodes[this.childNodes.length - 1] || null);
+    };
+    TNode_Element.prototype.firstChild = function () {
+        return !this.childNodes ? null : (this.childNodes[0] || null);
     };
     return TNode_Element;
 })(TNode);
@@ -4975,102 +4977,7 @@ var Viewport_CommandRouter = (function (_super) {
         range.collapse(true);
     };
     Viewport_CommandRouter.prototype.removeCharLeft = function (currentFragPos) {
-        /* 1.
-       
-        1.1. There are no more characters until the left of the ownerBlockElement.
-             Merge current ownerBlockElement() with previous ownerBlockElement
-
-        1.2. The exactly previous white-space or character on current document fragment
-            corresponds to a BR tag.
-            Delete the br tag.
-
-        1.3. The exactly previous white-space or character in the document is a child of
-            this ownerBlockElement.
-            
-            1.3.1. Delete that character. If it's owner parent has no textContents(), also delete
-            it's parent too.
-
-            1.3.2. After 1.3.1, the current ownerBlockElement() remains with textContents empty.
-                   Jump to the end of previous ownerBlockElement.
-        */
-        try {
-            var document = this.viewport.document, fragment = document.fragment, at, currentNode = document.findNodeAtIndex(currentFragPos), ownerBlockElement = currentNode.ownerBlockElement(), minFragPos = ownerBlockElement.FRAGMENT_START, rmFragPos = null, targetRemovalNode = null, previousBlockElement = null, myAllNodes, prevSibling, selection = this.viewport.selection, firstNode, realNumChars = 0, rng = selection.getRange(), focus;
-            console.log([document, fragment, at, currentNode, ownerBlockElement, currentFragPos]);
-            while (--currentFragPos > minFragPos) {
-                at = fragment.at(currentFragPos);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    rmFragPos = currentFragPos;
-                    targetRemovalNode = document.findNodeAtIndex(rmFragPos);
-                    break;
-                }
-            }
-            if (rmFragPos === null) {
-                // 1.1
-                if (ownerBlockElement == document || !ownerBlockElement.isMergeable) {
-                    return; // did all my best, cannot disolve the body or a non-mergeable element.
-                }
-                firstNode = ownerBlockElement.childNodes[0] || null;
-                prevSibling = ownerBlockElement.previousSibling();
-                myAllNodes = new TNode_Collection(ownerBlockElement.childNodes);
-                if (prevSibling === null) {
-                    // append all my nodes @ my siblingIndex
-                    ownerBlockElement.parentNode.appendCollection(myAllNodes, ownerBlockElement.siblingIndex);
-                    ownerBlockElement.remove();
-                }
-                else {
-                    if (prevSibling.nodeType == 1 /* TEXT */ || !prevSibling.isMergeable) {
-                        ownerBlockElement.parentNode.appendCollection(myAllNodes, ownerBlockElement.siblingIndex);
-                    }
-                    else {
-                        prevSibling.appendCollection(myAllNodes);
-                    }
-                    ownerBlockElement.remove();
-                }
-                document.relayout(true);
-                if (firstNode) {
-                    selection.getRange().focusNode().fragPos = firstNode.FRAGMENT_START;
-                    selection.getRange().focusNode().target = firstNode;
-                    selection.getRange().moveLeftUntilCharacterIfNotLandedOnText();
-                }
-                else {
-                    selection.getRange().moveLeftUntilCharacterIfNotLandedOnText(); // re-land selection
-                }
-                selection.getRange().fire('changed');
-                return;
-            }
-            if (targetRemovalNode.isBR) {
-                //1.2.
-                this.moveCaret(2 /* CHARACTER */, -2, false);
-                targetRemovalNode.parentNode.remove();
-                //this.moveCaret( CaretPos.CHARACTER, -1, false );
-                console.error("B");
-                return;
-            }
-            // count the number of real characters until first node start.
-            realNumChars = targetRemovalNode.deleteTextContentsBetweenFragmentPositions(rmFragPos, rmFragPos);
-            document.removeOrphanNodes();
-            document.relayout(true);
-            focus = rng.focusNode();
-            focus.target = targetRemovalNode;
-            focus.fragPos = targetRemovalNode.textIndexForTextLength(realNumChars);
-            if (targetRemovalNode.parentNode === null) {
-                focus.target = document.findNodeAtIndex(focus.fragPos);
-                rng.moveRightUntilCharacterIfNotLandedOnText();
-            }
-            else {
-                if (focus.fragPos > targetRemovalNode.FRAGMENT_END) {
-                    rng.moveRightUntilCharacterIfNotLandedOnText();
-                }
-            }
-            rng = selection.getRange();
-            focus = rng.focusNode();
-            rng.collapse(true);
-            console.error(focus.target.parentNode.nodeName);
-            window['$r'] = rng;
-        }
-        catch (exception) {
-            console.error(exception);
-        }
+        //rollback, will use Fragment_CaretLock for this.
     };
     Viewport_CommandRouter.prototype.removeCharRight = function (currentFragPos) {
     };
@@ -5382,7 +5289,27 @@ var Fragment = (function () {
         }
         return null;
     };
+    Fragment.prototype.createLockTarget = function (at, pos) {
+        return new Fragment_CaretLock(this, at, pos);
+    };
     return Fragment;
+})();
+var Fragment_CaretLock = (function () {
+    function Fragment_CaretLock(fragment, lockIndex, direction) {
+        this.chars = 0;
+        this.lockIndex = 0;
+        this.fragment = fragment;
+        this.lockIndex = lockIndex;
+        this.chars = 0;
+        if (direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+        }
+        else {
+        }
+    }
+    Fragment_CaretLock.prototype.getTarget = function () {
+        return null;
+    };
+    return Fragment_CaretLock;
 })();
 var Fragment_Contextual = (function () {
     function Fragment_Contextual(fragment, indexStart, indexEnd, isEmpty) {
@@ -5913,6 +5840,7 @@ var TRange_Target = (function (_super) {
         }
         return false;
     };
+    /* These should be removed in the future or optimized better */
     TRange_Target.prototype.moveRightOnceIfInsideBR = function () {
         if (this.target.nodeType == 1 /* TEXT */ && this.target.isBR) {
             this.moveRightUntil(function (at) {
@@ -6429,6 +6357,11 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
             viewport.document.innerHTML(html || ' ');
         }
     });
+    Object.defineProperty(element, "document", {
+        "get": function () {
+            return viewport.document;
+        }
+    });
     Object.defineProperty(element, "viewport", {
         "get": function () {
             return viewport;
@@ -6442,6 +6375,16 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
     Object.defineProperty(element, "state", {
         "get": function () {
             return viewport.selection.editorState;
+        }
+    });
+    Object.defineProperty(element, "selection", {
+        "get": function () {
+            return viewport.selection;
+        }
+    });
+    Object.defineProperty(element, "fragment", {
+        "get": function () {
+            return viewport.document.fragment;
         }
     });
     function resize(newWidth, newHeight) {
@@ -7160,6 +7103,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./Viewport/KeyboardDriver.ts" />
 /// <reference path="./Viewport/CommandRouter.ts" />
 /// <reference path="Fragment.ts" />
+/// <reference path="./Fragment/CaretLock.ts" />
 /// <reference path="./Fragment/Contextual.ts" />
 /// <reference path="./Fragment/Contextual/Item.ts" />
 /// <reference path="./Fragment/Contextual/NodeStart.ts" />

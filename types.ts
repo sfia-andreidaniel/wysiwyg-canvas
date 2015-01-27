@@ -108,3 +108,8 @@ enum TNewLinePolicy {
 	BR,
 	SURGERY
 };
+
+enum CaretLockPos {
+	FROM_BEGINNING_OF_DOCUMENT,
+	FROM_ENDING_OF_DOCUMENT
+}

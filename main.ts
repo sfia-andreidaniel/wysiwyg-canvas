@@ -62,6 +62,7 @@
 /// <reference path="./Viewport/CommandRouter.ts" />
 
 /// <reference path="Fragment.ts" />
+/// <reference path="./Fragment/CaretLock.ts" />
 /// <reference path="./Fragment/Contextual.ts" />
 /// <reference path="./Fragment/Contextual/Item.ts" />
 /// <reference path="./Fragment/Contextual/NodeStart.ts" />

@@ -1,10 +1,19 @@
 class Viewport_CommandRouter extends Events {
 
-	public viewport: Viewport;
+	public  viewport: Viewport;
+	public  caretX: number = null;
 
 	constructor( viewport: Viewport ) {
 		super();
 		this.viewport = viewport;
+		
+		( function( me ) {
+			
+			me.viewport.mouseDriver.on( 'refocus', function() {
+				this.caretX = null;
+			});
+
+		} )( this );
 	}
 
 	public commandName( command: EditorCommand ): string {
@@ -43,6 +52,10 @@ class Viewport_CommandRouter extends Events {
 		var commandName: string = this.commandName( command );
 
 		console.log( 'dispatchCommand: ' + commandName + '(' + JSON.stringify( args ) + ')' );
+
+		if ( this.caretX != null && ( command != EditorCommand.MOVE ) ) {
+			this.caretX = null;
+		}
 
 		switch ( command ) {
 			case EditorCommand.INSERT_TEXT:
@@ -518,8 +531,15 @@ class Viewport_CommandRouter extends Events {
 	// new caret position.
 	public moveCaret( movementType: CaretPos, amount: number, expandSelection: boolean ) {
 		
+		if ( this.caretX && movementType != CaretPos.LINE_VERTICAL ) {
+			this.caretX = null;
+		}
+
 		var range: TRange = this.viewport.selection.getRange(),
-		    focus: TRange_Target = range.focusNode();
+		    focus: TRange_Target = range.focusNode(),
+		    lineIndex: number,
+		    lines: Character_LinesCollection,
+		    line: Character_Line;
 
 		if ( range.length() == null || !focus ) {
 			return;
@@ -551,8 +571,64 @@ class Viewport_CommandRouter extends Events {
 			case CaretPos.VIEWPORT:
 				break;
 			case CaretPos.LINE_HORIZONTAL:
+				
+				if ( Math.abs( amount ) != 1 ) {
+					throw "Allowed values are -1 or 1.";
+				}
+				
+				lineIndex = focus.getLineIndex();
+
+				if ( lineIndex ) {
+
+					lines = this.viewport.document.lines;
+					line = lines.at( lineIndex );
+					focus.fragPos = line[ amount == -1 ? "fragmentIndexStart" : "fragmentIndexEnd" ];
+					focus.target = this.viewport.document.findNodeAtIndex( focus.fragPos );
+					if ( !expandSelection ) {
+						range.collapse( true );
+					}
+					this.viewport.scrollToCaret();
+					this.viewport.document.requestRepaint();
+
+				}
+
 				break;
+
 			case CaretPos.LINE_VERTICAL:
+
+				if ( Math.abs( amount ) != 1 ) {
+					throw "Allowed values are -1 or 1.";
+				}
+
+				lineIndex = focus.getLineIndex();
+
+				if ( lineIndex !== null ) {
+
+					lines = this.viewport.document.lines;
+					
+					line  = lines.at( lineIndex );
+
+					if ( this.caretX === null ) {
+						this.caretX = focus.details().paintAbsolute.x;
+					}
+
+					try {
+						line = lines.at( lineIndex + amount );
+					} catch ( jumpException ) {
+						console.warn( 'jumpException' );
+						return;
+					}
+
+					focus.fragPos = line.getFragmentPositionByAbsoluteX( this.caretX );
+					focus.target = this.viewport.document.findNodeAtIndex( focus.fragPos );
+					if ( !expandSelection ){
+						range.collapse( true );
+					}
+					this.viewport.scrollToCaret();
+					this.viewport.document.requestRepaint();
+
+				}
+
 				break;
 		}
 

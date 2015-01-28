@@ -68,6 +68,8 @@ class Viewport_MouseDriver extends Events {
 			this.mbPressed = true;
 
 			this.viewport.selection.anchorTo( target );
+
+			this.fire( 'refocus' );
 		}
 	}
 

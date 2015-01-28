@@ -1071,7 +1071,9 @@ var TNode_Element = (function (_super) {
             }
             else {
                 rParent = this.documentElement.createElement(nodeNameAfter === null ? this.nodeName : nodeNameAfter);
+                rParent.appendChild(this.documentElement.createTextNode(' '));
                 this.parentNode.appendChild(rParent, this.siblingIndex + 1);
+                this.documentElement.relayout(true);
                 return rParent.FRAGMENT_START;
             }
         }
@@ -3475,6 +3477,43 @@ var Character_Line = (function () {
         }
         return out;
     };
+    Character_Line.prototype.getFragmentPositionByAbsoluteX = function (caretX) {
+        var layout = this.owner, ownerNode = layout.ownerNode(), align = ownerNode.style.textAlign() || 'left', lineHeight = ownerNode.style.lineHeight() || 0, paintX = 0, paintY = 0, useWordGap = false, i = 0, len = 0, j = 0, n = 0, size = [0, 0], charIndex = 0, c;
+        switch (align) {
+            case 'justified':
+                useWordGap = true;
+            case 'left':
+                paintX = layout.offsetLeft;
+                break;
+            case 'right':
+                paintX = layout.offsetLeft + (this.maxWidth - this.size[0]);
+                break;
+            case 'center':
+                paintX = layout.offsetLeft + ((this.maxWidth / 2) - (this.size[0] / 2));
+                break;
+        }
+        if (caretX < paintX) {
+            return this.fragmentIndexStart;
+        }
+        if (caretX > layout.offsetLeft + layout.offsetWidth) {
+            return this.fragmentIndexEnd;
+        }
+        for (i = 0, len = this.words.length; i < len; i++) {
+            for (j = 0, n = this.words[i].characters.length; j < n; j++) {
+                c = this.words[i].characters[j];
+                size = c.computeSize();
+                paintX += size[0];
+                if (paintX > caretX) {
+                    return this.words[i].characters[j].fragmentPosition();
+                }
+                charIndex++;
+            }
+            if (useWordGap) {
+                paintX += this.wordGap;
+            }
+        }
+        return this.fragmentIndexEnd;
+    };
     return Character_Line;
 })();
 var Character_Word = (function () {
@@ -4504,6 +4543,7 @@ var Viewport_MouseDriver = (function (_super) {
             window['$1'] = target.target;
             this.mbPressed = true;
             this.viewport.selection.anchorTo(target);
+            this.fire('refocus');
         }
     };
     Viewport_MouseDriver.prototype.onmousemove = function (DOMEvent) {
@@ -4778,7 +4818,13 @@ var Viewport_CommandRouter = (function (_super) {
     __extends(Viewport_CommandRouter, _super);
     function Viewport_CommandRouter(viewport) {
         _super.call(this);
+        this.caretX = null;
         this.viewport = viewport;
+        (function (me) {
+            me.viewport.mouseDriver.on('refocus', function () {
+                this.caretX = null;
+            });
+        })(this);
     }
     Viewport_CommandRouter.prototype.commandName = function (command) {
         switch (command) {
@@ -4847,6 +4893,9 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.dispatchCommand = function (command, args) {
         var commandName = this.commandName(command);
         console.log('dispatchCommand: ' + commandName + '(' + JSON.stringify(args) + ')');
+        if (this.caretX != null && (command != 3 /* MOVE */)) {
+            this.caretX = null;
+        }
         switch (command) {
             case 0 /* INSERT_TEXT */:
                 if (!this.ensureArgs(args, 1, 1)) {
@@ -5213,7 +5262,10 @@ var Viewport_CommandRouter = (function (_super) {
     // moves the caret, and optionally extends the selection to the
     // new caret position.
     Viewport_CommandRouter.prototype.moveCaret = function (movementType, amount, expandSelection) {
-        var range = this.viewport.selection.getRange(), focus = range.focusNode();
+        if (this.caretX && movementType != 1 /* LINE_VERTICAL */) {
+            this.caretX = null;
+        }
+        var range = this.viewport.selection.getRange(), focus = range.focusNode(), lineIndex, lines, line;
         if (range.length() == null || !focus) {
             return;
         }
@@ -5243,8 +5295,48 @@ var Viewport_CommandRouter = (function (_super) {
             case 4 /* VIEWPORT */:
                 break;
             case 0 /* LINE_HORIZONTAL */:
+                if (Math.abs(amount) != 1) {
+                    throw "Allowed values are -1 or 1.";
+                }
+                lineIndex = focus.getLineIndex();
+                if (lineIndex) {
+                    lines = this.viewport.document.lines;
+                    line = lines.at(lineIndex);
+                    focus.fragPos = line[amount == -1 ? "fragmentIndexStart" : "fragmentIndexEnd"];
+                    focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+                    if (!expandSelection) {
+                        range.collapse(true);
+                    }
+                    this.viewport.scrollToCaret();
+                    this.viewport.document.requestRepaint();
+                }
                 break;
             case 1 /* LINE_VERTICAL */:
+                if (Math.abs(amount) != 1) {
+                    throw "Allowed values are -1 or 1.";
+                }
+                lineIndex = focus.getLineIndex();
+                if (lineIndex !== null) {
+                    lines = this.viewport.document.lines;
+                    line = lines.at(lineIndex);
+                    if (this.caretX === null) {
+                        this.caretX = focus.details().paintAbsolute.x;
+                    }
+                    try {
+                        line = lines.at(lineIndex + amount);
+                    }
+                    catch (jumpException) {
+                        console.warn('jumpException');
+                        return;
+                    }
+                    focus.fragPos = line.getFragmentPositionByAbsoluteX(this.caretX);
+                    focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+                    if (!expandSelection) {
+                        range.collapse(true);
+                    }
+                    this.viewport.scrollToCaret();
+                    this.viewport.document.requestRepaint();
+                }
                 break;
         }
         range.setEventingState(true);

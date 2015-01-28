@@ -772,7 +772,11 @@ class TNode_Element extends TNode {
 				return atFragmentIndex;
 			} else {
 				rParent = this.documentElement.createElement( nodeNameAfter === null ? this.nodeName : nodeNameAfter );
+				rParent.appendChild( this.documentElement.createTextNode( ' ' ) );
+				
 				this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
+				this.documentElement.relayout( true );
+
 				return rParent.FRAGMENT_START;
 			}
 		}

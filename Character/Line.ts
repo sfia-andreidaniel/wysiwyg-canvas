@@ -69,4 +69,71 @@ class Character_Line {
 		return out;
 	}
 
+	public getFragmentPositionByAbsoluteX( caretX: number ): number {
+		var layout: Layout_BlockChar          = this.owner,
+			ownerNode: TNode_Element          = layout.ownerNode(),
+			align: string                     = ownerNode.style.textAlign() || 'left',
+			lineHeight: number                = ownerNode.style.lineHeight() || 0,
+			paintX: number                    = 0,
+			paintY: number                    = 0,
+			useWordGap: boolean               = false,
+			
+			i: number = 0,
+			len: number = 0,
+			j: number = 0,
+			n: number = 0,
+			size: number[] = [0,0],
+
+			charIndex: number = 0,
+
+			c: Character;
+
+		switch ( align ) {
+			case 'justified':
+				useWordGap = true;
+			case 'left':
+				paintX = layout.offsetLeft;
+				break;
+			case 'right':
+				paintX = layout.offsetLeft + ( this.maxWidth - this.size[0] );
+				break;
+			case 'center':
+				paintX = layout.offsetLeft + ( ( this.maxWidth / 2 ) - ( this.size[0] / 2 ) );
+				break;
+		}
+
+		if ( caretX < paintX ) {
+			return this.fragmentIndexStart;
+		}
+
+		if ( caretX > layout.offsetLeft + layout.offsetWidth ) {
+			return this.fragmentIndexEnd;
+		}
+
+		for ( i=0, len = this.words.length; i<len; i++ ) {
+			
+			for ( j = 0, n = this.words[i].characters.length; j<n; j++ ) {
+				
+				c = this.words[i].characters[j];
+
+				size = c.computeSize();
+				paintX += size[0];
+
+				if ( paintX > caretX ) {
+					return this.words[i].characters[j].fragmentPosition();
+				}
+				
+				charIndex++;
+			}
+
+			if ( useWordGap ){
+				paintX += this.wordGap;
+			}
+		}
+
+		return this.fragmentIndexEnd;
+
+
+	}
+
 }

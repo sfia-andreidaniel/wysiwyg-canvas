@@ -5,6 +5,7 @@ class HTML_Body extends TNode_Element {
 	public  _layout 		 : Layout = null;
 	public  viewport 		 : Viewport = null;
 	public  fragment 		 : Fragment;
+	public  lines            : Character_LinesCollection;
 
 	public isBlockTextNode   : boolean = true; //user can write inside this element ( or sub-elements );
 
@@ -50,6 +51,7 @@ class HTML_Body extends TNode_Element {
 
 		this.fragment = new Fragment( this );
 		this.viewport = viewport;
+		this.lines    = new Character_LinesCollection();
 
 		this.nodeName = 'body';
 		this.documentElement = this;
@@ -228,6 +230,7 @@ class HTML_Body extends TNode_Element {
 		}
 
 		this._layout = this.createLayout();
+		this.lines.reset();
 
 		this._layout.offsetTop   = -this.style.marginTop();
 		this._layout.offsetLeft  = -this.style.marginLeft();

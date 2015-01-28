@@ -62,7 +62,7 @@ class Fragment {
 
 	public at( index: number, value: FragmentItem = null ): FragmentItem {
 		if ( index < 0 || index >= this._length ) {
-			throw "OFFSET_OUT_BOUNDS";
+			throw "OFFSET_OUT_BOUNDS ( requested: " + index + ", allowedMin: 0, allowedMax: " + ( this._length - 1 ) + ")";
 		} else {
 			if ( value === null ) {
 				return this._at[ index ] == void 0 ? null : this._at[ index ];

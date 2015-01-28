@@ -1431,6 +1431,7 @@ var HTML_Body = (function (_super) {
         };
         this.fragment = new Fragment(this);
         this.viewport = viewport;
+        this.lines = new Character_LinesCollection();
         this.nodeName = 'body';
         this.documentElement = this;
         this.parentNode = null;
@@ -1590,6 +1591,7 @@ var HTML_Body = (function (_super) {
             return;
         }
         this._layout = this.createLayout();
+        this.lines.reset();
         this._layout.offsetTop = -this.style.marginTop();
         this._layout.offsetLeft = -this.style.marginLeft();
         this._layout.offsetWidth = this.viewport.width() - this.viewport._scrollbarSize;
@@ -3422,10 +3424,14 @@ var Character_Metrics = (function () {
 var Character_Line = (function () {
     function Character_Line(maxWidth) {
         this.maxWidth = maxWidth;
+        // <constructor> public maxWidth       : number = 0;     // physical width of the parent
         this.words = [];
-        // <constructor> public maxWidth       : number = 0;
         this.wordGap = 0.00;
-        this.size = [0, 0];
+        this.size = [0, 0]; // dimensions in pixels, [0]=>width, [1]=>height
+        this.index = 0; // the line index
+        this.owner = null; // initialized by creator
+        this.fragmentIndexStart = null;
+        this.fragmentIndexEnd = null;
     }
     // a line accepts a word either:
     // - if the line contains no words
@@ -3444,6 +3450,23 @@ var Character_Line = (function () {
         this.size[0] += size[0];
         this.size[1] = Math.max(size[1], this.size[1]);
         this.wordGap = (this.words.length > 2 && !this.words[0].isBR) ? ((this.maxWidth - this.size[0]) / (this.words.length - 1)) : 0.00;
+    };
+    Character_Line.prototype.buildIndexes = function () {
+        var c, nWords;
+        if (nWords = this.words.length) {
+            c = this.words[0].characters[0];
+            this.fragmentIndexStart = c.fragmentPosition();
+            c = this.words[nWords - 1].characters[this.words[nWords - 1].characters.length - 1];
+            this.fragmentIndexEnd = c.fragmentPosition();
+            // add a +1 if line has EOL
+            if (c.node.EOL_POS && c.node.EOL_POS[c.index]) {
+                this.fragmentIndexEnd++;
+            }
+        }
+        else {
+            this.fragmentIndexStart = null;
+            this.fragmentIndexEnd = null;
+        }
     };
     Character_Line.prototype.toString = function () {
         var i = 0, len = this.words.length, out = '';
@@ -3486,6 +3509,38 @@ var Character_Word = (function () {
         return out;
     };
     return Character_Word;
+})();
+var Character_LinesCollection = (function () {
+    function Character_LinesCollection() {
+        this.count = 0;
+        this.items = [];
+    }
+    Character_LinesCollection.prototype.reset = function () {
+        var i = 0;
+        for (i = 0; i < this.count; i++) {
+            this.items[i] = null;
+        }
+        this.count = 0;
+    };
+    Character_LinesCollection.prototype.length = function () {
+        return this.count;
+    };
+    Character_LinesCollection.prototype.add = function (line) {
+        line.index = this.count;
+        this.items[this.count] = line;
+        this.count++;
+        return line;
+    };
+    Character_LinesCollection.prototype.at = function (index) {
+        if (!this.items[index]) {
+            throw "ERR_INDEX_OUTSIDE_BOUNDS (" + index + ")";
+        }
+        if (this.items[index].fragmentIndexStart === null) {
+            this.items[index].buildIndexes();
+        }
+        return this.items[index] || null;
+    };
+    return Character_LinesCollection;
 })();
 // the layout class is responsible to render elements on the canvas.
 var Layout = (function () {
@@ -3903,6 +3958,7 @@ var Layout_BlockChar = (function (_super) {
         this.hasChars = true;
         this.layoutType = 'text';
         this.lines = [];
+        this.lineIndexStart = 0;
     }
     Layout_BlockChar.prototype.addTextNode = function (node) {
         node.EOL_POS = null;
@@ -3920,7 +3976,7 @@ var Layout_BlockChar = (function (_super) {
     // routine to build the lines of the block.
     // it takes in consideration the words, etc.
     Layout_BlockChar.prototype.buildLines = function (lineWidthInPixels) {
-        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), len = contentsWithWords.length, word = [], words = [], line, ownerNode = this.ownerNode(), i = 0, j = 0, n = 0, w, c;
+        var contents = this.textContents(), contentsWithWords = contents.replace(/([\S]+)([\s]+)?/g, '$1$2|'), len = contentsWithWords.length, word = [], words = [], line, ownerNode = this.ownerNode(), i = 0, j = 0, n = 0, w, c, chIndex = 0;
         for (i = 0; i < len; i++) {
             if (contentsWithWords[i] == contents[j]) {
                 // if we find a break character, we create a new word.
@@ -3961,6 +4017,7 @@ var Layout_BlockChar = (function (_super) {
         }
         if (line.words.length)
             this.lines.push(line);
+        this.lineIndexStart = ownerNode.documentElement.lines.length();
         for (i = 0, len = this.lines.length; i < len; i++) {
             this.lines[i].size[1] *= ownerNode.style.lineHeight();
             if ((n = this.lines[i].words.length)) {
@@ -3971,6 +4028,8 @@ var Layout_BlockChar = (function (_super) {
                     c.node.EOL_POS[c.index] = 1;
                 }
             }
+            this.lines[i].owner = this;
+            ownerNode.documentElement.lines.add(this.lines[i]);
         }
         return this.lines;
     };
@@ -4046,6 +4105,7 @@ var Layout_BlockChar = (function (_super) {
                         lastTextNode = this.lines[i].words[j].characters[k].node;
                         fragPos = lastTextNode.FRAGMENT_START;
                     }
+                    // recompute text drawing settings each time the parentNode of the text node changes.
                     if (currentNode != this.lines[i].words[j].characters[k].node.parentNode) {
                         currentNode = this.lines[i].words[j].characters[k].node.parentNode;
                         ctx.font = currentNode.style.fontStyleText();
@@ -5310,7 +5370,7 @@ var Fragment = (function () {
     Fragment.prototype.at = function (index, value) {
         if (value === void 0) { value = null; }
         if (index < 0 || index >= this._length) {
-            throw "OFFSET_OUT_BOUNDS";
+            throw "OFFSET_OUT_BOUNDS ( requested: " + index + ", allowedMin: 0, allowedMax: " + (this._length - 1) + ")";
         }
         else {
             if (value === null) {
@@ -6189,6 +6249,92 @@ var TRange_Target = (function (_super) {
                 this.fire('changed');
             }
         }
+    };
+    // return the line index of the target in the master document
+    TRange_Target.prototype.getLineIndex = function () {
+        var lines, i = 0, len = 0, line;
+        if (this.target.nodeType == 1 /* TEXT */) {
+            lines = this.target.documentElement.lines;
+            len = lines.length();
+            for (i = 0; i < len; i++) {
+                line = lines.at(i);
+                if (line.fragmentIndexStart <= this.fragPos && line.fragmentIndexEnd >= this.fragPos) {
+                    return i;
+                }
+            }
+        }
+        return null;
+    };
+    // returns the details of the target
+    TRange_Target.prototype.details = function () {
+        if (this.target.nodeType !== 1 /* TEXT */) {
+            return null;
+        }
+        var lines = this.target.documentElement.lines, lineIndex = this.getLineIndex(), line = lines.at(lineIndex), layout = line.owner, ownerNode = layout.ownerNode(), align = ownerNode.style.textAlign() || 'left', lineHeight = ownerNode.style.lineHeight() || 0, paintX = 0, paintY = 0, useWordGap = false, i = 0, len = 0, j = 0, n = 0, size = [0, 0], charIndex = 0, c, charIndex = 0, firstFragPos = 0, currentFragPos = null, startPaintX = 0;
+        switch (align) {
+            case 'justified':
+                useWordGap = true;
+            case 'left':
+                paintX = 0;
+                break;
+            case 'right':
+                paintX = line.maxWidth - line.size[0];
+                break;
+            case 'center':
+                paintX = (line.maxWidth / 2) - (line.size[0] / 2);
+                break;
+        }
+        startPaintX = paintX;
+        for (i = 0, len = line.index - layout.lineIndexStart; i < len; i++) {
+            paintY += (lines.at(layout.lineIndexStart + i).size[1] * lineHeight);
+        }
+        for (i = 0, len = line.words.length; i < len; i++) {
+            for (j = 0, n = line.words[i].characters.length; j < n; j++) {
+                c = line.words[i].characters[j];
+                if ((currentFragPos = c.fragmentPosition()) == this.fragPos) {
+                    /* Finally, found the character */
+                    return {
+                        "paintAbsolute": {
+                            "x": layout.offsetLeft + paintX,
+                            "y": layout.offsetTop + paintY
+                        },
+                        "paintRelative": {
+                            "x": paintX,
+                            "y": paintY
+                        },
+                        "lineIndex": lineIndex,
+                        "charIndex": charIndex
+                    };
+                }
+                else {
+                    if (firstFragPos === null) {
+                        firstFragPos = currentFragPos;
+                    }
+                }
+                size = c.computeSize();
+                paintX += size[0];
+                charIndex++;
+            }
+            if (useWordGap) {
+                paintX += line.wordGap;
+            }
+        }
+        if (this.fragPos < firstFragPos) {
+            paintX = startPaintX;
+            charIndex = 0;
+        }
+        return {
+            "paintAbsolute": {
+                "x": layout.offsetLeft + paintX,
+                "y": layout.offsetTop + paintY
+            },
+            "paintRelative": {
+                "x": paintX,
+                "y": paintY
+            },
+            "lineIndex": lineIndex,
+            "charIndex": charIndex
+        };
     };
     return TRange_Target;
 })(Events);
@@ -7230,6 +7376,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./Character/Metrics.ts" />
 /// <reference path="./Character/Line.ts" />
 /// <reference path="./Character/Word.ts" />
+/// <reference path="./Character/LinesCollection.ts" />
 /// <reference path="Layout.ts" />
 /// <reference path="Layout/Horizontal.ts" />
 /// <reference path="Layout/Vertical.ts" />

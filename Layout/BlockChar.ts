@@ -6,6 +6,7 @@ class Layout_BlockChar extends Layout {
 	public layoutType : string = 'text';
 
 	public lines      : Character_Line[] = [];
+	public lineIndexStart: number = 0;
 
 	public addTextNode( node: TNode_Text ) {
 		node.EOL_POS = null;
@@ -37,7 +38,8 @@ class Layout_BlockChar extends Layout {
 		    j: number = 0,
 		    n: number = 0,
 		    w: Character_Word,
-		    c: Character;
+		    c: Character,
+		    chIndex: number = 0;
 
 		for ( i=0; i<len; i++ ) {
 			if ( contentsWithWords[i] == contents[j] ) {
@@ -85,6 +87,8 @@ class Layout_BlockChar extends Layout {
 		if ( line.words.length )
 			this.lines.push( line );
 
+		this.lineIndexStart = ownerNode.documentElement.lines.length();
+
 		/* Add the lineHeight factor and the EOL_POS */
 		for ( i=0, len = this.lines.length; i<len; i++ ) {
 			this.lines[i].size[1] *= ownerNode.style.lineHeight();
@@ -96,8 +100,9 @@ class Layout_BlockChar extends Layout {
 					c.node.EOL_POS[ c.index ] = 1;
 				}
 			}
+			this.lines[i].owner = this;
+			ownerNode.documentElement.lines.add( this.lines[i] );
 		}
-
 
 		return this.lines;
 
@@ -233,6 +238,7 @@ class Layout_BlockChar extends Layout {
 						fragPos = lastTextNode.FRAGMENT_START;
 					}
 
+					// recompute text drawing settings each time the parentNode of the text node changes.
 					if ( currentNode != this.lines[i].words[j].characters[k].node.parentNode ) {
 						
 						currentNode = this.lines[i].words[j].characters[k].node.parentNode;

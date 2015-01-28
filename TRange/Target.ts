@@ -342,4 +342,141 @@ class TRange_Target extends Events {
 		}
 	}
 
+	// return the line index of the target in the master document
+	public getLineIndex(): number {
+		
+		var lines: Character_LinesCollection,
+		        i: number = 0,
+		      len: number = 0,
+		     line: Character_Line;
+
+		if ( this.target.nodeType == TNode_Type.TEXT ) {
+			
+			lines = this.target.documentElement.lines;
+			len   = lines.length();
+
+			for ( i=0; i<len; i++ ) {
+				line = lines.at(i);
+				if ( line.fragmentIndexStart <= this.fragPos && line.fragmentIndexEnd >= this.fragPos ) {
+					return i;
+				}
+			}
+
+		}
+
+		return null;
+	}
+
+	// returns the details of the target
+	public details(): TargetDetails {
+
+		if ( this.target.nodeType !== TNode_Type.TEXT ) {
+			return null;
+		}
+
+		var lines: Character_LinesCollection  = this.target.documentElement.lines,
+			lineIndex: number                 = this.getLineIndex(),
+			line: Character_Line              = lines.at(lineIndex),
+			layout: Layout_BlockChar          = line.owner,
+			ownerNode: TNode_Element          = layout.ownerNode(),
+			align: string                     = ownerNode.style.textAlign() || 'left',
+			lineHeight: number                = ownerNode.style.lineHeight() || 0,
+			paintX: number                    = 0,
+			paintY: number                    = 0,
+			useWordGap: boolean               = false,
+			
+			i: number = 0,
+			len: number = 0,
+			j: number = 0,
+			n: number = 0,
+			size: number[] = [0,0],
+
+			charIndex = 0,
+
+			c: Character,
+			charIndex: number = 0,
+
+			firstFragPos: number = 0,
+			currentFragPos: number = null,
+			startPaintX: number = 0;
+
+		switch ( align ) {
+			case 'justified':
+				useWordGap = true;
+			case 'left':
+				paintX = 0;
+				break;
+			case 'right':
+				paintX = line.maxWidth - line.size[0];
+				break;
+			case 'center':
+				paintX = ( line.maxWidth / 2 ) - ( line.size[0] / 2 );
+				break;
+		}
+
+		startPaintX = paintX;
+
+		for ( i=0, len = line.index - layout.lineIndexStart; i<len; i++ ) {
+			paintY += ( lines.at( layout.lineIndexStart + i ).size[1] * lineHeight );
+		}
+		for ( i=0, len = line.words.length; i<len; i++ ) {
+			
+			for ( j = 0, n = line.words[i].characters.length; j<n; j++ ) {
+				
+				c = line.words[i].characters[j];
+
+				if ( ( currentFragPos = c.fragmentPosition() ) == this.fragPos ) {
+
+					/* Finally, found the character */
+					return {
+						"paintAbsolute": {
+							"x": layout.offsetLeft + paintX,
+							"y": layout.offsetTop  + paintY
+						},
+						"paintRelative": {
+							"x": paintX,
+							"y": paintY
+						},
+						"lineIndex": lineIndex,
+						"charIndex": charIndex
+					};
+
+				} else {
+					if ( firstFragPos === null ) {
+						firstFragPos = currentFragPos;
+					}
+				}
+
+				size = c.computeSize();
+				paintX += size[0];
+				
+				charIndex++;
+			}
+
+			if ( useWordGap ){
+				paintX += line.wordGap;
+			}
+		}
+
+		if ( this.fragPos < firstFragPos ) {
+			paintX = startPaintX;
+			charIndex = 0;
+		}
+
+		return {
+			"paintAbsolute": {
+				"x": layout.offsetLeft + paintX,
+				"y": layout.offsetTop  + paintY
+			},
+			"paintRelative": {
+				"x": paintX,
+				"y": paintY
+			},
+			"lineIndex": lineIndex,
+			"charIndex": charIndex
+		}
+
+
+	}
+
 }

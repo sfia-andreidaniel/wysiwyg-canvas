@@ -48,6 +48,7 @@
 /// <reference path="./Character/Metrics.ts" />
 /// <reference path="./Character/Line.ts" />
 /// <reference path="./Character/Word.ts" />
+/// <reference path="./Character/LinesCollection.ts" />
 
 /// <reference path="Layout.ts" />
 /// <reference path="Layout/Horizontal.ts" />

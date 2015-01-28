@@ -119,3 +119,10 @@ enum CaretLockDirection {
 	FROM_BEGINNING_OF_DOCUMENT,
 	FROM_ENDING_OF_DOCUMENT
 }
+
+interface TargetDetails {
+	paintAbsolute: TPoint;
+	paintRelative: TPoint;
+	lineIndex: number;
+	charIndex: number;
+}

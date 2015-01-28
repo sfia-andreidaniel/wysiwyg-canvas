@@ -150,20 +150,16 @@ class Layout_BlockChar extends Layout {
 	}
 
 	protected paintCaret( ctx: any, x: number, y: number, height: number, scrollLeft: number, scrollTop: number ) {
-		var doc: HTML_Body = this.ownerNode().documentElement;
 		ctx.save();
 		ctx.fillStyle = '#000';
 		ctx.fillRect( 
-			doc.caretPosition.x = Math.min( this.offsetLeft + this.offsetWidth, x - .5 ),
-			doc.caretPosition.y = y - 2,
-			doc.caretPosition.width = 2,
-			doc.caretPosition.height = ( height + 2 ) * 1.12
+			Math.min( this.offsetLeft + this.offsetWidth, x - .5 ),
+			y - 2,
+			2,
+			( height + 2 ) * 1.12
 		);
 
-		doc.caretPosition.x += scrollLeft;
-		doc.caretPosition.y += scrollTop;
 		ctx.restore();
-		doc.caretPosition.visible = true;
 	}
 
 	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {

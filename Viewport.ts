@@ -118,11 +118,28 @@ class Viewport extends Events {
 	// attempts to scroll the document to the last known painted caret position.
 	// note that this is not guaranteed.
 	public scrollToCaret() {
-		if ( this.document.caretPosition.y - 20 < this._scrollTop ) {
-			this.scrollTop( this.document.caretPosition.y - 20 );
-		} else
-		if ( this.document.caretPosition.y + this.document.caretPosition.height + 50 > this._scrollTop + this._height ) {
-			this.scrollTop( this.document.caretPosition.y - this._height + 50 );
+		var rng: TRange = this.selection.getRange(),
+		    focus: TRange_Target = rng.focusNode(),
+		    details: TargetDetails,
+		    lineIndex: number = 0,
+		    line: Character_Line;
+
+		if ( focus ) {
+			
+			details = focus.details();
+			
+			if ( !details ) {
+				return; // abort @this point
+			}
+
+			if ( details.paintAbsolute.y - 20 < this._scrollTop ) {
+				console.warn( "This" );
+				this.scrollTop( details.paintAbsolute.y - 30 );
+			} else
+			if ( details.paintAbsolute.y + 82 > this._scrollTop + this._height ) {
+				this.scrollTop( details.paintAbsolute.y - this._height + 82 );
+			}
+
 		}
 	}
 

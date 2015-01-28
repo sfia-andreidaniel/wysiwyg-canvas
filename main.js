@@ -1424,13 +1424,6 @@ var HTML_Body = (function (_super) {
         this._layout = null;
         this.viewport = null;
         this.isBlockTextNode = true; //user can write inside this element ( or sub-elements );
-        this.caretPosition = {
-            "x": 0,
-            "y": 0,
-            "width": 0,
-            "height": 0,
-            "visible": false
-        };
         this.fragment = new Fragment(this);
         this.viewport = viewport;
         this.lines = new Character_LinesCollection();
@@ -1574,7 +1567,6 @@ var HTML_Body = (function (_super) {
         //this.viewport.context.clearRect( 0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize );
         this.viewport.context.fillStyle = 'white';
         this.viewport.context.fillRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
-        this.caretPosition.visible = false;
         this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport);
         this._needRepaint = false;
         console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
@@ -4101,14 +4093,10 @@ var Layout_BlockChar = (function (_super) {
         return topPlacement;
     };
     Layout_BlockChar.prototype.paintCaret = function (ctx, x, y, height, scrollLeft, scrollTop) {
-        var doc = this.ownerNode().documentElement;
         ctx.save();
         ctx.fillStyle = '#000';
-        ctx.fillRect(doc.caretPosition.x = Math.min(this.offsetLeft + this.offsetWidth, x - .5), doc.caretPosition.y = y - 2, doc.caretPosition.width = 2, doc.caretPosition.height = (height + 2) * 1.12);
-        doc.caretPosition.x += scrollLeft;
-        doc.caretPosition.y += scrollTop;
+        ctx.fillRect(Math.min(this.offsetLeft + this.offsetWidth, x - .5), y - 2, 2, (height + 2) * 1.12);
         ctx.restore();
-        doc.caretPosition.visible = true;
     };
     Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
         if (!this.isPaintable(viewport)) {
@@ -4443,11 +4431,19 @@ var Viewport = (function (_super) {
     // attempts to scroll the document to the last known painted caret position.
     // note that this is not guaranteed.
     Viewport.prototype.scrollToCaret = function () {
-        if (this.document.caretPosition.y - 20 < this._scrollTop) {
-            this.scrollTop(this.document.caretPosition.y - 20);
-        }
-        else if (this.document.caretPosition.y + this.document.caretPosition.height + 50 > this._scrollTop + this._height) {
-            this.scrollTop(this.document.caretPosition.y - this._height + 50);
+        var rng = this.selection.getRange(), focus = rng.focusNode(), details, lineIndex = 0, line;
+        if (focus) {
+            details = focus.details();
+            if (!details) {
+                return; // abort @this point
+            }
+            if (details.paintAbsolute.y - 20 < this._scrollTop) {
+                console.warn("This");
+                this.scrollTop(details.paintAbsolute.y - 30);
+            }
+            else if (details.paintAbsolute.y + 82 > this._scrollTop + this._height) {
+                this.scrollTop(details.paintAbsolute.y - this._height + 82);
+            }
         }
     };
     // paints the scrollbars on the canvas context

@@ -236,15 +236,6 @@ class Viewport_CommandRouter extends Events {
 		
 	}
 
-	private removeCharLeft( currentFragPos: number ) {
-		//rollback, will use Fragment_CaretLock for this.
-	}
-
-
-
-	private removeCharRight( currentFragPos: number ) {
-	}
-
 	// negative values delete characters in the left of the caret,
 	// positive values delete characters in the right of the caret
 	public deleteText( amount: number ) {
@@ -253,31 +244,192 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
-		var rng = this.viewport.selection.getRange(),
-		    focus = rng.focusNode(); 
+		var document               = this.viewport.document,
+			selection              = this.viewport.selection,
+			rng                    = selection.getRange(),
+		    focus                  = rng.focusNode(),
+		    cursorPosition    : number = 0,
+		    newCursorPosition : number = 0,
+		    fragment               = this.viewport.document.fragment,
+		    at  : FragmentItem     = null,
+		    i   : number           = 0,
+		    j   : number           = 0,
+		    n   : number           = 0,
+		    added: boolean         = false,
+		    increment: number      = 0,
+		    atMax: number          = fragment.length(),
+		    traversedTextNodes: TextRemoval[] = [],
+		    node: TNode_Text       = null,
+		    lock: Fragment_CaretLock = null,
+		    chars: number = 0,
+
+		    sourceBlockElement      : TNode_Element,
+		    destinationBlockElement : TNode_Element,
+		    mergeOrder              : TNode_Element[],
+		    mergePosition           : number = 0,
+		    collection              : TNode_Collection = null; 
 
 		if ( rng.length() ) {
 			this.viewport.selection.removeContents();
+			return;
 		} else {
-
 			if ( rng.length() === null ) {
 				console.warn( "WILL BE IMPLEMENTED LATER!" );
+				return;
 			} else {
-
 				// deny deleting more than a character @ once.
 				if ( Math.abs( amount ) != 1 ) {
 					throw "ERR_BAD_ARGUMENT. Allowed argument is -1 or 1.";
 				}
+			}
+		}
 
-				if ( amount < 1 ) {
-					this.removeCharLeft( focus.fragPos );
+		/* Ensure we're positioned on a character */
+
+		if ( amount > 0 ) {
+			rng.moveRightUntilCharacterIfNotLandedOnText();
+		} else {
+			rng.moveLeftUntilCharacterIfNotLandedOnText();
+		}
+
+		/* Store cursor position */
+		cursorPosition = focus.fragPos;
+		sourceBlockElement = focus.target.ownerBlockElement();
+		destinationBlockElement = null;
+
+		if ( amount < 0 ) {
+			increment = -1;
+		} else {
+			increment = 1;
+		}
+
+		i = cursorPosition;
+
+		/* Jump @amount characters */
+		while ( ( chars != amount )  && ( i > 0 ) && ( i < atMax ) ) {
+
+			if ( increment < 0 )
+				i += increment;
+
+			at = fragment.at( i );
+
+			if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+				
+				newCursorPosition = i; // store the cursor position
+
+				node = ( <TNode_Text>fragment.getNodeAtIndex( i ) ) || null;
+				
+				if ( node == null || node.nodeType != TNode_Type.TEXT ) {
+					throw "ASSERTION_FAILED!";
+				}
+
+				chars += increment;
+
+				added = false;
+
+				for ( j=0, n = traversedTextNodes.length; j<n; j++ ) {
+					if ( traversedTextNodes[j].node == node ) {
+						if ( i < traversedTextNodes[j].start ) {
+							traversedTextNodes[j].start = i;
+						} else {
+							traversedTextNodes[j].stop = i;
+						}
+						added = true;
+						break;
+					}
+				}
+				
+				if ( !added ) {
+
+					destinationBlockElement = node.ownerBlockElement();
+					
+					if ( destinationBlockElement != sourceBlockElement && ( !destinationBlockElement.isMergeable || !sourceBlockElement.isMergeable ) ) {
+						return;
+					}
+
+					traversedTextNodes.push( {
+						node  : node,
+						start : i,
+						stop  : i
+					} );
+				}
+			}
+
+			if ( increment > 0 )
+				i += increment;
+		}
+
+		if ( traversedTextNodes.length == 0 ) {
+			console.warn( 'no text to be deleted' );
+			//no text to be deleted.
+			return;
+		}
+
+		// create a lock @ new cursor position.
+		if ( amount < 0 ) {
+			lock = fragment.createLockTarget( newCursorPosition, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT );
+		} else {
+			lock = fragment.createLockTarget( cursorPosition, CaretLockDirection.FROM_ENDING_OF_DOCUMENT );
+		}
+
+
+		if ( destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable ) {
+			
+			console.warn( "MERGE BEGIN" );
+
+			if ( amount < 0 ) {
+				mergePosition = 0; // 1 = at end
+				mergeOrder = [ destinationBlockElement, sourceBlockElement ];
+			} else {
+				mergePosition = 1; // 0 = at beginning
+				mergeOrder = [ sourceBlockElement, destinationBlockElement ];
+			}
+
+			console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() );
+
+			if ( mergeOrder[1] != document ) { // we cannot merge the document in a sub-child
+
+				collection = new TNode_Collection( mergeOrder[1].childNodes );
+
+				if ( mergeOrder[1].parentNode == mergeOrder[0] ) {
+
+					mergeOrder[0].appendCollection( collection, mergeOrder[1].siblingIndex );
+
 				} else {
-					this.removeCharRight( focus.fragPos );
+
+					mergeOrder[0].appendCollection( collection, mergePosition == 1 ? null : 0 );
+
 				}
 
 			}
 
+
 		}
+
+		// if we did a merging, we're not doing the locking
+		if ( collection === null ) {
+
+			console.warn( "removing text..." );
+
+			/* Remove text from traversed text nodes */
+			for ( i=0, n = traversedTextNodes.length; i<n; i++ ) {
+				traversedTextNodes[i].node.deleteTextContentsBetweenFragmentPositions( traversedTextNodes[i].start, traversedTextNodes[i].stop );
+				if ( traversedTextNodes[i].node.textContents() == '' ) {
+					traversedTextNodes[i].node.remove(); // remove text node if has no text anymore
+				}
+			}
+
+		}
+
+		//remove all the orphan nodes from the document.
+		this.viewport.document.removeOrphanNodes();
+
+		// relayout *RIGHT NOW* the document
+		this.viewport.document.relayout( true );
+
+		// finally, move the cursor.
+		selection.anchorTo( lock.getTarget() );
+
 	}
 
 	// inserts a new line in document. if forceBRTag is set (not null)

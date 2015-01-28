@@ -3,10 +3,10 @@ class Fragment_CaretLock {
 	private fragment : Fragment;
 	private chars    : number = 0;
 	private lockIndex: number = 0;
-	public  direction: CaretLockPos;
+	public  direction: CaretLockDirection;
 
 
-	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockPos = CaretLockPos.FROM_BEGINNING_OF_DOCUMENT ) {
+	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 			
 		var at  : FragmentItem,
 		    i   : number = 0,
@@ -17,7 +17,7 @@ class Fragment_CaretLock {
 		this.chars     = 0;
 		this.direction = direction;
 
-		if ( direction = CaretLockPos.FROM_BEGINNING_OF_DOCUMENT ) {
+		if ( direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 			
 			// count from beginning to cursor pos
 
@@ -37,7 +37,7 @@ class Fragment_CaretLock {
 
 			// count from ending to cursor pos.
 
-			for ( i = this.fragment.length() - 1; i>= lockIndex; i-- ) {
+			for ( i = this.fragment.length() - 1; i>lockIndex; i-- ) {
 
 				at = this.fragment.at(i);
 
@@ -60,7 +60,7 @@ class Fragment_CaretLock {
 		     len: number = 0,
 		     n: number = 0;
 
-		if ( this.direction == CaretLockPos.FROM_BEGINNING_OF_DOCUMENT ) {
+		if ( this.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 
 			for ( i=0, len = this.fragment.length(); i < len; i++ ) {
 				
@@ -83,7 +83,7 @@ class Fragment_CaretLock {
 
 		} else {
 
-			for ( len = this.fragment.length() -1, i = len; i >= 0; i-- ) {
+			for ( i = this.fragment.length() - 1; i >= 0; i-- ) {
 
 				at = this.fragment.at( i );
 

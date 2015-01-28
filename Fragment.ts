@@ -155,8 +155,8 @@ class Fragment {
 		return null;
 	}
 
-	public createLockTarget( at: number, pos: CaretLockPos ): Fragment_CaretLock {
-		return new Fragment_CaretLock( this, at, pos );
+	public createLockTarget( at: number, direction: CaretLockDirection ): Fragment_CaretLock {
+		return new Fragment_CaretLock( this, at, direction );
 	}
 
 }

@@ -69,11 +69,11 @@ var TNewLinePolicy;
     TNewLinePolicy[TNewLinePolicy["SURGERY"] = 1] = "SURGERY";
 })(TNewLinePolicy || (TNewLinePolicy = {}));
 ;
-var CaretLockPos;
-(function (CaretLockPos) {
-    CaretLockPos[CaretLockPos["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
-    CaretLockPos[CaretLockPos["FROM_ENDING_OF_DOCUMENT"] = 1] = "FROM_ENDING_OF_DOCUMENT";
-})(CaretLockPos || (CaretLockPos = {}));
+var CaretLockDirection;
+(function (CaretLockDirection) {
+    CaretLockDirection[CaretLockDirection["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
+    CaretLockDirection[CaretLockDirection["FROM_ENDING_OF_DOCUMENT"] = 1] = "FROM_ENDING_OF_DOCUMENT";
+})(CaretLockDirection || (CaretLockDirection = {}));
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -4976,38 +4976,135 @@ var Viewport_CommandRouter = (function (_super) {
         //console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
         range.collapse(true);
     };
-    Viewport_CommandRouter.prototype.removeCharLeft = function (currentFragPos) {
-        //rollback, will use Fragment_CaretLock for this.
-    };
-    Viewport_CommandRouter.prototype.removeCharRight = function (currentFragPos) {
-    };
     // negative values delete characters in the left of the caret,
     // positive values delete characters in the right of the caret
     Viewport_CommandRouter.prototype.deleteText = function (amount) {
         if (!amount) {
             return;
         }
-        var rng = this.viewport.selection.getRange(), focus = rng.focusNode();
+        var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
         if (rng.length()) {
             this.viewport.selection.removeContents();
+            return;
         }
         else {
             if (rng.length() === null) {
                 console.warn("WILL BE IMPLEMENTED LATER!");
+                return;
             }
             else {
                 // deny deleting more than a character @ once.
                 if (Math.abs(amount) != 1) {
                     throw "ERR_BAD_ARGUMENT. Allowed argument is -1 or 1.";
                 }
-                if (amount < 1) {
-                    this.removeCharLeft(focus.fragPos);
+            }
+        }
+        /* Ensure we're positioned on a character */
+        if (amount > 0) {
+            rng.moveRightUntilCharacterIfNotLandedOnText();
+        }
+        else {
+            rng.moveLeftUntilCharacterIfNotLandedOnText();
+        }
+        /* Store cursor position */
+        cursorPosition = focus.fragPos;
+        sourceBlockElement = focus.target.ownerBlockElement();
+        destinationBlockElement = null;
+        if (amount < 0) {
+            increment = -1;
+        }
+        else {
+            increment = 1;
+        }
+        i = cursorPosition;
+        while ((chars != amount) && (i > 0) && (i < atMax)) {
+            if (increment < 0)
+                i += increment;
+            at = fragment.at(i);
+            if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                newCursorPosition = i; // store the cursor position
+                node = fragment.getNodeAtIndex(i) || null;
+                if (node == null || node.nodeType != 1 /* TEXT */) {
+                    throw "ASSERTION_FAILED!";
+                }
+                chars += increment;
+                added = false;
+                for (j = 0, n = traversedTextNodes.length; j < n; j++) {
+                    if (traversedTextNodes[j].node == node) {
+                        if (i < traversedTextNodes[j].start) {
+                            traversedTextNodes[j].start = i;
+                        }
+                        else {
+                            traversedTextNodes[j].stop = i;
+                        }
+                        added = true;
+                        break;
+                    }
+                }
+                if (!added) {
+                    destinationBlockElement = node.ownerBlockElement();
+                    if (destinationBlockElement != sourceBlockElement && (!destinationBlockElement.isMergeable || !sourceBlockElement.isMergeable)) {
+                        return;
+                    }
+                    traversedTextNodes.push({
+                        node: node,
+                        start: i,
+                        stop: i
+                    });
+                }
+            }
+            if (increment > 0)
+                i += increment;
+        }
+        if (traversedTextNodes.length == 0) {
+            console.warn('no text to be deleted');
+            //no text to be deleted.
+            return;
+        }
+        // create a lock @ new cursor position.
+        if (amount < 0) {
+            lock = fragment.createLockTarget(newCursorPosition, 0 /* FROM_BEGINNING_OF_DOCUMENT */);
+        }
+        else {
+            lock = fragment.createLockTarget(cursorPosition, 1 /* FROM_ENDING_OF_DOCUMENT */);
+        }
+        if (destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable) {
+            console.warn("MERGE BEGIN");
+            if (amount < 0) {
+                mergePosition = 0; // 1 = at end
+                mergeOrder = [destinationBlockElement, sourceBlockElement];
+            }
+            else {
+                mergePosition = 1; // 0 = at beginning
+                mergeOrder = [sourceBlockElement, destinationBlockElement];
+            }
+            console.log('append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning());
+            if (mergeOrder[1] != document) {
+                collection = new TNode_Collection(mergeOrder[1].childNodes);
+                if (mergeOrder[1].parentNode == mergeOrder[0]) {
+                    mergeOrder[0].appendCollection(collection, mergeOrder[1].siblingIndex);
                 }
                 else {
-                    this.removeCharRight(focus.fragPos);
+                    mergeOrder[0].appendCollection(collection, mergePosition == 1 ? null : 0);
                 }
             }
         }
+        // if we did a merging, we're not doing the locking
+        if (collection === null) {
+            console.warn("removing text...");
+            for (i = 0, n = traversedTextNodes.length; i < n; i++) {
+                traversedTextNodes[i].node.deleteTextContentsBetweenFragmentPositions(traversedTextNodes[i].start, traversedTextNodes[i].stop);
+                if (traversedTextNodes[i].node.textContents() == '') {
+                    traversedTextNodes[i].node.remove(); // remove text node if has no text anymore
+                }
+            }
+        }
+        //remove all the orphan nodes from the document.
+        this.viewport.document.removeOrphanNodes();
+        // relayout *RIGHT NOW* the document
+        this.viewport.document.relayout(true);
+        // finally, move the cursor.
+        selection.anchorTo(lock.getTarget());
     };
     // inserts a new line in document. if forceBRTag is set (not null)
     // a <br> tag will be inserted instead of creating a new paragraph.
@@ -5289,8 +5386,8 @@ var Fragment = (function () {
         }
         return null;
     };
-    Fragment.prototype.createLockTarget = function (at, pos) {
-        return new Fragment_CaretLock(this, at, pos);
+    Fragment.prototype.createLockTarget = function (at, direction) {
+        return new Fragment_CaretLock(this, at, direction);
     };
     return Fragment;
 })();
@@ -5304,7 +5401,7 @@ var Fragment_CaretLock = (function () {
         this.lockIndex = lockIndex;
         this.chars = 0;
         this.direction = direction;
-        if (direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+        if (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
             for (i = 0; i <= lockIndex; i++) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
@@ -5314,7 +5411,7 @@ var Fragment_CaretLock = (function () {
             this.chars = len;
         }
         else {
-            for (i = this.fragment.length() - 1; i >= lockIndex; i--) {
+            for (i = this.fragment.length() - 1; i > lockIndex; i--) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
                     len++;
@@ -5338,7 +5435,7 @@ var Fragment_CaretLock = (function () {
             return this.fragment.createTargetAt(1 /* DOC_END */);
         }
         else {
-            for (len = this.fragment.length() - 1, i = len; i >= 0; i--) {
+            for (i = this.fragment.length() - 1; i >= 0; i--) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
                     n++;

@@ -109,7 +109,13 @@ enum TNewLinePolicy {
 	SURGERY
 };
 
-enum CaretLockPos {
+interface TextRemoval {
+	node: TNode_Text;
+	start: number;
+	stop: number;
+}
+
+enum CaretLockDirection {
 	FROM_BEGINNING_OF_DOCUMENT,
 	FROM_ENDING_OF_DOCUMENT
 }

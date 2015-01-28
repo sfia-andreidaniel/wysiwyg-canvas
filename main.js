@@ -213,6 +213,23 @@ var DOM = (function () {
     };
     return DOM;
 })();
+var Helper = (function () {
+    function Helper() {
+    }
+    Helper.reverse = function (arr) {
+        if (Array.prototype.reverse) {
+            return Array.prototype.reverse.call(arr);
+        }
+        else {
+            var out = [], i = arr.length - 1;
+            while (i >= 0) {
+                out.push(arr[i--]);
+            }
+            return out;
+        }
+    };
+    return Helper;
+})();
 var TNode = (function (_super) {
     __extends(TNode, _super);
     function TNode() {
@@ -543,6 +560,12 @@ var TNode_Element = (function (_super) {
     };
     TNode_Element.prototype.appendCollection = function (collection, siblingIndex) {
         if (siblingIndex === void 0) { siblingIndex = null; }
+        if (siblingIndex === null) {
+            console.warn("Append end!");
+        }
+        else {
+            console.warn("Append index: " + siblingIndex);
+        }
         siblingIndex = siblingIndex === null ? this.childNodes.length : siblingIndex;
         var args = [siblingIndex, 0], i = 0, len = collection.nodes.length;
         for (i = 0; i < len; i++) {
@@ -783,7 +806,7 @@ var TNode_Element = (function (_super) {
         var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
         if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1))) {
             isSelected = true;
-            ctx.fillStyle = 'blue';
+            ctx.fillStyle = DocSelection.$Colors.focus;
             ctx.fillRect(~~(layout.innerLeft - scrollLeft), ~~(layout.innerTop - scrollTop), ~~layout.innerWidth, ~~layout.innerHeight);
         }
         this.isPaintedSelected = isSelected;
@@ -1175,6 +1198,19 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.firstChild = function () {
         return !this.childNodes ? null : (this.childNodes[0] || null);
     };
+    TNode_Element.prototype.removeFromDOMAtUserCommand = function () {
+        if (this.style.display() == 'block' && this != this.documentElement) {
+            this.remove();
+            return true;
+        }
+    };
+    TNode_Element.prototype.removeAllChildNodes = function () {
+        if (this.childNodes) {
+            for (var i = this.childNodes.length - 1; i >= 0; i--) {
+                this.removeChild(this.childNodes[i]);
+            }
+        }
+    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -1557,7 +1593,7 @@ var HTML_Body = (function (_super) {
     };
     HTML_Body.prototype.repaint = function () {
         // repaints the document
-        var now = Date.now();
+        var now = Date.now(), diff = 0;
         if (this._needRepaint == false && this._needRelayout == false) {
             return;
         }
@@ -1569,18 +1605,20 @@ var HTML_Body = (function (_super) {
         this.viewport.context.fillRect(0, 0, this.viewport.width() - this.viewport._scrollbarSize, this.viewport.height() - this.viewport._scrollbarSize);
         this._layout.paint(this.viewport.context, this.viewport.scrollLeft(), this.viewport.scrollTop(), this.viewport);
         this._needRepaint = false;
-        console.log('repaint ended in ' + (Date.now() - now) + ' ms.');
+        diff = Date.now() - now;
+        if (diff > 20)
+            console.warn('warn: repaint ended in ' + diff + ' ms.');
     };
     // full document relayout. this function computes where to draw
     // objects in the canvas.
     HTML_Body.prototype.relayout = function (force) {
         if (force === void 0) { force = false; }
         if (!this._needRelayout && force == false) {
-            console.log('body.relayout: up to date.');
+            //console.log( 'body.relayout: up to date.' );
             return;
         }
         this.fragment.reset();
-        var now = Date.now();
+        var now = Date.now(), diff = 0;
         if (!this.viewport) {
             return;
         }
@@ -1597,10 +1635,12 @@ var HTML_Body = (function (_super) {
         this._layout.computeWidths();
         this._layout.computeHeights(this.style.marginTop());
         this.viewport.scrollTop(this.viewport.scrollTop());
-        console.log('relayout completed in ' + (Date.now() - now) + ' ms.');
         //console.log( this._layout.serialize() );
         this.bakeIntoFragment();
         this._needRelayout = false;
+        diff = Date.now() - now;
+        if (diff > 20)
+            console.warn('relayout completed in ' + diff + ' ms.');
         if (force) {
             this._needRepaint = true;
             this.repaint();
@@ -2189,6 +2229,9 @@ var HTML_Table = (function (_super) {
             }
         }
     };
+    HTML_Table.prototype.removeFromDOMAtUserCommand = function () {
+        return false; // tables cannot be removed even if they are selected when the user press a removal key
+    };
     return HTML_Table;
 })(TNode_Element);
 var HTML_Table_Matrix = (function () {
@@ -2473,6 +2516,9 @@ var HTML_TableRow = (function (_super) {
             return node;
         }
     };
+    HTML_TableRow.prototype.removeFromDOMAtUserCommand = function () {
+        return false; // table rows cannot be removed even if they are selected when the user press a removal key
+    };
     return HTML_TableRow;
 })(TNode_Element);
 var HTML_TableCell = (function (_super) {
@@ -2551,6 +2597,11 @@ var HTML_TableCell = (function (_super) {
             this.appendChild(this.documentElement.createTextNode(' '));
         }
         return returnValue;
+    };
+    HTML_TableCell.prototype.removeFromDOMAtUserCommand = function () {
+        this.removeAllChildNodes();
+        this.appendChild(this.documentElement.createTextNode(' '));
+        return true;
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -4159,7 +4210,7 @@ var Layout_BlockChar = (function (_super) {
                     }
                     size = this.lines[i].words[j].characters[k].computeSize();
                     if (caret && range.contains(fragPos) && !isPaintedSelected) {
-                        ctx.fillStyle = 'blue';
+                        ctx.fillStyle = DocSelection.$Colors.focus;
                         ctx.fillRect(startX, ~~startY, size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
                         ctx.fillStyle = 'white';
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
@@ -4438,7 +4489,6 @@ var Viewport = (function (_super) {
                 return; // abort @this point
             }
             if (details.paintAbsolute.y - 20 < this._scrollTop) {
-                console.warn("This");
                 this.scrollTop(details.paintAbsolute.y - 30);
             }
             else if (details.paintAbsolute.y + 82 > this._scrollTop + this._height) {
@@ -4888,7 +4938,7 @@ var Viewport_CommandRouter = (function (_super) {
     };
     Viewport_CommandRouter.prototype.dispatchCommand = function (command, args) {
         var commandName = this.commandName(command);
-        console.log('dispatchCommand: ' + commandName + '(' + JSON.stringify(args) + ')');
+        //console.log( 'dispatchCommand: ' + commandName + '(' + JSON.stringify( args ) + ')' );
         if (this.caretX != null && (command != 3 /* MOVE */)) {
             this.caretX = null;
         }
@@ -5087,14 +5137,24 @@ var Viewport_CommandRouter = (function (_super) {
         if (!amount) {
             return;
         }
-        var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
+        var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
         if (rng.length()) {
             this.viewport.selection.removeContents();
             return;
         }
         else {
             if (rng.length() === null) {
-                console.warn("WILL BE IMPLEMENTED LATER!");
+                if (anchor.target && anchor.target.nodeType == 2 /* ELEMENT */) {
+                    // create lock before target
+                    lock = fragment.createLockTarget(anchor.target.FRAGMENT_START + 1, 0 /* FROM_BEGINNING_OF_DOCUMENT */);
+                    if (anchor.target.removeFromDOMAtUserCommand()) {
+                        document.relayout(true);
+                        document.removeOrphanNodes();
+                        selection.anchorTo(lock.getTarget());
+                        selection.fire('changed');
+                        return;
+                    }
+                }
                 return;
             }
             else {
@@ -5176,22 +5236,23 @@ var Viewport_CommandRouter = (function (_super) {
         if (destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable) {
             console.warn("MERGE BEGIN");
             if (amount < 0) {
-                mergePosition = 0; // 1 = at end
+                mergePosition = 1; // 1 = at end
                 mergeOrder = [destinationBlockElement, sourceBlockElement];
             }
             else {
                 mergePosition = 1; // 0 = at beginning
                 mergeOrder = [sourceBlockElement, destinationBlockElement];
             }
-            console.log('append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning());
+            console.log('append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + (mergePosition == 1 ? "beginning" : "end"));
             if (mergeOrder[1] != document) {
                 collection = new TNode_Collection(mergeOrder[1].childNodes);
                 if (mergeOrder[1].parentNode == mergeOrder[0]) {
-                    mergeOrder[0].appendCollection(collection, mergeOrder[1].siblingIndex);
+                    mergeOrder[0].appendCollection(collection, mergeOrder[1].siblingIndex + mergePosition == 1 ? 1 : 0);
                 }
                 else {
                     mergeOrder[0].appendCollection(collection, mergePosition == 1 ? null : 0);
                 }
+                this.viewport.document.removeOrphanNodes();
             }
         }
         // if we did a merging, we're not doing the locking
@@ -5271,69 +5332,73 @@ var Viewport_CommandRouter = (function (_super) {
             }
         }
         range.setEventingState(false);
-        switch (movementType) {
-            case 2 /* CHARACTER */:
-                focus.moveByCharacters(amount);
-                if (!expandSelection) {
-                    range.collapse(true);
-                }
-                this.viewport.scrollToCaret();
-                this.viewport.document.requestRepaint();
-                break;
-            case 3 /* WORD */:
-                focus.moveByWords(amount);
-                if (!expandSelection) {
-                    range.collapse(true);
-                }
-                this.viewport.scrollToCaret();
-                this.viewport.document.requestRepaint();
-                break;
-            case 4 /* VIEWPORT */:
-                break;
-            case 0 /* LINE_HORIZONTAL */:
-                if (Math.abs(amount) != 1) {
-                    throw "Allowed values are -1 or 1.";
-                }
-                lineIndex = focus.getLineIndex();
-                if (lineIndex) {
-                    lines = this.viewport.document.lines;
-                    line = lines.at(lineIndex);
-                    focus.fragPos = line[amount == -1 ? "fragmentIndexStart" : "fragmentIndexEnd"];
-                    focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+        try {
+            switch (movementType) {
+                case 2 /* CHARACTER */:
+                    focus.moveByCharacters(amount);
                     if (!expandSelection) {
                         range.collapse(true);
                     }
                     this.viewport.scrollToCaret();
                     this.viewport.document.requestRepaint();
-                }
-                break;
-            case 1 /* LINE_VERTICAL */:
-                if (Math.abs(amount) != 1) {
-                    throw "Allowed values are -1 or 1.";
-                }
-                lineIndex = focus.getLineIndex();
-                if (lineIndex !== null) {
-                    lines = this.viewport.document.lines;
-                    line = lines.at(lineIndex);
-                    if (this.caretX === null) {
-                        this.caretX = focus.details().paintAbsolute.x;
-                    }
-                    try {
-                        line = lines.at(lineIndex + amount);
-                    }
-                    catch (jumpException) {
-                        console.warn('jumpException');
-                        return;
-                    }
-                    focus.fragPos = line.getFragmentPositionByAbsoluteX(this.caretX);
-                    focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+                    break;
+                case 3 /* WORD */:
+                    focus.moveByWords(amount);
                     if (!expandSelection) {
                         range.collapse(true);
                     }
                     this.viewport.scrollToCaret();
                     this.viewport.document.requestRepaint();
-                }
-                break;
+                    break;
+                case 4 /* VIEWPORT */:
+                    break;
+                case 0 /* LINE_HORIZONTAL */:
+                    if (Math.abs(amount) != 1) {
+                        throw "Allowed values are -1 or 1.";
+                    }
+                    lineIndex = focus.getLineIndex();
+                    if (lineIndex) {
+                        lines = this.viewport.document.lines;
+                        line = lines.at(lineIndex);
+                        focus.fragPos = line[amount == -1 ? "fragmentIndexStart" : "fragmentIndexEnd"];
+                        focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+                        if (!expandSelection) {
+                            range.collapse(true);
+                        }
+                        this.viewport.scrollToCaret();
+                        this.viewport.document.requestRepaint();
+                    }
+                    break;
+                case 1 /* LINE_VERTICAL */:
+                    if (Math.abs(amount) != 1) {
+                        throw "Allowed values are -1 or 1.";
+                    }
+                    lineIndex = focus.getLineIndex();
+                    if (lineIndex !== null) {
+                        lines = this.viewport.document.lines;
+                        line = lines.at(lineIndex);
+                        if (this.caretX === null) {
+                            this.caretX = focus.details().paintAbsolute.x;
+                        }
+                        try {
+                            line = lines.at(lineIndex + amount);
+                        }
+                        catch (jumpException) {
+                            //console.warn( 'jumpException' );
+                            return;
+                        }
+                        focus.fragPos = line.getFragmentPositionByAbsoluteX(this.caretX);
+                        focus.target = this.viewport.document.findNodeAtIndex(focus.fragPos);
+                        if (!expandSelection) {
+                            range.collapse(true);
+                        }
+                        this.viewport.scrollToCaret();
+                        this.viewport.document.requestRepaint();
+                    }
+                    break;
+            }
+        }
+        catch (moveError) {
         }
         range.setEventingState(true);
         range.fire('changed');
@@ -5544,11 +5609,13 @@ var Fragment_CaretLock = (function () {
         if (direction === void 0) { direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */; }
         this.chars = 0;
         this.lockIndex = 0;
+        this.startedEOL = false;
         var at, i = 0, len = 0;
         this.fragment = fragment;
         this.lockIndex = lockIndex;
         this.chars = 0;
         this.direction = direction;
+        this.startedEOL = this.fragment.at(this.lockIndex) == 2 /* EOL */;
         if (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
             for (i = 0; i <= lockIndex; i++) {
                 at = this.fragment.at(i);
@@ -5559,6 +5626,11 @@ var Fragment_CaretLock = (function () {
             this.chars = len;
         }
         else {
+            if (this.startedEOL) {
+                if ((this.fragment.at(this.lockIndex + 1) == 1 /* NODE_END */) && (this.fragment.getNodeAtIndex(this.lockIndex + 1) == this.fragment.getNodeAtIndex(this.lockIndex).ownerBlockElement())) {
+                    this.startedEOL = false;
+                }
+            }
             for (i = this.fragment.length() - 1; i > lockIndex; i--) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
@@ -5567,15 +5639,23 @@ var Fragment_CaretLock = (function () {
             }
             this.chars = len;
         }
+        // if we start with the caret on an EOL, we consider the EOL as a character.
+        if (this.fragment.at(this.lockIndex) == 2 /* EOL */) {
+        }
     }
     Fragment_CaretLock.prototype.getTarget = function () {
-        var at, i = 0, len = 0, n = 0;
+        var at, i = 0, len = 0, n = 0, incChars = 0, chars = this.chars;
+        if (this.startedEOL && (this.fragment.at(this.lockIndex) != 2 /* EOL */)) {
+            incChars = 1;
+            console.warn('incChars: ' + incChars);
+            chars--;
+        }
         if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
             for (i = 0, len = this.fragment.length(); i < len; i++) {
                 at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */ || (at == 2 /* EOL */ && n == chars - 1)) {
                     n++;
-                    if (n == this.chars) {
+                    if (n == chars) {
                         return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
                     }
                 }
@@ -5585,9 +5665,9 @@ var Fragment_CaretLock = (function () {
         else {
             for (i = this.fragment.length() - 1; i >= 0; i--) {
                 at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */ || (at == 2 /* EOL */ && n == chars - 1)) {
                     n++;
-                    if (n == this.chars) {
+                    if (n == chars) {
                         return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
                     }
                 }
@@ -6433,6 +6513,7 @@ var DocSelection = (function (_super) {
         this.range = null; // the selection range. user can obtain the range via the getRange() method
         this.viewport = null; // viewport for which this selection is applied
         this.stateComputer = null; // a throttler that computes the editor state when the selection is changed
+        this.changeThrottler = null;
         this.editorState = null;
         this.viewport = viewport;
         this.editorState = new Selection_EditorState(this);
@@ -6440,6 +6521,9 @@ var DocSelection = (function (_super) {
             me.stateComputer = new Throttler(function () {
                 me.editorState.compute();
             }, 100);
+            me.changeThrottler = new Throttler(function () {
+                me.fire('changed');
+            }, 30);
         })(this);
     }
     // obtains an instance of the range of the selection.
@@ -6460,6 +6544,7 @@ var DocSelection = (function (_super) {
             rng.on('changed', function () {
                 me.viewport.document.requestRepaint();
                 me.stateComputer.run();
+                me.changeThrottler.run();
             });
         })(this);
         return rng;
@@ -6778,6 +6863,24 @@ function HTMLEditor(value, hasToolbars, hasStatusbar) {
     viewport.selection.editorState.on('changed', function (properties) {
         ui_toolbar.updateDocumentState(properties);
     });
+    (function (me) {
+        var textNode;
+        statusbar.innerHTML = 'StatusBar';
+        textNode = statusbar.firstChild;
+        viewport.selection.on('changed', function () {
+            var rng = viewport.selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), debug = focus || anchor, node = debug.target, stack = [];
+            while (node) {
+                if (node.nodeType == 1 /* TEXT */) {
+                    stack.push('#text');
+                }
+                else {
+                    stack.push(node.nodeName);
+                }
+                node = node.parentNode;
+            }
+            textNode.textContent = Helper.reverse(stack).join(' > ') || 'Click somewhere in editor to see here it\'s path';
+        });
+    })(this);
     element['value'] = value;
     resize(width, height);
     return element;
@@ -7423,6 +7526,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
 /// <reference path="DOM.ts" />
+/// <reference path="Helper.ts" />
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />
 /// <reference path="./TNode/TextBreak.ts" />

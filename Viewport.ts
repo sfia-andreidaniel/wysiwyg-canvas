@@ -133,7 +133,6 @@ class Viewport extends Events {
 			}
 
 			if ( details.paintAbsolute.y - 20 < this._scrollTop ) {
-				console.warn( "This" );
 				this.scrollTop( details.paintAbsolute.y - 30 );
 			} else
 			if ( details.paintAbsolute.y + 82 > this._scrollTop + this._height ) {

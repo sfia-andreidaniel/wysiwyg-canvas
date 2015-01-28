@@ -4,6 +4,7 @@ class DocSelection extends Events {
 	public    viewport      : Viewport = null;               // viewport for which this selection is applied
 
 	protected stateComputer : Throttler = null;              // a throttler that computes the editor state when the selection is changed
+	protected changeThrottler: Throttler = null;
 	public    editorState   : Selection_EditorState = null;
 
 	// selection is painted with two colors, depending on
@@ -23,6 +24,9 @@ class DocSelection extends Events {
 			me.stateComputer = new Throttler( function() {
 				me.editorState.compute();
 			}, 100);
+			me.changeThrottler = new Throttler( function() {
+				me.fire( 'changed' );
+			}, 30 );
 		})(this);
 	}
 
@@ -51,6 +55,7 @@ class DocSelection extends Events {
 			rng.on( 'changed', function() {
 				me.viewport.document.requestRepaint();
 				me.stateComputer.run();
+				me.changeThrottler.run();
 			} );
 		})(this);
 

@@ -30,4 +30,9 @@ class HTML_TableRow extends TNode_Element {
 		}
 	}
 
+	public removeFromDOMAtUserCommand(): boolean {
+		return false; // table rows cannot be removed even if they are selected when the user press a removal key
+	}
+
+
 }

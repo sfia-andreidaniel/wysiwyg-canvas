@@ -100,4 +100,11 @@ class HTML_TableCell extends TNode_Element {
 		return returnValue;
 	}
 
+	public removeFromDOMAtUserCommand(): boolean {
+		this.removeAllChildNodes();
+		this.appendChild( this.documentElement.createTextNode( ' ' ) );
+		return true;
+	}
+
+
 }

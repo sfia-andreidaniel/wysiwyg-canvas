@@ -182,7 +182,8 @@ class HTML_Body extends TNode_Element {
 	public repaint( ) {
 
 		// repaints the document
-		var now = Date.now();
+		var now = Date.now(),
+		    diff: number = 0;
 
 		if ( this._needRepaint == false && this._needRelayout == false ) {
 			return;
@@ -200,7 +201,10 @@ class HTML_Body extends TNode_Element {
 
 		this._needRepaint = false;
 
-		console.log( 'repaint ended in ' + ( Date.now() - now ) + ' ms.');
+		diff = Date.now() - now;
+
+		if ( diff > 20 )
+			console.warn( 'warn: repaint ended in ' + diff + ' ms.');
 	}
 
 	// full document relayout. this function computes where to draw
@@ -208,13 +212,14 @@ class HTML_Body extends TNode_Element {
 	public relayout( force: boolean = false ) {
 		
 		if ( !this._needRelayout && force == false ) {
-			console.log( 'body.relayout: up to date.' );
+			//console.log( 'body.relayout: up to date.' );
 			return;
 		}
 
 		this.fragment.reset();
 
-		var now = Date.now();
+		var now = Date.now(),
+		    diff: number = 0;
 
 		if ( !this.viewport ) {
 			return;
@@ -239,11 +244,15 @@ class HTML_Body extends TNode_Element {
 
 		this.viewport.scrollTop( this.viewport.scrollTop() );
 
-		console.log( 'relayout completed in ' + ( Date.now() - now ) + ' ms.' );
 		//console.log( this._layout.serialize() );
 
 		this.bakeIntoFragment();
 		this._needRelayout = false;
+
+		diff = Date.now() - now;
+
+		if ( diff > 20 )
+			console.warn( 'relayout completed in ' + diff + ' ms.' );
 
 		if ( force ) {
 			this._needRepaint = true;

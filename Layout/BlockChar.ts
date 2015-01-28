@@ -273,7 +273,7 @@ class Layout_BlockChar extends Layout {
 
 					if ( caret && range.contains( fragPos ) && !isPaintedSelected ) {
 
-						ctx.fillStyle = 'blue';
+						ctx.fillStyle = DocSelection.$Colors.focus;
 						ctx.fillRect( startX, ~~startY, size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
 						ctx.fillStyle = 'white';
 

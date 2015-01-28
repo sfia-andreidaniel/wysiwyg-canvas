@@ -5,6 +5,8 @@ class Fragment_CaretLock {
 	private lockIndex: number = 0;
 	public  direction: CaretLockDirection;
 
+	private startedEOL: boolean = false;
+
 
 	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 			
@@ -17,8 +19,10 @@ class Fragment_CaretLock {
 		this.chars     = 0;
 		this.direction = direction;
 
+		this.startedEOL = this.fragment.at( this.lockIndex ) == FragmentItem.EOL;
+
 		if ( direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
-			
+
 			// count from beginning to cursor pos
 
 			for ( i=0; i<=lockIndex; i++ ) {
@@ -34,6 +38,15 @@ class Fragment_CaretLock {
 			this.chars = len;
 
 		} else {
+
+			if ( this.startedEOL ) {
+				if ( 
+					 ( this.fragment.at( this.lockIndex + 1 ) == FragmentItem.NODE_END ) && 
+					 ( this.fragment.getNodeAtIndex( this.lockIndex + 1 ) == this.fragment.getNodeAtIndex( this.lockIndex ).ownerBlockElement() )
+				) {
+					this.startedEOL = false;
+				}
+			}
 
 			// count from ending to cursor pos.
 
@@ -51,6 +64,12 @@ class Fragment_CaretLock {
 
 		}
 
+		// if we start with the caret on an EOL, we consider the EOL as a character.
+
+		if ( this.fragment.at( this.lockIndex ) == FragmentItem.EOL ) {
+			//this.chars++;
+		}
+
 	}
 
 	public getTarget(): TRange_Target {
@@ -58,7 +77,15 @@ class Fragment_CaretLock {
 		var at: FragmentItem,
 		     i: number = 0,
 		     len: number = 0,
-		     n: number = 0;
+		     n: number = 0,
+		     incChars: number = 0,
+		     chars: number = this.chars;
+
+		if ( this.startedEOL && ( this.fragment.at( this.lockIndex ) != FragmentItem.EOL ) ) {
+			incChars = 1;
+			console.warn( 'incChars: ' + incChars );
+			chars--;
+		}
 
 		if ( this.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 
@@ -66,11 +93,11 @@ class Fragment_CaretLock {
 				
 				at = this.fragment.at( i );
 				
-				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE || ( at == FragmentItem.EOL && n == chars - 1 ) ) {
 					
 					n++;
 
-					if ( n == this.chars ) {
+					if ( n == chars ) {
 
 						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
 
@@ -87,11 +114,11 @@ class Fragment_CaretLock {
 
 				at = this.fragment.at( i );
 
-				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE || ( at == FragmentItem.EOL && n == chars - 1 ) ) {
 
 					n++;
 
-					if ( n == this.chars ) {
+					if ( n == chars ) {
 
 						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
 

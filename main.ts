@@ -2,6 +2,7 @@
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />
 /// <reference path="DOM.ts" />
+/// <reference path="Helper.ts" />
 
 /// <reference path="TNode.ts" />
 /// <reference path="./TNode/Text.ts" />

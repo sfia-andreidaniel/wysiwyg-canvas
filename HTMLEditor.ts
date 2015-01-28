@@ -169,6 +169,37 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 		ui_toolbar.updateDocumentState( properties );
 	});
 
+	(function( me ) {
+		var textNode: any;
+
+		(<any>statusbar).innerHTML = 'StatusBar';
+		
+		textNode = statusbar.firstChild;
+
+		viewport.selection.on( 'changed', function() {
+
+			var rng: TRange = viewport.selection.getRange(),
+			    focus: TRange_Target = rng.focusNode(),
+			    anchor: TRange_Target = rng.anchorNode(),
+			    debug = focus || anchor,
+			    node: TNode = debug.target,
+			    stack: string[] = [];
+
+			while ( node ) {
+				if ( node.nodeType == TNode_Type.TEXT ) {
+					stack.push( '#text' );
+				} else {
+					stack.push( (<TNode_Element>node).nodeName );
+				}
+				node = node.parentNode;
+			}
+
+			textNode.textContent = Helper.reverse( stack ).join( ' > ' ) || 'Click somewhere in editor to see here it\'s path';
+
+		} );
+
+	} )( this );
+
 	element['value'] = value;
 
 	resize( width, height );

@@ -51,7 +51,7 @@ class Viewport_CommandRouter extends Events {
 
 		var commandName: string = this.commandName( command );
 
-		console.log( 'dispatchCommand: ' + commandName + '(' + JSON.stringify( args ) + ')' );
+		//console.log( 'dispatchCommand: ' + commandName + '(' + JSON.stringify( args ) + ')' );
 
 		if ( this.caretX != null && ( command != EditorCommand.MOVE ) ) {
 			this.caretX = null;
@@ -261,6 +261,7 @@ class Viewport_CommandRouter extends Events {
 			selection              = this.viewport.selection,
 			rng                    = selection.getRange(),
 		    focus                  = rng.focusNode(),
+		    anchor                 = rng.anchorNode(),
 		    cursorPosition    : number = 0,
 		    newCursorPosition : number = 0,
 		    fragment               = this.viewport.document.fragment,
@@ -287,7 +288,20 @@ class Viewport_CommandRouter extends Events {
 			return;
 		} else {
 			if ( rng.length() === null ) {
-				console.warn( "WILL BE IMPLEMENTED LATER!" );
+				
+				if ( anchor.target && anchor.target.nodeType == TNode_Type.ELEMENT ) {
+					// create lock before target
+					lock = fragment.createLockTarget( anchor.target.FRAGMENT_START + 1, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT );
+					
+					if ( (<TNode_Element>anchor.target).removeFromDOMAtUserCommand() ) {
+						document.relayout(true);
+						document.removeOrphanNodes();
+						selection.anchorTo( lock.getTarget() );
+						selection.fire( 'changed' );
+						return;
+					}
+				}
+
 				return;
 			} else {
 				// deny deleting more than a character @ once.
@@ -391,14 +405,14 @@ class Viewport_CommandRouter extends Events {
 			console.warn( "MERGE BEGIN" );
 
 			if ( amount < 0 ) {
-				mergePosition = 0; // 1 = at end
+				mergePosition = 1; // 1 = at end
 				mergeOrder = [ destinationBlockElement, sourceBlockElement ];
 			} else {
 				mergePosition = 1; // 0 = at beginning
 				mergeOrder = [ sourceBlockElement, destinationBlockElement ];
 			}
 
-			console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() );
+			console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + ( mergePosition == 1 ? "beginning" : "end" ) );
 
 			if ( mergeOrder[1] != document ) { // we cannot merge the document in a sub-child
 
@@ -406,13 +420,15 @@ class Viewport_CommandRouter extends Events {
 
 				if ( mergeOrder[1].parentNode == mergeOrder[0] ) {
 
-					mergeOrder[0].appendCollection( collection, mergeOrder[1].siblingIndex );
+					mergeOrder[0].appendCollection( collection, mergeOrder[1].siblingIndex + mergePosition == 1 ? 1 : 0 );
 
 				} else {
 
 					mergeOrder[0].appendCollection( collection, mergePosition == 1 ? null : 0 );
 
 				}
+
+				this.viewport.document.removeOrphanNodes();
 
 			}
 
@@ -551,6 +567,8 @@ class Viewport_CommandRouter extends Events {
 
 		range.setEventingState( false );
 
+		try {
+
 		switch ( movementType ) {
 			case CaretPos.CHARACTER:
 				focus.moveByCharacters( amount );
@@ -615,7 +633,7 @@ class Viewport_CommandRouter extends Events {
 					try {
 						line = lines.at( lineIndex + amount );
 					} catch ( jumpException ) {
-						console.warn( 'jumpException' );
+						//console.warn( 'jumpException' );
 						return;
 					}
 
@@ -630,6 +648,10 @@ class Viewport_CommandRouter extends Events {
 				}
 
 				break;
+		}
+
+		} catch ( moveError ) {
+			// :( suppress it.
 		}
 
 		range.setEventingState( true );

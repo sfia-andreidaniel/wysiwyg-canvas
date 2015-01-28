@@ -53,6 +53,12 @@ class TNode_Element extends TNode {
 
 	public appendCollection( collection: TNode_Collection, siblingIndex: number = null ) {
 		
+		if ( siblingIndex === null ) {
+			console.warn( "Append end!" );
+		} else {
+			console.warn( "Append index: " + siblingIndex );
+		}
+
 		siblingIndex = siblingIndex === null
 			? this.childNodes.length
 			: siblingIndex;
@@ -387,7 +393,7 @@ class TNode_Element extends TNode {
 
 		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) ) ) {
 			isSelected = true;
-			ctx.fillStyle = 'blue';
+			ctx.fillStyle = DocSelection.$Colors.focus;
 			ctx.fillRect( ~~( layout.innerLeft - scrollLeft) , ~~( layout.innerTop - scrollTop ), ~~layout.innerWidth, ~~layout.innerHeight );
 		}
 
@@ -710,7 +716,7 @@ class TNode_Element extends TNode {
 						if ( (<TNode_Text>this.childNodes[i]).textContents() == '' ) {
 							this.childNodes[i].remove();
 						}
-					}
+					} 
 				}
 			
 			}
@@ -930,6 +936,21 @@ class TNode_Element extends TNode {
 
 	public firstChild(): TNode {
 		return !this.childNodes ? null : ( this.childNodes[ 0 ] || null );
+	}
+
+	public removeFromDOMAtUserCommand(): boolean {
+		if ( this.style.display() == 'block' && this != this.documentElement ) {
+			this.remove();
+			return true;
+		}
+	}
+
+	public removeAllChildNodes() {
+		if ( this.childNodes ) {
+			for ( var i=this.childNodes.length - 1; i>=0; i-- ) {
+				this.removeChild( this.childNodes[i] );
+			}
+		}
 	}
 
 }

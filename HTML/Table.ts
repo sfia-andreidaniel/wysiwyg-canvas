@@ -177,4 +177,8 @@ class HTML_Table extends TNode_Element {
 		}
 	}
 
+	public removeFromDOMAtUserCommand(): boolean {
+		return false; // tables cannot be removed even if they are selected when the user press a removal key
+	}
+
 }

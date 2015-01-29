@@ -9,6 +9,7 @@
 /// <reference path="./TNode/TextBreak.ts" />
 /// <reference path="./TNode/Element.ts" />
 /// <reference path="./TNode/Collection.ts" />
+/// <reference path="./TNode/Collection/Dettached.ts" />
 
 /// <reference path="./HTMLParser.ts" />
 

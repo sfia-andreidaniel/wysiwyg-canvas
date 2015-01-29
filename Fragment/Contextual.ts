@@ -93,6 +93,107 @@ class Fragment_Contextual {
 
 	}
 
+	public affectedBlockNodes(): TNode_Element[] {
+		var out: TNode_Element[] = [],
+		      i: number,
+		      len: number,
+		      node: TNode_Element;
+
+		this.compute();
+
+		for ( i=0, len = this.parts.length; i<len; i++ ) {
+			switch ( this.parts[i].type ) {
+				case FragmentCItem.NODE_END:
+					node = (<TNode_Element>(<Fragment_Contextual_NodeEnd>this.parts[i]).node);
+
+					if ( ['tr','table'].indexOf(node.nodeName) >= 0 ) {
+						continue;
+					} else {
+						node = node.ownerBlockElement();
+					}
+					
+					break;
+				case FragmentCItem.NODE_START:
+					node = (<TNode_Element>(<Fragment_Contextual_NodeStart>this.parts[i]).node);
+
+					if ( ['tr','table'].indexOf(node.nodeName) >= 0 ) {
+						continue;
+					} else {
+						node = node.ownerBlockElement();
+					}
+
+					break;
+				case FragmentCItem.TEXT:
+					node = (<TNode_Text>(<Fragment_Contextual_TextNode>this.parts[i]).node).ownerBlockElement();
+					break;
+			}
+
+			if ( node.nodeName == 'body' ) {
+				Helper.warn( this.parts[i] );
+			}
+
+			if ( out.indexOf( node ) == -1 ) {
+				out.push( node );
+			}
+		}
+
+		out.sort( function(a,b) {
+			return a.FRAGMENT_START - b.FRAGMENT_START;
+		});
+
+		return out;
+	}
+
+	/* The affected ranges returns an array of collections with the child nodes
+	   of the block elements from the selection. This is usefull when we want to
+	   enclose the text in <b><i><u><sup><sub><font><color> tags
+	 */
+	public affectedRanges(): TNode_Collection_Dettached[] {
+
+		var out 	: TNode_Collection_Dettached[],
+		    i 		: number = 0,
+		    len 	: number = 0,
+		 	blocks  : TNode_Element[] = this.affectedBlockNodes(),
+		 	nBlocks : number = blocks.length,
+		 	slice   : TNode_Collection_Dettached;
+
+		if ( !nBlocks ) {
+			return;
+		}
+
+		if ( nBlocks == 1 ) {
+			
+			slice = blocks[0].slice( this.start, this.end );
+			this.end += slice.increaseFragmentSize;
+			return [ slice ];
+		
+		} else {
+			
+			out = [];
+			
+			for ( i=0; i<nBlocks; i++ ) {
+				if ( i == 0 ) {
+					slice = blocks[i].slice( this.start, null );
+					out.push( slice );
+					this.end += slice.increaseFragmentSize;
+				} else {
+					if ( i == nBlocks - 1 ) {
+						slice = blocks[i].slice( null, this.end );
+						out.push( slice );
+						this.end += slice.increaseFragmentSize;
+					} else {
+						slice = blocks[i].slice( null, null );
+						out.push( slice );
+						this.end += slice.increaseFragmentSize;
+					}
+				}
+			}
+
+			return out;
+		}
+
+	}
+
 	public toString( format: string = 'text/html', closeTags: boolean = false ) {
 		this.compute();
 

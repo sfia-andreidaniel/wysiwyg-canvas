@@ -387,7 +387,7 @@ class Viewport_CommandRouter extends Events {
 		}
 
 		if ( traversedTextNodes.length == 0 ) {
-			console.warn( 'no text to be deleted' );
+			Helper.warn( 'no text to be deleted' );
 			//no text to be deleted.
 			return;
 		}
@@ -402,7 +402,7 @@ class Viewport_CommandRouter extends Events {
 
 		if ( destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable ) {
 			
-			console.warn( "MERGE BEGIN" );
+			//console.warn( "MERGE BEGIN" );
 
 			if ( amount < 0 ) {
 				mergePosition = 1; // 1 = at end
@@ -412,7 +412,7 @@ class Viewport_CommandRouter extends Events {
 				mergeOrder = [ sourceBlockElement, destinationBlockElement ];
 			}
 
-			console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + ( mergePosition == 1 ? "beginning" : "end" ) );
+			//console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + ( mergePosition == 1 ? "beginning" : "end" ) );
 
 			if ( mergeOrder[1] != document ) { // we cannot merge the document in a sub-child
 
@@ -661,7 +661,14 @@ class Viewport_CommandRouter extends Events {
 
 	// sets the boldness of the text. if state is null, then the boldness is toggled.
 	public bold( state: boolean = null ) {
+		var selection = this.viewport.selection,
+		          rng = selection.getRange(),
+		          len = rng.length();
 
+		if ( !len ) {
+			return;
+		}
+		
 	}
 
 	// makes text italic or not. if state is null, the state is toggled.
@@ -678,7 +685,16 @@ class Viewport_CommandRouter extends Events {
 	// @param alignment: string = enum( 'left', 'right', 'center', 'justified' ).
 	// any other values will be considered "left".
 	public align( alignment: string = 'left' ) {
+		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
+		        i: number,
+		      len: number;
+		
+		for ( i=0, len = nodes.length; i<len; i++ ) {
+			nodes[i].style.textAlign( alignment );
+		}
 
+		if ( nodes.length )
+			this.viewport.selection.editorState.compute();
 	}
 
 	// copies the selection into the clipboard.

@@ -75,7 +75,7 @@ class HTML_Table extends TNode_Element {
 			return;
 		}
 
-		console.log( 'compiling table...' );
+		Helper.log( 'compiling table...' );
 
 		var cellIndex = 0,
 		    i: number = 0,

@@ -204,7 +204,7 @@ class HTML_Body extends TNode_Element {
 		diff = Date.now() - now;
 
 		if ( diff > 20 )
-			console.warn( 'warn: repaint ended in ' + diff + ' ms.');
+			Helper.warn( 'repaint ended in ' + diff + ' ms.');
 	}
 
 	// full document relayout. this function computes where to draw
@@ -252,7 +252,7 @@ class HTML_Body extends TNode_Element {
 		diff = Date.now() - now;
 
 		if ( diff > 20 )
-			console.warn( 'relayout completed in ' + diff + ' ms.' );
+			Helper.warn( 'relayout completed in ' + diff + ' ms.' );
 
 		if ( force ) {
 			this._needRepaint = true;

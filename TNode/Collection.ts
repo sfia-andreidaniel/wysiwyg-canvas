@@ -1,7 +1,7 @@
 class TNode_Collection {
 	
 	public nodes: TNode[] = [];
-	
+
 	constructor( addNodes: TNode[] = null ) {
 
 		if ( addNodes !== null ) {

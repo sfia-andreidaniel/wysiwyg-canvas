@@ -754,7 +754,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
 		
-		console.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
+		Helper.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,
@@ -905,6 +905,65 @@ class TNode_Element extends TNode {
 		this.documentElement.relayout(true);
 
 		return rParent.FRAGMENT_START;
+	}
+
+	/* Return a portion of the element, starting from fragment start and ending to fragment stop.
+	   Element will support surgery if the slice is not matching node starts and node ends.
+
+	   @fragStart: number, if NULL the beginning of first node will be returned
+	   @fragStop : number, if NULL the ending of the node will be returned.
+
+	   if fragStart is null and fragStop is null, all the nodes of the element will be returned
+	   in the collection.
+
+	   The problem when slicing, is that we're increasing the fragment size of the node eventually,
+	   and we must store the increase to the result of the function, in order to avoid
+	   contextual fragment endings and selection ranges to become broken.
+
+	 */
+	public slice( fragStart: number = null, fragStop: number = null ): TNode_Collection_Dettached {
+		
+		var countCharsLTR: number,
+		    countCharsRTL: number,
+		    fragment: Fragment = this.documentElement.fragment,
+		    i: number = 0,
+		    at: FragmentItem;
+
+		if ( fragStart > fragStop ) {
+			throw "ERR_INVALID_BOUNDS";
+		}
+
+		if ( fragStart === null ) {
+			fragStart = this.FRAGMENT_START + 1;
+		}
+
+		if ( fragStop === null ) {
+			fragStop = this.FRAGMENT_END - 1;
+		}
+
+		if ( fragStart == this.FRAGMENT_START + 1 && fragStop == this.FRAGMENT_END - 1 ) {
+			return new TNode_Collection_Dettached( this.childNodes || [], this, 0 );
+		}
+
+
+		for ( i = this.FRAGMENT_START + 1; i <= fragStart; i++ ) {
+			at = fragment.at( i );
+			if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+				countCharsLTR++;
+			}
+		}
+
+		for ( i = this.FRAGMENT_END - 1; i >= fragStop; i-- ) {
+			at = fragment.at( i );
+			if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+				countCharsRTL++;
+			}
+		}
+
+		throw countCharsLTR + " " + countCharsRTL;
+
+		return null;
+
 	}
 
 	public mergeWith( element: TNode_Element ) {

@@ -207,6 +207,19 @@ class TRange extends Events {
 		}
 	}
 
+	public affectedBlockNodes(): TNode_Element[] {
+
+		if ( !this._focusNode || !this.length() ) {
+			return [ (<TNode_Element>this._anchorNode.target).ownerBlockElement() ];
+		}
+
+		return this.createContextualFragment().affectedBlockNodes();
+
+	}
+
+	/* These methods MIGHT be removed in the future, if better ways will be found
+	 */
+
 	public setAnchorAsFocus() {
 		if ( this._focusNode ) {
 			this._anchorNode.target = this._focusNode.target;

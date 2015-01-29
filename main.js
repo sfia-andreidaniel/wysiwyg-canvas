@@ -216,6 +216,34 @@ var DOM = (function () {
 var Helper = (function () {
     function Helper() {
     }
+    Helper.log = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i - 0] = arguments[_i];
+        }
+        if (!Helper.dev) {
+            console.log.apply(console, args);
+        }
+    };
+    Helper.warn = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i - 0] = arguments[_i];
+        }
+        if (!Helper.dev) {
+            console.warn.apply(console, args);
+        }
+    };
+    Helper.error = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i - 0] = arguments[_i];
+        }
+        if (!Helper.dev) {
+            console.error.apply(console, args);
+        }
+    };
+    /* Array helpers */
     Helper.reverse = function (arr) {
         if (Array.prototype.reverse) {
             return Array.prototype.reverse.call(arr);
@@ -228,6 +256,8 @@ var Helper = (function () {
             return out;
         }
     };
+    /* Logging */
+    Helper.dev = false;
     return Helper;
 })();
 var TNode = (function (_super) {
@@ -1080,7 +1110,7 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
-        console.warn('create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
+        Helper.warn('create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
         var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             throw "ERR_SURGERY_OUTSIDE_BOUNDS!";
@@ -1178,6 +1208,51 @@ var TNode_Element = (function (_super) {
         this.documentElement.relayout(true);
         return rParent.FRAGMENT_START;
     };
+    /* Return a portion of the element, starting from fragment start and ending to fragment stop.
+       Element will support surgery if the slice is not matching node starts and node ends.
+
+       @fragStart: number, if NULL the beginning of first node will be returned
+       @fragStop : number, if NULL the ending of the node will be returned.
+
+       if fragStart is null and fragStop is null, all the nodes of the element will be returned
+       in the collection.
+
+       The problem when slicing, is that we're increasing the fragment size of the node eventually,
+       and we must store the increase to the result of the function, in order to avoid
+       contextual fragment endings and selection ranges to become broken.
+
+     */
+    TNode_Element.prototype.slice = function (fragStart, fragStop) {
+        if (fragStart === void 0) { fragStart = null; }
+        if (fragStop === void 0) { fragStop = null; }
+        var countCharsLTR, countCharsRTL, fragment = this.documentElement.fragment, i = 0, at;
+        if (fragStart > fragStop) {
+            throw "ERR_INVALID_BOUNDS";
+        }
+        if (fragStart === null) {
+            fragStart = this.FRAGMENT_START + 1;
+        }
+        if (fragStop === null) {
+            fragStop = this.FRAGMENT_END - 1;
+        }
+        if (fragStart == this.FRAGMENT_START + 1 && fragStop == this.FRAGMENT_END - 1) {
+            return new TNode_Collection_Dettached(this.childNodes || [], this, 0);
+        }
+        for (i = this.FRAGMENT_START + 1; i <= fragStart; i++) {
+            at = fragment.at(i);
+            if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                countCharsLTR++;
+            }
+        }
+        for (i = this.FRAGMENT_END - 1; i >= fragStop; i--) {
+            at = fragment.at(i);
+            if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                countCharsRTL++;
+            }
+        }
+        throw countCharsLTR + " " + countCharsRTL;
+        return null;
+    };
     TNode_Element.prototype.mergeWith = function (element) {
         if (this.isMergeable && element.isMergeable) {
             if (element.nodeName != 'br' && element.childNodes && element.childNodes.length) {
@@ -1269,6 +1344,19 @@ var TNode_Collection = (function () {
     };
     return TNode_Collection;
 })();
+var TNode_Collection_Dettached = (function (_super) {
+    __extends(TNode_Collection_Dettached, _super);
+    function TNode_Collection_Dettached(addNodes, parentNode, originalSiblingIndex, increaseFragmentSize) {
+        if (increaseFragmentSize === void 0) { increaseFragmentSize = 0; }
+        _super.call(this, addNodes);
+        this.parentNode = null;
+        this.originalSiblingIndex = 0;
+        this.increaseFragmentSize = 0;
+        this.parentNode = parentNode;
+        this.originalSiblingIndex = originalSiblingIndex;
+    }
+    return TNode_Collection_Dettached;
+})(TNode_Collection);
 var HTMLParser = (function () {
     function HTMLParser(document, data) {
         this.document = document;
@@ -1607,7 +1695,7 @@ var HTML_Body = (function (_super) {
         this._needRepaint = false;
         diff = Date.now() - now;
         if (diff > 20)
-            console.warn('warn: repaint ended in ' + diff + ' ms.');
+            Helper.warn('repaint ended in ' + diff + ' ms.');
     };
     // full document relayout. this function computes where to draw
     // objects in the canvas.
@@ -1640,7 +1728,7 @@ var HTML_Body = (function (_super) {
         this._needRelayout = false;
         diff = Date.now() - now;
         if (diff > 20)
-            console.warn('relayout completed in ' + diff + ' ms.');
+            Helper.warn('relayout completed in ' + diff + ' ms.');
         if (force) {
             this._needRepaint = true;
             this.repaint();
@@ -2146,7 +2234,7 @@ var HTML_Table = (function (_super) {
         if (!this.needCompile) {
             return;
         }
-        console.log('compiling table...');
+        Helper.log('compiling table...');
         var cellIndex = 0, i = 0, j = 0, k = 0, n = 0, o = 0, p = 0, cell, cells = [], matrix = new HTML_Table_Matrix(cells);
         this.matrix = matrix;
         for (i = 0, n = this.childNodes.length; i < n; i++) {
@@ -5222,7 +5310,7 @@ var Viewport_CommandRouter = (function (_super) {
                 i += increment;
         }
         if (traversedTextNodes.length == 0) {
-            console.warn('no text to be deleted');
+            Helper.warn('no text to be deleted');
             //no text to be deleted.
             return;
         }
@@ -5234,7 +5322,7 @@ var Viewport_CommandRouter = (function (_super) {
             lock = fragment.createLockTarget(cursorPosition, 1 /* FROM_ENDING_OF_DOCUMENT */);
         }
         if (destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable) {
-            console.warn("MERGE BEGIN");
+            //console.warn( "MERGE BEGIN" );
             if (amount < 0) {
                 mergePosition = 1; // 1 = at end
                 mergeOrder = [destinationBlockElement, sourceBlockElement];
@@ -5243,7 +5331,7 @@ var Viewport_CommandRouter = (function (_super) {
                 mergePosition = 1; // 0 = at beginning
                 mergeOrder = [sourceBlockElement, destinationBlockElement];
             }
-            console.log('append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + (mergePosition == 1 ? "beginning" : "end"));
+            //console.log( 'append: ' + mergeOrder[1].xmlBeginning() + " in " + mergeOrder[0].xmlBeginning() + " at: " + ( mergePosition == 1 ? "beginning" : "end" ) );
             if (mergeOrder[1] != document) {
                 collection = new TNode_Collection(mergeOrder[1].childNodes);
                 if (mergeOrder[1].parentNode == mergeOrder[0]) {
@@ -5406,6 +5494,10 @@ var Viewport_CommandRouter = (function (_super) {
     // sets the boldness of the text. if state is null, then the boldness is toggled.
     Viewport_CommandRouter.prototype.bold = function (state) {
         if (state === void 0) { state = null; }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
     };
     // makes text italic or not. if state is null, the state is toggled.
     Viewport_CommandRouter.prototype.italic = function (state) {
@@ -5420,6 +5512,12 @@ var Viewport_CommandRouter = (function (_super) {
     // any other values will be considered "left".
     Viewport_CommandRouter.prototype.align = function (alignment) {
         if (alignment === void 0) { alignment = 'left'; }
+        var nodes = this.viewport.selection.getRange().affectedBlockNodes(), i, len;
+        for (i = 0, len = nodes.length; i < len; i++) {
+            nodes[i].style.textAlign(alignment);
+        }
+        if (nodes.length)
+            this.viewport.selection.editorState.compute();
     };
     // copies the selection into the clipboard.
     Viewport_CommandRouter.prototype.copy = function () {
@@ -5752,6 +5850,83 @@ var Fragment_Contextual = (function () {
             }
         }
         return out;
+    };
+    Fragment_Contextual.prototype.affectedBlockNodes = function () {
+        var out = [], i, len, node;
+        this.compute();
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            switch (this.parts[i].type) {
+                case 1 /* NODE_END */:
+                    node = this.parts[i].node;
+                    if (['tr', 'table'].indexOf(node.nodeName) >= 0) {
+                        continue;
+                    }
+                    else {
+                        node = node.ownerBlockElement();
+                    }
+                    break;
+                case 0 /* NODE_START */:
+                    node = this.parts[i].node;
+                    if (['tr', 'table'].indexOf(node.nodeName) >= 0) {
+                        continue;
+                    }
+                    else {
+                        node = node.ownerBlockElement();
+                    }
+                    break;
+                case 2 /* TEXT */:
+                    node = this.parts[i].node.ownerBlockElement();
+                    break;
+            }
+            if (node.nodeName == 'body') {
+                Helper.warn(this.parts[i]);
+            }
+            if (out.indexOf(node) == -1) {
+                out.push(node);
+            }
+        }
+        out.sort(function (a, b) {
+            return a.FRAGMENT_START - b.FRAGMENT_START;
+        });
+        return out;
+    };
+    /* The affected ranges returns an array of collections with the child nodes
+       of the block elements from the selection. This is usefull when we want to
+       enclose the text in <b><i><u><sup><sub><font><color> tags
+     */
+    Fragment_Contextual.prototype.affectedRanges = function () {
+        var out, i = 0, len = 0, blocks = this.affectedBlockNodes(), nBlocks = blocks.length, slice;
+        if (!nBlocks) {
+            return;
+        }
+        if (nBlocks == 1) {
+            slice = blocks[0].slice(this.start, this.end);
+            this.end += slice.increaseFragmentSize;
+            return [slice];
+        }
+        else {
+            out = [];
+            for (i = 0; i < nBlocks; i++) {
+                if (i == 0) {
+                    slice = blocks[i].slice(this.start, null);
+                    out.push(slice);
+                    this.end += slice.increaseFragmentSize;
+                }
+                else {
+                    if (i == nBlocks - 1) {
+                        slice = blocks[i].slice(null, this.end);
+                        out.push(slice);
+                        this.end += slice.increaseFragmentSize;
+                    }
+                    else {
+                        slice = blocks[i].slice(null, null);
+                        out.push(slice);
+                        this.end += slice.increaseFragmentSize;
+                    }
+                }
+            }
+            return out;
+        }
     };
     Fragment_Contextual.prototype.toString = function (format, closeTags) {
         if (format === void 0) { format = 'text/html'; }
@@ -6114,6 +6289,14 @@ var TRange = (function (_super) {
             }
         }
     };
+    TRange.prototype.affectedBlockNodes = function () {
+        if (!this._focusNode || !this.length()) {
+            return [this._anchorNode.target.ownerBlockElement()];
+        }
+        return this.createContextualFragment().affectedBlockNodes();
+    };
+    /* These methods MIGHT be removed in the future, if better ways will be found
+     */
     TRange.prototype.setAnchorAsFocus = function () {
         if (this._focusNode) {
             this._anchorNode.target = this._focusNode.target;
@@ -7532,6 +7715,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./TNode/TextBreak.ts" />
 /// <reference path="./TNode/Element.ts" />
 /// <reference path="./TNode/Collection.ts" />
+/// <reference path="./TNode/Collection/Dettached.ts" />
 /// <reference path="./HTMLParser.ts" />
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />

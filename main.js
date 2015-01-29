@@ -1222,9 +1222,9 @@ var TNode_Element = (function (_super) {
 
     */
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
+        //Helper.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
-        Helper.warn('create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
         var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             if (atFragmentIndex <= this.FRAGMENT_START) {
@@ -1366,16 +1366,10 @@ var TNode_Element = (function (_super) {
        After the unwrapping, the element (this) is removed from the DOM.
      */
     TNode_Element.prototype.unwrap = function () {
-        var collection = new TNode_Collection([]), iStart = this.siblingIndex, i = 1;
-        while (this.childNodes.length) {
-            collection.add(this.childNodes[0]);
-            this.parentNode.appendChild(this.childNodes[0], iStart + i);
-            i++;
-        }
-        console.log('after unwrap: ' + this.innerHTML());
-        console.log('myParent innerHTML: ' + this.parentNode.parentNode.innerHTML());
+        var collection = new TNode_Collection([]);
+        //append my child nodes after me...
+        this.parentNode.appendCollection(collection = new TNode_Collection(this.childNodes), this.siblingIndex + 1);
         this.remove();
-        console.log('my parent is: ', this.parentNode);
         return collection;
     };
     return TNode_Element;
@@ -1519,7 +1513,6 @@ var TNode_Collection_Dettached = (function (_super) {
                     break;
                 case 2 /* ELEMENT */:
                     if (this.nodes[i].nodeName == nodeName) {
-                        console.error('unwrap direct child: ' + this.nodes[i].xmlBeginning(), ', parentNode: ', this.nodes[i].parentNode);
                         unwrapped = this.nodes[i].unwrap();
                         Helper.spliceApply(this.nodes, i, 1, unwrapped.nodes);
                         len = this.nodes.length;
@@ -1530,14 +1523,18 @@ var TNode_Collection_Dettached = (function (_super) {
         }
         for (i = 0; i < len; i++) {
             if (this.nodes[i].nodeType == 2 /* ELEMENT */) {
-                Helper.spliceApply(subChildren, subChildren.length, 0, this.nodes[i].queryAll({ "nodeName": nodeName }).nodes);
+                this.nodes[i].queryAll({ "nodeName": nodeName }).each(function () {
+                    this.unwrap();
+                });
             }
         }
-        for (i = 0, len = subChildren.length; i < len; i++) {
-            subChildren[i].unwrap();
-        }
     };
-    TNode_Collection_Dettached.prototype.toString = function () {
+    TNode_Collection_Dettached.prototype.reInsert = function () {
+        this.parentNode.appendCollection(this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0);
+        this.parentNode.removeOrphanNodes();
+    };
+    TNode_Collection_Dettached.prototype.toString = function (separator) {
+        if (separator === void 0) { separator = ''; }
         var out = [], i = 0, len = this.nodes.length;
         for (i = 0; i < len; i++) {
             switch (this.nodes[i].nodeType) {
@@ -1549,7 +1546,7 @@ var TNode_Collection_Dettached = (function (_super) {
                     break;
             }
         }
-        return out.join('');
+        return out.join(separator);
     };
     return TNode_Collection_Dettached;
 })(TNode_Collection);
@@ -1879,8 +1876,10 @@ var HTML_Body = (function (_super) {
         this.viewport.painter.run();
     };
     HTML_Body.prototype.repaint = function () {
-        if (!this.canRelayout)
+        if (!this.canRelayout) {
+            //console.warn( 'repaint canceled due to canRelayout setting.')
             return;
+        }
         // repaints the document
         var now = Date.now(), diff = 0;
         if (this._needRepaint == false && this._needRelayout == false) {
@@ -1903,6 +1902,7 @@ var HTML_Body = (function (_super) {
     HTML_Body.prototype.relayout = function (force) {
         if (force === void 0) { force = false; }
         if (!this.canRelayout) {
+            //console.warn( 'relayout canceled due to canRelayout setting.')
             return;
         }
         if (!this._needRelayout && force == false) {
@@ -6439,6 +6439,9 @@ var Fragment_Batch = (function () {
         return this;
     };
     Fragment_Batch.prototype.end = function () {
+        for (var i = 0, len = this.items.length; i < len; i++) {
+            this.items[i].reInsert();
+        }
         this.range.restore();
         return this;
     };

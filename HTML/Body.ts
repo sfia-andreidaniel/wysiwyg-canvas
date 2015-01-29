@@ -185,8 +185,10 @@ class HTML_Body extends TNode_Element {
 
 	public repaint( ) {
 
-		if ( !this.canRelayout )
+		if ( !this.canRelayout ) {
+			//console.warn( 'repaint canceled due to canRelayout setting.')
 			return;
+		}
 
 		// repaints the document
 		var now = Date.now(),
@@ -219,6 +221,7 @@ class HTML_Body extends TNode_Element {
 	public relayout( force: boolean = false ) {
 		
 		if ( !this.canRelayout ) {
+			//console.warn( 'relayout canceled due to canRelayout setting.')
 			return;
 		}
 

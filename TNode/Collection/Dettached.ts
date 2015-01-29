@@ -138,8 +138,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 				case TNode_Type.ELEMENT:
 					if ( ( <TNode_Element>this.nodes[i] ).nodeName == nodeName ) {
 						
-						console.error( 'unwrap direct child: ' + (<TNode_Element>this.nodes[i]).xmlBeginning(), ', parentNode: ', this.nodes[i].parentNode );
-
 						unwrapped = ( <TNode_Element>this.nodes[i] ).unwrap();
 
 						Helper.spliceApply( this.nodes, i, 1, unwrapped.nodes );
@@ -157,17 +155,22 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 		for ( i=0; i<len; i++ ) {
 			if ( this.nodes[i].nodeType == TNode_Type.ELEMENT ) {
-				Helper.spliceApply( subChildren, subChildren.length, 0, ( <TNode_Element>this.nodes[i] ).queryAll( { "nodeName": nodeName } ).nodes );
-			}
-		}
+				
+				( <TNode_Element>this.nodes[i] ).queryAll( { "nodeName": nodeName } ).each( function() {
+					this.unwrap();
+				} );
 
-		for ( i=0, len = subChildren.length; i<len; i++ ) {
-			(<TNode_Element>subChildren[i]).unwrap();
+			}
 		}
 
 	}
 
-	public toString() {
+	public reInsert() {
+		this.parentNode.appendCollection( this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0 );
+		this.parentNode.removeOrphanNodes();
+	}
+
+	public toString( separator: string = '' ) {
 		var out: string[] = [],
 		    i  : number = 0,
 		    len: number = this.nodes.length;
@@ -183,7 +186,7 @@ class TNode_Collection_Dettached extends TNode_Collection {
 			}
 		}
 
-		return out.join( '' );
+		return out.join( separator );
 
 	}
 

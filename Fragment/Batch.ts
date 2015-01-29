@@ -24,6 +24,9 @@ class Fragment_Batch {
 	}
 
 	public end(): Fragment_Batch {
+		for ( var i=0, len = this.items.length; i<len; i++ ) {
+			this.items[i].reInsert();
+		}
 		this.range.restore();
 		return this;
 	}

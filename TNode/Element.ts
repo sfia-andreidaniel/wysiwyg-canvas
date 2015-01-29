@@ -814,7 +814,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
 		
-		Helper.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
+		//Helper.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,
@@ -1025,25 +1025,13 @@ class TNode_Element extends TNode {
 	   After the unwrapping, the element (this) is removed from the DOM.
 	 */
 	public unwrap(): TNode_Collection {
-		var collection: TNode_Collection = new TNode_Collection([]),
-		    iStart: number = this.siblingIndex,
-		    i: number = 1;
+		var collection: TNode_Collection = new TNode_Collection([]);
 
 		//append my child nodes after me...
 
-		while ( this.childNodes.length ) {
-			collection.add( this.childNodes[0] );
-			this.parentNode.appendChild( this.childNodes[0], iStart + i );
-			i++;
-		}
-
-		console.log( 'after unwrap: ' + this.innerHTML() );
-		
-		console.log( 'myParent innerHTML: ' + this.parentNode.parentNode.innerHTML() );
+		this.parentNode.appendCollection( collection = new TNode_Collection( this.childNodes ), this.siblingIndex + 1 );
 
 		this.remove();
-
-		console.log( 'my parent is: ', this.parentNode );
 
 		return collection;
 	}

@@ -52,6 +52,7 @@ class Helper {
 	// a modified version of array splice, only that the adding elements are passed into an array but not as
 	// function arguments.
 	static spliceApply( thisArray: any[], startIndex: number, removeLength: number, addNodes: any[] = [] ) {
+
 		var apply: any[] = [ removeLength, startIndex ],
 		        i: number = 0,
 		      len: number = addNodes.length;
@@ -61,6 +62,7 @@ class Helper {
 		}
 
 		Array.prototype.splice.apply( thisArray, apply );
+
 		return thisArray;
 	}
 

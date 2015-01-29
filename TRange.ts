@@ -3,6 +3,9 @@ class TRange extends Events {
 	protected _anchorNode: TRange_Target = null;
 	protected _focusNode : TRange_Target = null;
 
+	protected _anchorLock: Fragment_CaretLock = null;
+	protected _focusLock : Fragment_CaretLock = null;
+
 	constructor( target: TRange_Target ) {
 		super();
 
@@ -214,6 +217,70 @@ class TRange extends Events {
 		}
 
 		return this.createContextualFragment().affectedBlockNodes();
+
+	}
+
+	public save() {
+
+		var fragment: Fragment = this._anchorNode.target.documentElement.fragment;
+
+		if ( this._focusNode ) {
+
+			this._focusLock  = new Fragment_CaretLock( 
+				fragment, 
+				this._focusNode.fragPos + ( this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 : -1 ), 
+				this._focusNode.fragPos <= this._anchorNode.fragPos 
+					? CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT 
+					: CaretLockDirection.FROM_ENDING_OF_DOCUMENT 
+			);
+			
+			this._anchorLock = new Fragment_CaretLock( 
+				fragment, 
+
+				this._anchorNode.fragPos + ( this.length() < 0 ? -1 : 0 ),
+
+				!this.length()
+					? this._focusLock.direction
+					: (
+						this._focusLock.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT 
+							? CaretLockDirection.FROM_ENDING_OF_DOCUMENT 
+							: CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT
+					)
+			);
+
+		} else {
+
+			this._anchorLock = new Fragment_CaretLock( fragment, this._anchorNode.fragPos, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT );
+			this._focusLock  = null;
+
+		}
+
+	}
+
+	public restore() {
+
+		if ( this._focusNode && this._focusLock ) {
+			this._focusNode.set( this._focusLock.getTarget() );
+		}
+
+		if ( this._anchorNode && this._anchorLock ) {
+			this._anchorNode.set( this._anchorLock.getTarget() );
+		}
+
+	}
+
+	public affectedRanges(): TNode_Collection_Dettached [] {
+
+		var returnValue: TNode_Collection_Dettached[];
+
+		if ( !this._focusNode || !this.length() ) {
+			return [];
+		} else {
+			this.save();
+			returnValue = this.createContextualFragment().affectedRanges();
+			this.restore();
+			return returnValue;
+		}
 
 	}
 

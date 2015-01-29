@@ -37,4 +37,16 @@ class Helper {
 		}
 	}
 
+	static filter( arr: any[], callback: ( item: any ) => boolean ): any[] {
+		var out = [];
+
+		for ( var i=0, len=arr.length; i<len; i++ ) {
+			if ( callback( arr[i] ) ) {
+				out.push( arr[i] );
+			}
+		}
+
+		return out;
+	}
+
 }

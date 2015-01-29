@@ -2,7 +2,7 @@ class Fragment_Contextual_TextNode extends Fragment_Contextual_Item {
 
 	public type: FragmentCItem = FragmentCItem.TEXT;
 	
-	constructor( public node: TNode_Text, private start: number = null, private end: number = null ) {
+	constructor( public node: TNode_Text, public start: number = null, public end: number = null ) {
 		super();
 	}
 
@@ -21,5 +21,11 @@ class Fragment_Contextual_TextNode extends Fragment_Contextual_Item {
 	public removeSelectedText() {
 		this.node.deleteTextContentsBetweenFragmentPositions( this.start, this.end );
 	}
+
+	/*
+	public fragmentateAndReturnNode(): TNode_Text {
+		return this.node.createFragmentationAtIndexes( this.start, this.end );
+	}
+	*/
 
 }

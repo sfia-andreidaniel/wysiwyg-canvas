@@ -118,6 +118,56 @@ class TNode_Text extends TNode {
 
 	}
 
+	/* Fragmentates the text node @ indexes, creating in the worst case scenario two additional
+	   siblings, one before and one after of text contents
+	 */
+
+	/* 
+
+	public createFragmentationAtIndexes( indexStart: number, indexEnd: number ): TNode_Text {
+
+		var out = {
+			"before" : null,
+			"after"  : null
+		}, s: string;
+
+		if ( indexStart > this.FRAGMENT_START ) {
+			s = this.textContentsFragment( this.FRAGMENT_START, indexStart - 1);
+			if ( s ) {
+				out.before = this.documentElement.createTextNode( s );
+			}
+		}
+
+		if ( indexEnd < this.FRAGMENT_END ) {
+			s = this.textContentsFragment( indexEnd + 1, this.FRAGMENT_END );
+			if ( s ) {
+				out.after = this.documentElement.createTextNode( s );
+			}
+		}
+
+		if ( out.before || out.after ) {
+
+			this.textContents( this.textContentsFragment( indexStart, indexEnd ) );
+
+			if ( out.before ) {
+				this.parentNode.appendChild( out.before, this.siblingIndex );
+			}
+
+			if ( out.after ) {
+				this.parentNode.appendChild( out.after, this.siblingIndex + 1 );
+			}
+
+			this.FRAGMENT_START = indexStart;
+			this.FRAGMENT_END   = indexEnd;
+
+		}
+
+		return this;
+
+	}
+
+	*/
+
 
 	// I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
 	// Don't even try to understand it, cause even I will not be able to understand it in a few hours

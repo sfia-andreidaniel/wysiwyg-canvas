@@ -12,6 +12,10 @@ class Fragment {
 		}
 	}
 
+	public document(): HTML_Body {
+		return this._doc;
+	}
+
 	public reset() {
 		this._length = 0;
 	}

@@ -8,6 +8,7 @@ class HTML_Body extends TNode_Element {
 	public  lines            : Character_LinesCollection;
 
 	public isBlockTextNode   : boolean = true; //user can write inside this element ( or sub-elements );
+	public canRelayout       : boolean = true; //we can disable relayouting of the document by setting this flag to false.
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -181,6 +182,9 @@ class HTML_Body extends TNode_Element {
 
 	public repaint( ) {
 
+		if ( !this.canRelayout )
+			return;
+
 		// repaints the document
 		var now = Date.now(),
 		    diff: number = 0;
@@ -211,6 +215,10 @@ class HTML_Body extends TNode_Element {
 	// objects in the canvas.
 	public relayout( force: boolean = false ) {
 		
+		if ( !this.canRelayout ) {
+			return;
+		}
+
 		if ( !this._needRelayout && force == false ) {
 			//console.log( 'body.relayout: up to date.' );
 			return;

@@ -144,53 +144,188 @@ class Fragment_Contextual {
 		return out;
 	}
 
+	private createDettachedCollection( items: Fragment_Contextual_Item[], ownerBlockElement: TNode_Element ): TNode_Collection_Dettached {
+
+		var allChildNodesSnapshot: TNode[] = [],
+		    i: number  = 0,
+		    len: number  = ownerBlockElement.childNodes.length,
+		    surgeryStart: number = 0,
+		    surgeryEnd: number = 0;
+
+		// create a snapshot with the child nodes of the ownerBlockElement, we'll need it in order to compare
+		// after surgery.
+		for ( i=0; i<len; i++ ) {
+			allChildNodesSnapshot.push( ownerBlockElement.childNodes[i] );
+		}
+
+
+		// reduce the list with the items with the first and last nodes only
+		if ( items.length > 2 ) {
+			items = [ items[0], items[ items.length - 1 ] ];
+		}
+
+		if ( items.length == 1 ) {
+			
+			/* If we have only a single item in the dettached collection and this one is not a text node, we return
+			   an empty collection */
+			
+			if ( items[0].type != FragmentCItem.TEXT ) {
+				return null;
+			}
+
+			surgeryStart = (<Fragment_Contextual_TextNode>items[0]).start;
+			surgeryEnd   = (<Fragment_Contextual_TextNode>items[0]).end;
+
+		} else {
+
+			switch ( items[0].type ) {
+				case FragmentCItem.TEXT:
+					surgeryStart = (<Fragment_Contextual_TextNode>items[0]).start;
+					break;
+				case FragmentCItem.NODE_START:
+					surgeryStart = (<Fragment_Contextual_NodeStart>items[0]).node.FRAGMENT_START;
+					break;
+				case FragmentCItem.NODE_END:
+					surgeryStart = (<Fragment_Contextual_NodeStart>items[0]).node.FRAGMENT_END;
+					break;
+			}
+
+			switch ( items[1].type ) {
+				case FragmentCItem.TEXT:
+					surgeryEnd = (<Fragment_Contextual_TextNode>items[1]).end;
+					break;
+				case FragmentCItem.NODE_START:
+					surgeryEnd = (<Fragment_Contextual_NodeStart>items[1]).node.FRAGMENT_START;
+					break;
+				case FragmentCItem.NODE_END:
+					surgeryEnd = (<Fragment_Contextual_NodeStart>items[1]).node.FRAGMENT_END;
+					break;
+			}
+		}
+
+		return new TNode_Collection_Dettached( ownerBlockElement, surgeryStart, surgeryEnd );
+
+	}
+
 	/* The affected ranges returns an array of collections with the child nodes
 	   of the block elements from the selection. This is usefull when we want to
 	   enclose the text in <b><i><u><sup><sub><font><color> tags
 	 */
 	public affectedRanges(): TNode_Collection_Dettached[] {
 
-		var out 	: TNode_Collection_Dettached[],
-		    i 		: number = 0,
-		    len 	: number = 0,
-		 	blocks  : TNode_Element[] = this.affectedBlockNodes(),
-		 	nBlocks : number = blocks.length,
-		 	slice   : TNode_Collection_Dettached;
+		var collection        : TNode_Collection_Dettached = null,
+		    
+		    previousBlockNode : TNode_Element              = null,
+		    currentBlockNode  : TNode_Element,
+		    tempBlockNode     : TNode_Element,
 
-		if ( !nBlocks ) {
-			return;
-		}
+		    node              : TNode,
+		    
+		    i                 : number = 0,
+		    len               : number = 0,
+		    j                 : number = 0,
+		    n                 : number = 0,
+		    k                 : number = 0,
 
-		if ( nBlocks == 1 ) {
-			
-			slice = blocks[0].slice( this.start, this.end );
-			this.end += slice.increaseFragmentSize;
-			return [ slice ];
-		
-		} else {
-			
-			out = [];
-			
-			for ( i=0; i<nBlocks; i++ ) {
-				if ( i == 0 ) {
-					slice = blocks[i].slice( this.start, null );
-					out.push( slice );
-					this.end += slice.increaseFragmentSize;
-				} else {
-					if ( i == nBlocks - 1 ) {
-						slice = blocks[i].slice( null, this.end );
-						out.push( slice );
-						this.end += slice.increaseFragmentSize;
-					} else {
-						slice = blocks[i].slice( null, null );
-						out.push( slice );
-						this.end += slice.increaseFragmentSize;
-					}
-				}
+		    returnValue       : TNode_Collection_Dettached[] = [],
+
+		    currentSet        : Fragment_Contextual_Item[] = [],
+		    ranges            : any[] = [],
+		    subLength         : number = 0;
+
+		this.compute();
+
+		for ( i=0, len = this.parts.length; i<len; i++ ) {
+
+			switch ( this.parts[i].type ) {
+
+				case FragmentCItem.TEXT:
+					
+					node = <TNode_Text>(<Fragment_Contextual_TextNode>this.parts[i]).node;
+					currentBlockNode = node.ownerBlockElement();
+					
+					break;
+
+				case FragmentCItem.NODE_START:
+					node = <TNode_Element>(<Fragment_Contextual_NodeStart>this.parts[i]).node;
+					currentBlockNode = node.ownerBlockElement();
+					break;
+
+				case FragmentCItem.NODE_END:
+					node = <TNode_Element>(<Fragment_Contextual_NodeEnd>this.parts[i]).node;
+					currentBlockNode = node.ownerBlockElement();
+					break;
 			}
 
-			return out;
+			
+			if ( currentBlockNode != previousBlockNode ) {
+
+				currentSet = [];
+
+				// node changed, find if the whole node is in our parts
+				subLength = 1;
+
+				for ( j = i + 1; j < len; j++ ) {
+					
+					switch ( this.parts[j].type ) {
+						case FragmentCItem.TEXT:
+							tempBlockNode = (<TNode_Text>(<Fragment_Contextual_TextNode>this.parts[j]).node).ownerBlockElement();
+							break;
+						case FragmentCItem.NODE_START:
+							tempBlockNode = (<TNode_Element>(<Fragment_Contextual_NodeStart>this.parts[j]).node).ownerBlockElement();
+							break;
+						case FragmentCItem.NODE_END:
+							tempBlockNode = (<TNode_Element>(<Fragment_Contextual_NodeEnd>this.parts[j]).node).ownerBlockElement();
+							break;
+					}
+
+					if ( tempBlockNode == currentBlockNode ) {
+						subLength++;
+					} else {
+						break;
+					}
+
+				}
+
+				// make subgroup
+				for ( k=i; k<i+subLength; k++ ) {
+					currentSet.push( this.parts[k] );
+				}
+
+				ranges.push( {
+					"parent": currentBlockNode,
+					"set": currentSet
+				} );
+
+				i += subLength - 1;
+
+				previousBlockNode = currentBlockNode;
+
+			}
+
 		}
+
+		for ( i=0, len = ranges.length; i<len; i++ ) {
+			returnValue.push( this.createDettachedCollection( ranges[i].set, ranges[i].parent ) );
+		}
+
+		returnValue = Helper.filter( returnValue, function( item ) { return item != null; } );
+
+		this.fragment.document().canRelayout = false;
+
+		for ( i=0, len = returnValue.length; i<len; i++ ) {
+			returnValue[i].createSlices();
+		}
+
+		this.fragment.document().canRelayout = true;
+
+		this.fragment.document().relayout( true );
+
+		for ( i=0, len = returnValue.length; i<len; i++ ) {
+			returnValue[i].createRanges();
+		}
+
+		return returnValue;
 
 	}
 

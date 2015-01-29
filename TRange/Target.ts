@@ -92,7 +92,6 @@ class TRange_Target extends Events {
 	public moveLeftUntilCharacterIfNotLandedOnText() {
 		var at: FragmentItem = this.target.documentElement.fragment.at( this.fragPos );
 		if ( at == FragmentItem.NODE_START || at == FragmentItem.NODE_END ) {
-			console.warn( "Debug: moveLeftUntilCharacterIfNotLandedOnText" );
 			this.moveLeftUntil( function( at ) {
 				return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
 			} );
@@ -103,7 +102,6 @@ class TRange_Target extends Events {
 	public moveRightUntilCharacterIfNotLandedOnText() {
 		var at: FragmentItem = this.target.documentElement.fragment.at( this.fragPos );
 		if ( at == FragmentItem.NODE_START || at == FragmentItem.NODE_END ) {
-			console.warn( "Debug: moveRightUntilCharacterIfNotLandedOnText" );
 			this.moveRightUntil( function( at ) {
 				return at == FragmentItem.EOL || at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE;
 			} );

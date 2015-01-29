@@ -71,6 +71,7 @@
 /// <reference path="./Fragment/Contextual/NodeStart.ts" />
 /// <reference path="./Fragment/Contextual/NodeEnd.ts" />
 /// <reference path="./Fragment/Contextual/TextNode.ts" />
+/// <reference path="./Fragment/Batch.ts" />
 
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />

@@ -175,6 +175,9 @@ class HTML_Body extends TNode_Element {
 	}
 
 	public requestRepaint() {
+		if ( !this.canRelayout )
+			return;
+
 		this._needRepaint = true;
 		this.fire( 'repaint' );
 		this.viewport.painter.run();

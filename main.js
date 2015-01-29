@@ -265,6 +265,17 @@ var Helper = (function () {
         }
         return out;
     };
+    // a modified version of array splice, only that the adding elements are passed into an array but not as
+    // function arguments.
+    Helper.spliceApply = function (thisArray, startIndex, removeLength, addNodes) {
+        if (addNodes === void 0) { addNodes = []; }
+        var apply = [removeLength, startIndex], i = 0, len = addNodes.length;
+        for (i = 0; i < len; i++) {
+            apply.push(addNodes[i]);
+        }
+        Array.prototype.splice.apply(thisArray, apply);
+        return thisArray;
+    };
     /* Logging */
     Helper.dev = false;
     return Helper;
@@ -602,6 +613,9 @@ var TNode_TextBreak = (function (_super) {
 })(TNode_Text);
 var TNode_Element = (function (_super) {
     __extends(TNode_Element, _super);
+    /* @postStyleInit: weather to initialize the style property on this constructor,
+                       or if that style property will be initialized in ancestor classes
+     */
     function TNode_Element(postStyleInit) {
         if (postStyleInit === void 0) { postStyleInit = false; }
         _super.call(this);
@@ -621,6 +635,9 @@ var TNode_Element = (function (_super) {
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
+    /* Appends a node in the element. If arugment @index is mentioned ( not null ),
+       the element will be inserted at position @index
+     */
     TNode_Element.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
         if (index === null) {
@@ -645,14 +662,12 @@ var TNode_Element = (function (_super) {
         this.requestRelayout();
         return node;
     };
+    /* Appends a collection of elements. If argument @siblingIndex is mentioned ( not null ),
+       the collection of elements will be inserted starting with @siblingIndex, otherwise the
+       insertion will be made at the end of this element
+     */
     TNode_Element.prototype.appendCollection = function (collection, siblingIndex) {
         if (siblingIndex === void 0) { siblingIndex = null; }
-        if (siblingIndex === null) {
-            console.warn("Append end!");
-        }
-        else {
-            console.warn("Append index: " + siblingIndex);
-        }
         siblingIndex = siblingIndex === null ? this.childNodes.length : siblingIndex;
         var args = [siblingIndex, 0], i = 0, len = collection.nodes.length;
         for (i = 0; i < len; i++) {
@@ -666,6 +681,8 @@ var TNode_Element = (function (_super) {
         }
         this.requestRelayout();
     };
+    /* Removes a child ( if direct node ) of this element
+     */
     TNode_Element.prototype.removeChild = function (node) {
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
             if (this.childNodes[i] == node) {
@@ -679,11 +696,21 @@ var TNode_Element = (function (_super) {
         }
         throw "ERR_NODE_NOT_FOUND";
     };
-    /* Weather painting this element is inside of a box, or this element
-       is painted as a text line */
+    /* The hasLayout property of an element returns true if the width and height of the
+       element are considered, otherwise returns false ( typically for inline elements)
+
+       Basically, an element has layout in two main cases:
+            1. It contains text (nodes) or inline elements inside
+            2. It is rendered with width and height ( an image, video, or plugin for example )
+    */
     TNode_Element.prototype.hasLayout = function () {
         return this.style.display() == 'block' || this.style.float() != '';
     };
+    /* Returns an appropriate layout for this element. It should be invoked only with elements
+       for which hasLayout() returns true.
+
+       Not invocable directly by user.
+    */
     TNode_Element.prototype.createLayout = function (useParentLayout) {
         if (useParentLayout === void 0) { useParentLayout = null; }
         if (this.documentElement) {
@@ -736,6 +763,10 @@ var TNode_Element = (function (_super) {
             return null;
         }
     };
+    /* Returns a modified "childNodes" property of the element, sorted in such a manner that the
+       "float=left" and "float=right" elements are put at first, and the rest of
+       the elements are put at last
+    */
     TNode_Element.prototype.childNodesSortedByFloatValues = function () {
         var out1 = [], out2 = [], i = 0, len = 0;
         for (i = 0, len = this.childNodes.length; i < len; i++) {
@@ -756,6 +787,10 @@ var TNode_Element = (function (_super) {
         }
         return out1;
     };
+    /* Evaluates the possible layout type for the element.
+
+       Not invocable by the user.
+    */
     TNode_Element.prototype.evaluateLayout = function (left, center, right, argIndex) {
         if (argIndex === void 0) { argIndex = 0; }
         var i = 0, len = this.childNodes.length, oldArgIndex = argIndex, currentArgIndex = argIndex, j = 0, n = 0, layoutType = '', lblock, lchar, children;
@@ -830,6 +865,8 @@ var TNode_Element = (function (_super) {
         }
         return currentArgIndex;
     };
+    /* Returns or sets the concatenated outerHTML() of the child nodes
+     */
     TNode_Element.prototype.innerHTML = function (setter) {
         if (setter === void 0) { setter = null; }
         if (setter === null) {
@@ -855,9 +892,13 @@ var TNode_Element = (function (_super) {
             this.setInnerNodes(nodes);
         }
     };
+    /* Returns the element header as string ( for example for a "<p>asda</p>" it returns "<p>")
+     */
     TNode_Element.prototype.xmlBeginning = function () {
         return '<' + this.nodeName + (this.childNodes.length ? '' : '/') + '>';
     };
+    /* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
+     */
     TNode_Element.prototype.xmlEnding = function () {
         if (!this.childNodes.length) {
             return '';
@@ -866,6 +907,7 @@ var TNode_Element = (function (_super) {
             return '</' + this.nodeName + '>';
         }
     };
+    /* Returns or sets the outer HTML of a node. Setter is not implemented */
     TNode_Element.prototype.outerHTML = function (setter) {
         if (setter === void 0) { setter = null; }
         if (setter === null) {
@@ -876,18 +918,24 @@ var TNode_Element = (function (_super) {
             throw "node.outerHTML: Setter not implemented yet!";
         }
     };
+    /* Notifies the document element containing this node that a relayout is
+       needed. Relayout is scheduled with the help of a throttler.
+     */
     TNode_Element.prototype.requestRelayout = function () {
         if (this.documentElement) {
             this.documentElement.needRelayout = true;
         }
     };
+    /* Notifies the document element containing this node that a repaint is
+       needed. Repainting is scheduled with the help of a throttler.
+     */
     TNode_Element.prototype.requestRepaint = function (originatingElement) {
         if (originatingElement === void 0) { originatingElement = null; }
         if (this.documentElement) {
             this.documentElement.requestRepaint();
         }
     };
-    /* Paints the node according to layout configuration */
+    /* Paints the node according to @layout settings (offsetLeft, offsetTop, etc.) */
     TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
         var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
@@ -1150,7 +1198,10 @@ var TNode_Element = (function (_super) {
             }
         }
     };
-    /* A very special function.
+    /* A very special function. It cuts the element sub-tree until or deeper this element.
+       This function is needed for inserting BR's, and for executing the "bold", "italic", etc commands.
+
+       This function is executed on elements which contains text nodes or inline elements.
 
        @fragmentIndex: an index somewhere *between* node fragment start and node fragment end.
 
@@ -1162,6 +1213,12 @@ var TNode_Element = (function (_super) {
             - otherwise, a node with a nodeNameAfter will be appended in this document.
 
         returns the FRAGMENT_START of the right cutted part.
+
+        Note that some aspects of this function are hardcoded.
+
+        Not invocable by the user.
+
+        returns the fragment position of the surgeried position.
 
     */
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
@@ -1303,10 +1360,22 @@ var TNode_Element = (function (_super) {
             }
         }
     };
+    /* Moves all the direct child nodes of this element in the element parent, insertion
+       being made after the element.
+
+       After the unwrapping, the element (this) is removed from the DOM.
+     */
     TNode_Element.prototype.unwrap = function () {
-        var collection;
-        this.parentNode.appendCollection((collection = new TNode_Collection(this.childNodes)), this.siblingIndex + 1);
+        var collection = new TNode_Collection([]), iStart = this.siblingIndex, i = 1;
+        while (this.childNodes.length) {
+            collection.add(this.childNodes[0]);
+            this.parentNode.appendChild(this.childNodes[0], iStart + i);
+            i++;
+        }
+        console.log('after unwrap: ' + this.innerHTML());
+        console.log('myParent innerHTML: ' + this.parentNode.parentNode.innerHTML());
         this.remove();
+        console.log('my parent is: ', this.parentNode);
         return collection;
     };
     return TNode_Element;
@@ -1389,7 +1458,7 @@ var TNode_Collection_Dettached = (function (_super) {
                 this.fragLTR++;
             }
         }
-        for (i = parentNode.FRAGMENT_END - 1; i > surgeryEnd; i--) {
+        for (i = parentNode.FRAGMENT_END - 1; i >= surgeryEnd; i--) {
             at = fragment.at(i);
             if (at != 2 /* EOL */) {
                 this.fragRTL++;
@@ -1442,7 +1511,31 @@ var TNode_Collection_Dettached = (function (_super) {
         this.nodes = [node];
         this.parentNode.appendChild(node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1);
     };
-    TNode_Collection_Dettached.prototype.unwrapNodes = function (nodeName) {
+    TNode_Collection_Dettached.prototype.unwrapFromElement = function (nodeName) {
+        var subWraps = [], i = 0, len = this.nodes.length, addLen = 0, subChildren = [], unwrapped;
+        for (i = 0; i < len; i++) {
+            switch (this.nodes[i].nodeType) {
+                case 1 /* TEXT */:
+                    break;
+                case 2 /* ELEMENT */:
+                    if (this.nodes[i].nodeName == nodeName) {
+                        console.error('unwrap direct child: ' + this.nodes[i].xmlBeginning(), ', parentNode: ', this.nodes[i].parentNode);
+                        unwrapped = this.nodes[i].unwrap();
+                        Helper.spliceApply(this.nodes, i, 1, unwrapped.nodes);
+                        len = this.nodes.length;
+                        i += unwrapped.nodes.length;
+                    }
+                    break;
+            }
+        }
+        for (i = 0; i < len; i++) {
+            if (this.nodes[i].nodeType == 2 /* ELEMENT */) {
+                Helper.spliceApply(subChildren, subChildren.length, 0, this.nodes[i].queryAll({ "nodeName": nodeName }).nodes);
+            }
+        }
+        for (i = 0, len = subChildren.length; i < len; i++) {
+            subChildren[i].unwrap();
+        }
     };
     TNode_Collection_Dettached.prototype.toString = function () {
         var out = [], i = 0, len = this.nodes.length;
@@ -1779,6 +1872,8 @@ var HTML_Body = (function (_super) {
         }
     };
     HTML_Body.prototype.requestRepaint = function () {
+        if (!this.canRelayout)
+            return;
         this._needRepaint = true;
         this.fire('repaint');
         this.viewport.painter.run();
@@ -6326,6 +6421,29 @@ var Fragment_Contextual_TextNode = (function (_super) {
     };
     return Fragment_Contextual_TextNode;
 })(Fragment_Contextual_Item);
+var Fragment_Batch = (function () {
+    function Fragment_Batch(range, items) {
+        this.range = range;
+        this.items = items;
+    }
+    Fragment_Batch.prototype.wrapInElement = function (elementName) {
+        for (var i = 0, len = this.items.length; i < len; i++) {
+            this.items[i].wrapInElement(elementName);
+        }
+        return this;
+    };
+    Fragment_Batch.prototype.unwrapFromElement = function (elementName) {
+        for (var i = 0, len = this.items.length; i < len; i++) {
+            this.items[i].unwrapFromElement(elementName);
+        }
+        return this;
+    };
+    Fragment_Batch.prototype.end = function () {
+        this.range.restore();
+        return this;
+    };
+    return Fragment_Batch;
+})();
 var TRange = (function (_super) {
     __extends(TRange, _super);
     function TRange(target) {
@@ -6500,23 +6618,31 @@ var TRange = (function (_super) {
         }
     };
     TRange.prototype.restore = function () {
-        if (this._focusNode && this._focusLock) {
-            this._focusNode.set(this._focusLock.getTarget());
+        this._anchorNode.target.documentElement.relayout(true);
+        if (this._focusNode) {
+            if (!this._focusLock) {
+                throw "ERR_TRANGE: nothing to restore";
+            }
+            else {
+                this._focusNode.set(this._focusLock.getTarget());
+            }
         }
-        if (this._anchorNode && this._anchorLock) {
-            this._anchorNode.set(this._anchorLock.getTarget());
+        if (this._anchorNode) {
+            if (!this._anchorLock) {
+                throw "ERR_TRANGE: nothing to restore!";
+            }
+            else {
+                this._anchorNode.set(this._anchorLock.getTarget());
+            }
         }
     };
     TRange.prototype.affectedRanges = function () {
-        var returnValue;
+        this.save();
         if (!this._focusNode || !this.length()) {
-            return [];
+            return new Fragment_Batch(this, []);
         }
         else {
-            this.save();
-            returnValue = this.createContextualFragment().affectedRanges();
-            this.restore();
-            return returnValue;
+            return new Fragment_Batch(this, this.createContextualFragment().affectedRanges());
         }
     };
     /* These methods MIGHT be removed in the future, if better ways will be found
@@ -6631,7 +6757,6 @@ var TRange_Target = (function (_super) {
     TRange_Target.prototype.moveLeftUntilCharacterIfNotLandedOnText = function () {
         var at = this.target.documentElement.fragment.at(this.fragPos);
         if (at == 0 /* NODE_START */ || at == 1 /* NODE_END */) {
-            console.warn("Debug: moveLeftUntilCharacterIfNotLandedOnText");
             this.moveLeftUntil(function (at) {
                 return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
             });
@@ -6640,7 +6765,6 @@ var TRange_Target = (function (_super) {
     TRange_Target.prototype.moveRightUntilCharacterIfNotLandedOnText = function () {
         var at = this.target.documentElement.fragment.at(this.fragPos);
         if (at == 0 /* NODE_START */ || at == 1 /* NODE_END */) {
-            console.warn("Debug: moveRightUntilCharacterIfNotLandedOnText");
             this.moveRightUntil(function (at) {
                 return at == 2 /* EOL */ || at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */;
             });
@@ -7994,6 +8118,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
 /// <reference path="./Fragment/Contextual/NodeStart.ts" />
 /// <reference path="./Fragment/Contextual/NodeEnd.ts" />
 /// <reference path="./Fragment/Contextual/TextNode.ts" />
+/// <reference path="./Fragment/Batch.ts" />
 /// <reference path="TRange.ts" />
 /// <reference path="./TRange/Target.ts" />
 /// <reference path="DocSelection.ts" />

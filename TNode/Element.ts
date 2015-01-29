@@ -19,12 +19,20 @@ class TNode_Element extends TNode {
 
 	public isMergeable               : boolean        = true; // weather the "mergeWith" method works with this or with another element.
 
+	/* @postStyleInit: weather to initialize the style property on this constructor,
+	                   or if that style property will be initialized in ancestor classes 
+	 */
+
 	constructor( postStyleInit: boolean = false ) {
 		super();
 
 		if ( !postStyleInit )
 			this.style = new TStyle( this );
 	}
+
+	/* Appends a node in the element. If arugment @index is mentioned ( not null ),
+	   the element will be inserted at position @index
+	 */
 
 	public appendChild( node: TNode, index: number = null ): TNode {
 		if ( index === null ) {
@@ -51,14 +59,13 @@ class TNode_Element extends TNode {
 		return node;
 	}
 
+	/* Appends a collection of elements. If argument @siblingIndex is mentioned ( not null ),
+	   the collection of elements will be inserted starting with @siblingIndex, otherwise the
+	   insertion will be made at the end of this element
+	 */
+
 	public appendCollection( collection: TNode_Collection, siblingIndex: number = null ) {
 		
-		if ( siblingIndex === null ) {
-			console.warn( "Append end!" );
-		} else {
-			console.warn( "Append index: " + siblingIndex );
-		}
-
 		siblingIndex = siblingIndex === null
 			? this.childNodes.length
 			: siblingIndex;
@@ -83,6 +90,10 @@ class TNode_Element extends TNode {
 
 	}
 
+
+	/* Removes a child ( if direct node ) of this element 
+	 */
+
 	public removeChild( node: TNode ): TNode {
 		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
 			if ( this.childNodes[i] == node ) {
@@ -101,13 +112,24 @@ class TNode_Element extends TNode {
 		throw "ERR_NODE_NOT_FOUND";
 	}
 
-	/* Weather painting this element is inside of a box, or this element
-	   is painted as a text line */
+	/* The hasLayout property of an element returns true if the width and height of the 
+	   element are considered, otherwise returns false ( typically for inline elements)
+
+	   Basically, an element has layout in two main cases:
+	   		1. It contains text (nodes) or inline elements inside
+	   		2. It is rendered with width and height ( an image, video, or plugin for example )
+	*/
 
 	public hasLayout(): boolean {
 		return this.style.display() == 'block' ||
 			   this.style.float() != '';
 	}
+
+	/* Returns an appropriate layout for this element. It should be invoked only with elements
+	   for which hasLayout() returns true.
+
+	   Not invocable directly by user.
+	*/
 
 	public createLayout( useParentLayout: Layout = null ): Layout {
 
@@ -195,6 +217,11 @@ class TNode_Element extends TNode {
 
 	}
 
+	/* Returns a modified "childNodes" property of the element, sorted in such a manner that the
+	   "float=left" and "float=right" elements are put at first, and the rest of
+	   the elements are put at last
+	*/
+
 	private childNodesSortedByFloatValues(): TNode[] {
 
 		var out1: TNode[] = [],
@@ -225,6 +252,11 @@ class TNode_Element extends TNode {
 		return out1;
 
 	}
+
+	/* Evaluates the possible layout type for the element.
+
+	   Not invocable by the user.
+	*/
 
 	public evaluateLayout( left: Layout_Block[], center: Layout_Block[], right: Layout_Block[], argIndex: number = 0 ): number {
 		var i: number = 0,
@@ -323,6 +355,9 @@ class TNode_Element extends TNode {
 		return currentArgIndex;
 	}
 
+	/* Returns or sets the concatenated outerHTML() of the child nodes
+	 */
+
 	public innerHTML( setter: string = null ): string {
 		if ( setter === null ) {
 			// getter
@@ -346,9 +381,15 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Returns the element header as string ( for example for a "<p>asda</p>" it returns "<p>")
+	 */
+
 	public xmlBeginning(): string {
 		return '<' + this.nodeName + ( this.childNodes.length ? '' : '/' ) + '>';
 	}
+
+	/* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
+	 */
 
 	public xmlEnding(): string {
 		if ( !this.childNodes.length ) {
@@ -357,6 +398,8 @@ class TNode_Element extends TNode {
 			return '</' + this.nodeName + '>';
 		}
 	}
+
+	/* Returns or sets the outer HTML of a node. Setter is not implemented */
 
 	public outerHTML( setter: string = null ) {
 		if ( setter === null ) {
@@ -367,6 +410,9 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Notifies the document element containing this node that a relayout is
+	   needed. Relayout is scheduled with the help of a throttler.
+	 */
 
 	public requestRelayout() {
 		if ( this.documentElement ) {
@@ -374,13 +420,18 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Notifies the document element containing this node that a repaint is
+	   needed. Repainting is scheduled with the help of a throttler.
+	 */
+
 	public requestRepaint( originatingElement: TNode_Element = null ) {
 		if ( this.documentElement ) {
 			this.documentElement.requestRepaint();
 		}
 	}
 
-	/* Paints the node according to layout configuration */
+	/* Paints the node according to @layout settings (offsetLeft, offsetTop, etc.) */
+
 	public paint( ctx: any, layout: Layout, scrollLeft: number, scrollTop: number ) {
 
 		// paint border
@@ -737,7 +788,10 @@ class TNode_Element extends TNode {
 		}
 	}
 
-	/* A very special function.
+	/* A very special function. It cuts the element sub-tree until or deeper this element.
+	   This function is needed for inserting BR's, and for executing the "bold", "italic", etc commands.
+
+	   This function is executed on elements which contains text nodes or inline elements.
 
 	   @fragmentIndex: an index somewhere *between* node fragment start and node fragment end.
 
@@ -749,6 +803,12 @@ class TNode_Element extends TNode {
 	   		- otherwise, a node with a nodeNameAfter will be appended in this document.
 
 		returns the FRAGMENT_START of the right cutted part.
+
+		Note that some aspects of this function are hardcoded.
+
+		Not invocable by the user.
+
+		returns the fragment position of the surgeried position.
 
 	*/
 
@@ -959,13 +1019,32 @@ class TNode_Element extends TNode {
 		}
 	}
 
-	public unwrap() {
-		var collection: TNode_Collection;
+	/* Moves all the direct child nodes of this element in the element parent, insertion
+	   being made after the element.
 
-		this.parentNode.appendCollection( ( collection = new TNode_Collection( this.childNodes ) ), this.siblingIndex + 1 );
+	   After the unwrapping, the element (this) is removed from the DOM.
+	 */
+	public unwrap(): TNode_Collection {
+		var collection: TNode_Collection = new TNode_Collection([]),
+		    iStart: number = this.siblingIndex,
+		    i: number = 1;
+
+		//append my child nodes after me...
+
+		while ( this.childNodes.length ) {
+			collection.add( this.childNodes[0] );
+			this.parentNode.appendChild( this.childNodes[0], iStart + i );
+			i++;
+		}
+
+		console.log( 'after unwrap: ' + this.innerHTML() );
 		
+		console.log( 'myParent innerHTML: ' + this.parentNode.parentNode.innerHTML() );
+
 		this.remove();
-		
+
+		console.log( 'my parent is: ', this.parentNode );
+
 		return collection;
 	}
 

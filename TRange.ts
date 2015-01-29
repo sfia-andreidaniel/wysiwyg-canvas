@@ -255,31 +255,42 @@ class TRange extends Events {
 
 		}
 
+
 	}
 
 	public restore() {
 
-		if ( this._focusNode && this._focusLock ) {
-			this._focusNode.set( this._focusLock.getTarget() );
+		this._anchorNode.target.documentElement.relayout(true);
+
+		if ( this._focusNode ) {
+
+			if ( !this._focusLock ) {
+				throw "ERR_TRANGE: nothing to restore";
+			} else {
+				this._focusNode.set( this._focusLock.getTarget() );
+			}
 		}
 
-		if ( this._anchorNode && this._anchorLock ) {
-			this._anchorNode.set( this._anchorLock.getTarget() );
+		if ( this._anchorNode ) {
+			if ( !this._anchorLock ) {
+				throw "ERR_TRANGE: nothing to restore!";
+			} else {
+				this._anchorNode.set( this._anchorLock.getTarget() );
+			}
 		}
-
 	}
 
-	public affectedRanges(): TNode_Collection_Dettached [] {
+	public affectedRanges(): Fragment_Batch {
 
-		var returnValue: TNode_Collection_Dettached[];
+		this.save();
 
 		if ( !this._focusNode || !this.length() ) {
-			return [];
+			return new Fragment_Batch( this, [] );
 		} else {
-			this.save();
-			returnValue = this.createContextualFragment().affectedRanges();
-			this.restore();
-			return returnValue;
+			return new Fragment_Batch( 
+				this, 
+				this.createContextualFragment().affectedRanges()
+			);
 		}
 
 	}

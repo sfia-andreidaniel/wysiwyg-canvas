@@ -49,4 +49,19 @@ class Helper {
 		return out;
 	}
 
+	// a modified version of array splice, only that the adding elements are passed into an array but not as
+	// function arguments.
+	static spliceApply( thisArray: any[], startIndex: number, removeLength: number, addNodes: any[] = [] ) {
+		var apply: any[] = [ removeLength, startIndex ],
+		        i: number = 0,
+		      len: number = addNodes.length;
+
+		for ( i=0; i<len; i++ ) {
+			apply.push( addNodes[i] );
+		}
+
+		Array.prototype.splice.apply( thisArray, apply );
+		return thisArray;
+	}
+
 }

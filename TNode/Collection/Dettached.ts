@@ -32,7 +32,7 @@ class TNode_Collection_Dettached extends TNode_Collection {
 			}
 		}
 
-		for ( i=parentNode.FRAGMENT_END - 1; i>surgeryEnd; i-- ) {
+		for ( i=parentNode.FRAGMENT_END - 1; i>=surgeryEnd; i-- ) {
 			
 			at = fragment.at( i );
 
@@ -121,9 +121,49 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 	public unwrapFromElement( nodeName: string ) {
 
-		var subWraps: TNode_Element[] = [],
-		           i: number = 0,
-		         len: number = this.nodes.length;
+		var subWraps  	: TNode_Element[] = [],
+		    i 			: number 		  = 0,
+		    len 		: number 		  = this.nodes.length,
+		    addLen		: number 		  = 0,
+		 	subChildren : TNode[]         = [],
+		 	unwrapped   : TNode_Collection;
+
+		// unwraps the direct children of collection.
+
+		for ( i=0; i<len; i++ ) {
+
+			switch ( this.nodes[i].nodeType ) {
+				case TNode_Type.TEXT:
+					break;
+				case TNode_Type.ELEMENT:
+					if ( ( <TNode_Element>this.nodes[i] ).nodeName == nodeName ) {
+						
+						console.error( 'unwrap direct child: ' + (<TNode_Element>this.nodes[i]).xmlBeginning(), ', parentNode: ', this.nodes[i].parentNode );
+
+						unwrapped = ( <TNode_Element>this.nodes[i] ).unwrap();
+
+						Helper.spliceApply( this.nodes, i, 1, unwrapped.nodes );
+
+						len = this.nodes.length;
+
+						i += unwrapped.nodes.length;
+					}
+					break;
+			}
+
+		}
+
+		/* finds all the nodes in direct children subtrees. */
+
+		for ( i=0; i<len; i++ ) {
+			if ( this.nodes[i].nodeType == TNode_Type.ELEMENT ) {
+				Helper.spliceApply( subChildren, subChildren.length, 0, ( <TNode_Element>this.nodes[i] ).queryAll( { "nodeName": nodeName } ).nodes );
+			}
+		}
+
+		for ( i=0, len = subChildren.length; i<len; i++ ) {
+			(<TNode_Element>subChildren[i]).unwrap();
+		}
 
 	}
 

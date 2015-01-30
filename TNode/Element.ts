@@ -814,7 +814,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
 		
-		//Helper.warn( 'create surgery: BEGIN ' + this.nodeName + " " + atFragmentIndex + ", " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
+		console.info( 'surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,

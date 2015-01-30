@@ -220,7 +220,7 @@ class TRange extends Events {
 
 	}
 
-	public save() {
+	public save(): TRange {
 
 		var fragment: Fragment = this._anchorNode.target.documentElement.fragment;
 
@@ -231,7 +231,8 @@ class TRange extends Events {
 				this._focusNode.fragPos + ( this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 : -1 ), 
 				this._focusNode.fragPos <= this._anchorNode.fragPos 
 					? CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT 
-					: CaretLockDirection.FROM_ENDING_OF_DOCUMENT 
+					: CaretLockDirection.FROM_ENDING_OF_DOCUMENT ,
+				'Focus'
 			);
 			
 			this._anchorLock = new Fragment_CaretLock( 
@@ -245,20 +246,26 @@ class TRange extends Events {
 						this._focusLock.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT 
 							? CaretLockDirection.FROM_ENDING_OF_DOCUMENT 
 							: CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT
-					)
+					),
+
+				'Anchor'
 			);
+
+			console.info( 'Focus: ' + this._focusLock.direction + ', Anchor: ' + this._anchorLock.direction );
 
 		} else {
 
-			this._anchorLock = new Fragment_CaretLock( fragment, this._anchorNode.fragPos, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT );
+			this._anchorLock = new Fragment_CaretLock( fragment, this._anchorNode.fragPos, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 'Anchor' );
 			this._focusLock  = null;
 
+			console.info( 'Anchor: ' + this._anchorLock.direction );
 		}
 
+		return this;
 
 	}
 
-	public restore() {
+	public restore(): TRange {
 
 		this._anchorNode.target.documentElement.relayout(true);
 
@@ -278,6 +285,17 @@ class TRange extends Events {
 				this._anchorNode.set( this._anchorLock.getTarget() );
 			}
 		}
+
+		return this;
+	}
+
+	public debug(): TRange {
+		if ( this._focusNode ) {
+			console.info( 'Focus @' + this._focusNode.fragPos + ', Anchor @ ' + this._anchorNode.fragPos );
+		} else {
+			console.info( 'Anchor @ ' + this._anchorNode.fragPos );
+		}
+		return this;
 	}
 
 	public affectedRanges(): Fragment_Batch {

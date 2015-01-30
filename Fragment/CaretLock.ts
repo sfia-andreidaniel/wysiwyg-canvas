@@ -8,18 +8,24 @@ class Fragment_CaretLock {
 	private startedEOL: boolean = false;
 
 
-	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
+	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, public lockName = 'Lock' ) {
 			
 		var at  : FragmentItem,
 		    i   : number = 0,
-		    len : number = 0;
+		    len : number = 0,
+		    n   : number = 0;
 
 		this.fragment  = fragment;
 		this.lockIndex = lockIndex;
 		this.chars     = 0;
 		this.direction = direction;
 
-		this.startedEOL = this.fragment.at( this.lockIndex ) == FragmentItem.EOL;
+		if ( direction == CaretLockDirection.FROM_ENDING_OF_DOCUMENT ) {
+			if ( this.lockIndex < this.fragment.length() - 2 && this.fragment.at( this.lockIndex + 1 ) == FragmentItem.EOL ) {
+				this.startedEOL = true;
+			}
+		}
+		
 
 		if ( direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 
@@ -35,18 +41,31 @@ class Fragment_CaretLock {
 			
 			}
 
+			i = lockIndex + 1; n = this.fragment.length();
+
+			while ( i < n ) {
+
+				at = this.fragment.at( i );
+
+				if ( at == FragmentItem.EOL ) {
+
+					this.startedEOL = true;
+
+					break;
+
+				} else {
+
+					if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+						break;
+					}
+				}
+
+				i++;
+			}
+
 			this.chars = len;
 
 		} else {
-
-			if ( this.startedEOL ) {
-				if ( 
-					 ( this.fragment.at( this.lockIndex + 1 ) == FragmentItem.NODE_END ) && 
-					 ( this.fragment.getNodeAtIndex( this.lockIndex + 1 ) == this.fragment.getNodeAtIndex( this.lockIndex ).ownerBlockElement() )
-				) {
-					this.startedEOL = false;
-				}
-			}
 
 			// count from ending to cursor pos.
 
@@ -64,11 +83,16 @@ class Fragment_CaretLock {
 
 		}
 
-		// if we start with the caret on an EOL, we consider the EOL as a character.
+		/*
 
-		if ( this.fragment.at( this.lockIndex ) == FragmentItem.EOL ) {
-			//this.chars++;
+		if ( this.startedEOL ) {
+			console.error( this.lockName + ' startedEOL @ ' + this.lockIndex );
+		} else {
+			console.error( this.lockName + ' started NOTEOL @ ' + this.lockIndex + ' ' + this.direction );
 		}
+
+		console.info( this.lockName + ' has ' + this.chars + ' chars' );
+		*/
 
 	}
 
@@ -80,12 +104,6 @@ class Fragment_CaretLock {
 		     n: number = 0,
 		     incChars: number = 0,
 		     chars: number = this.chars;
-
-		if ( this.startedEOL && ( this.fragment.at( this.lockIndex ) != FragmentItem.EOL ) ) {
-			incChars = 1;
-			console.warn( 'incChars: ' + incChars );
-			chars--;
-		}
 
 		if ( this.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 
@@ -99,6 +117,29 @@ class Fragment_CaretLock {
 
 					if ( n == chars ) {
 
+						if ( this.startedEOL && at != FragmentItem.EOL ){
+							
+							n = i + 1;
+							
+							while ( n < len ) {
+								at = this.fragment.at(n);
+
+								if ( at == FragmentItem.EOL ) {
+									// good, break.
+									break;
+								} else {
+									if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+										// gotcha
+										i = n;
+										break;
+									}
+								}
+
+								n++;
+							}
+
+						}
+
 						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
 
 					}
@@ -110,15 +151,42 @@ class Fragment_CaretLock {
 
 		} else {
 
+			//console.warn( 'Info: ' + this.lockName + ' ' + this.startedEOL );
+
 			for ( i = this.fragment.length() - 1; i >= 0; i-- ) {
 
 				at = this.fragment.at( i );
 
-				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE || ( at == FragmentItem.EOL && n == chars - 1 ) ) {
+				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
 
 					n++;
 
 					if ( n == chars ) {
+
+						if ( this.startedEOL ) {
+							
+							n = i-1;
+
+							while ( n >= 0 ) {
+
+								at = this.fragment.at(n);
+
+								if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+
+									break;
+
+								} else {
+								
+									if ( at == FragmentItem.EOL ) {
+										i = n;
+										break;
+									}
+								}
+
+								n--;
+
+							}
+						}
 
 						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
 

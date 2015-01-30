@@ -1,7 +1,15 @@
 /* We prefere to create a function instead of a class, because we want to parasitate
    a HTMLDivElement.
 */
-function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: boolean = true ): Node {
+function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: boolean = true, initialWidth: number = null, initialHeight: number = null ): Node {
+
+	/* Custom eventing system */
+	var $EVENTS_QUEUE : {},
+	    $EVENTS_ENABLED: boolean = true;
+
+
+	/* End of custom eventing system */
+
 
 	var element   = document.createElement( 'div' ),
 	    toolbar   = element.appendChild( document.createElement( 'div' ) ),
@@ -9,14 +17,50 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 	    statusbar = element.appendChild( document.createElement( 'div' ) ),
 	    disabled : boolean = false,
 	    readOnly : boolean = false,
-	    width    : number = 100,
-	    height   : number = 100,
+	    width    : number = initialWidth || 100,
+	    height   : number = initialHeight || 100,
 	    toolbars : boolean = true,
 	    ui_toolbar: UI_Toolbar,
 	    resizer  : Throttler = new Throttler( function() {
 		    	resize( width, height );
 		    }, 10 ),
 	    viewport : Viewport = new Viewport();
+
+
+	element['on'] = function( eventName: string, callback: ( ...args ) => void ) {
+			
+		$EVENTS_QUEUE = $EVENTS_QUEUE || {};
+
+		if ( !$EVENTS_QUEUE[ eventName ] )
+			$EVENTS_QUEUE[ eventName ] = [];
+
+		$EVENTS_QUEUE[ eventName ].push( callback );
+	}
+
+	element['off'] = function( eventName: string, callback: ( ... args ) => void ) {
+
+		if ( $EVENTS_QUEUE && $EVENTS_QUEUE[ eventName ] ) {
+			for ( var i=0, len = $EVENTS_QUEUE[ eventName ].length; i<len; i++ ) {
+				if ( $EVENTS_QUEUE[ eventName ][ i ] == callback ) {
+					$EVENTS_QUEUE[ eventName ].splice( i, 1 );
+					return;
+				}
+			}
+		}
+	}
+
+	element['fire'] = function( eventName, ...args ) {
+		if ( $EVENTS_QUEUE && $EVENTS_QUEUE[ eventName ] ) {
+			for ( var i=0, len = $EVENTS_QUEUE[ eventName ].length; i<len; i++ ) {
+				$EVENTS_QUEUE[ eventName ][i].apply( element, args );
+			}
+		}
+	}
+
+	viewport.document.on('change', function() {
+		(<any>element).fire('change');
+	});
+
 
 	element['cssText'] = toolbar['cssText'] = statusbar['cssText'] = body['cssText'] = viewport.canvas['cssText'] 
 		= "-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none";

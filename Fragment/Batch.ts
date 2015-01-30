@@ -31,4 +31,12 @@ class Fragment_Batch {
 		return this;
 	}
 
+	public debug() {
+		console.info( 'Batch: ' + this.items.length + ' ranges' );
+		for ( var i=0, len = this.items.length; i<len; i++ ) {
+			console.info('Range #' + i + ': parent[' + this.items[i].parentNode.FRAGMENT_START + ',' + this.items[i].parentNode.FRAGMENT_END + ']: ' + this.items[i].parentNode.xmlBeginning() + ', nodes: ' + this.items[i].length + ':' );
+			console.log( '    "' + this.items[i].toString( '"\n     "' ) + '"' );
+		}
+	}
+
 }

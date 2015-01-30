@@ -9,6 +9,8 @@ class HTML_Body extends TNode_Element {
 
 	public isBlockTextNode   : boolean = true; //user can write inside this element ( or sub-elements );
 	public canRelayout       : boolean = true; //we can disable relayouting of the document by setting this flag to false.
+	
+	public changeThrottler   : Throttler= null; // a throttler that is executed each time a dom subtree modification occurs.
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -45,6 +47,13 @@ class HTML_Body extends TNode_Element {
 		this.fragment = new Fragment( this );
 		this.viewport = viewport;
 		this.lines    = new Character_LinesCollection();
+
+		( function(me){
+			me.changeThrottler = new Throttler( function() {
+				me.fire('change');
+			}, 10 );
+		})(this);
+		
 
 		this.nodeName = 'body';
 		this.documentElement = this;
@@ -224,6 +233,8 @@ class HTML_Body extends TNode_Element {
 			//console.warn( 'relayout canceled due to canRelayout setting.')
 			return;
 		}
+
+		this.changeThrottler.run();
 
 		if ( !this._needRelayout && force == false ) {
 			//console.log( 'body.relayout: up to date.' );

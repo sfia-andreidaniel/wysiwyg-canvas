@@ -661,6 +661,7 @@ class Viewport_CommandRouter extends Events {
 
 	// sets the boldness of the text. if state is null, then the boldness is toggled.
 	public bold( state: boolean = null ) {
+
 		var selection = this.viewport.selection,
 		          rng = selection.getRange(),
 		          len = rng.length();
@@ -668,17 +669,78 @@ class Viewport_CommandRouter extends Events {
 		if ( !len ) {
 			return;
 		}
-		
+
+		if ( state === null ) { //toggle state
+			state = !( this.viewport.selection.editorState.state.bold );
+		}
+
+		if ( state ) {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'b' ).wrapInElement( 'b' ).end();
+
+		} else {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'b' ).end();
+
+		}
+
+		this.viewport.selection.editorState.compute();
 	}
 
 	// makes text italic or not. if state is null, the state is toggled.
 	public italic( state: boolean = null ) {
 
+		var selection = this.viewport.selection,
+		          rng = selection.getRange(),
+		          len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		if ( state === null ) { //toggle state
+			state = !( this.viewport.selection.editorState.state.italic );
+		}
+
+		if ( state ) {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'i' ).wrapInElement( 'i' ).end();
+
+		} else {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'i' ).end();
+
+		}
+
+		this.viewport.selection.editorState.compute();
 	}
 
 	// underlines or not the text. if state is null, the state is toggled.
 	public underline( state: boolean = null ) {
 
+		var selection = this.viewport.selection,
+		          rng = selection.getRange(),
+		          len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		if ( state === null ) { //toggle state
+			state = !( this.viewport.selection.editorState.state.underline );
+		}
+
+		if ( state ) {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'u' ).wrapInElement( 'u' ).end();
+
+		} else {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'u' ).end();
+
+		}
+
+		this.viewport.selection.editorState.compute();
 	}
 
 	// sets the text alignment.

@@ -69,6 +69,12 @@ var TNewLinePolicy;
     TNewLinePolicy[TNewLinePolicy["SURGERY"] = 1] = "SURGERY";
 })(TNewLinePolicy || (TNewLinePolicy = {}));
 ;
+var TSurgeryHint;
+(function (TSurgeryHint) {
+    TSurgeryHint[TSurgeryHint["NONE"] = 0] = "NONE";
+    TSurgeryHint[TSurgeryHint["LEFT"] = 1] = "LEFT";
+    TSurgeryHint[TSurgeryHint["RIGHT"] = 2] = "RIGHT";
+})(TSurgeryHint || (TSurgeryHint = {}));
 var CaretLockDirection;
 (function (CaretLockDirection) {
     CaretLockDirection[CaretLockDirection["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
@@ -323,7 +329,7 @@ var TNode = (function (_super) {
     };
     TNode.prototype.elementsBeforeMyself = function (includingMe) {
         if (!this.parentNode) {
-            throw "ERR_NODE_NOT_ATTACHED!";
+            throw "Node not attached!";
         }
         else {
             return this.parentNode.childNodes.slice(0, includingMe ? this.siblingIndex + 1 : this.siblingIndex);
@@ -331,7 +337,7 @@ var TNode = (function (_super) {
     };
     TNode.prototype.elementsAfterMyself = function (includingMe) {
         if (!this.parentNode) {
-            throw "ERR_NODE_NOT_ATTACHED!";
+            throw "Node not attached!";
         }
         else {
             return this.parentNode.childNodes.slice(includingMe ? this.siblingIndex : this.siblingIndex + 1);
@@ -1220,12 +1226,15 @@ var TNode_Element = (function (_super) {
 
         returns the fragment position of the surgeried position.
 
+        The @hint argument should be used only by the
+
     */
-    TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter) {
+    TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
+        if (hint === void 0) { hint = 0 /* NONE */; }
         console.info('surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
-        var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode;
+        var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode, whiteSpace = hint == 0 /* NONE */ ? ' ' : '';
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             if (atFragmentIndex <= this.FRAGMENT_START) {
                 atFragmentIndex = this.FRAGMENT_START + 1;
@@ -1243,7 +1252,7 @@ var TNode_Element = (function (_super) {
             }
             else {
                 rParent = this.documentElement.createElement(nodeNameAfter === null ? this.nodeName : nodeNameAfter);
-                rParent.appendChild(this.documentElement.createTextNode(' '));
+                rParent.appendChild(this.documentElement.createTextNode(whiteSpace));
                 this.parentNode.appendChild(rParent, this.siblingIndex + 1);
                 this.documentElement.relayout(true);
                 return rParent.FRAGMENT_START;
@@ -1262,8 +1271,8 @@ var TNode_Element = (function (_super) {
             t2 = splitNode.textContentsFragment(atFragmentIndex, splitNode.FRAGMENT_END);
             leftCol = new TNode_Collection([splitNode]);
             rightCol = new TNode_Collection(splitNode.elementsAfterMyself(true));
-            rightCol.addFirst(this.documentElement.createTextNode(t2 || ' '));
-            splitNode.textContents(t1 || ' ');
+            rightCol.addFirst(this.documentElement.createTextNode(t2 || whiteSpace));
+            splitNode.textContents(t1 || whiteSpace);
             splitNode.parentNode.appendChild(rightCol.at(0), splitNode.siblingIndex + 1);
             lParent = splitNode.parentNode;
             rParent = this.documentElement.createElement(lParent.nodeName);
@@ -1303,7 +1312,7 @@ var TNode_Element = (function (_super) {
             }
             this.parentNode.appendChild(rParent, this.siblingIndex + 1);
             if (rParent.innerHTML() == '') {
-                rParent.appendChild(this.documentElement.createTextNode(' '));
+                rParent.appendChild(this.documentElement.createTextNode(whiteSpace));
             }
         }
         else {
@@ -1321,7 +1330,7 @@ var TNode_Element = (function (_super) {
         }
         if (this.innerHTML() == '') {
             this.innerHTML('');
-            this.appendChild(this.documentElement.createTextNode(' '));
+            this.appendChild(this.documentElement.createTextNode(whiteSpace));
         }
         // force a document relayout, mandatory!
         this.documentElement.relayout(true);
@@ -1371,6 +1380,27 @@ var TNode_Element = (function (_super) {
         this.parentNode.appendCollection(collection = new TNode_Collection(this.childNodes), this.siblingIndex + 1);
         this.remove();
         return collection;
+    };
+    TNode_Element.prototype.defragment = function (removeOrphans) {
+        if (removeOrphans === void 0) { removeOrphans = true; }
+        return;
+        if (!this.childNodes) {
+            return;
+        }
+        if (removeOrphans) {
+            this.removeOrphanNodes();
+        }
+        var i = 0, len = this.childNodes.length;
+        for (i = len - 1; i >= 1; i--) {
+            if (this.childNodes[i].nodeType == 1 /* TEXT */ && this.childNodes[i - 1].nodeType == 1 /* TEXT */) {
+                this.childNodes[i - 1].textContents(this.childNodes[i - 1].textContents() + this.childNodes[i].textContents());
+                this.childNodes[i].remove();
+            }
+            else {
+                if (this.childNodes[i].nodeType == 2 /* ELEMENT */)
+                    this.childNodes[i].defragment(false);
+            }
+        }
     };
     return TNode_Element;
 })(TNode);
@@ -1460,8 +1490,8 @@ var TNode_Collection_Dettached = (function (_super) {
         }
     }
     TNode_Collection_Dettached.prototype.createSlices = function () {
-        this.parentNode.createSurgery(this.surgeryEnd, false, null);
-        this.parentNode.createSurgery(this.surgeryStart, false, null);
+        this.parentNode.createSurgery(this.surgeryEnd, false, null, 2 /* RIGHT */);
+        this.parentNode.createSurgery(this.surgeryStart, false, null, 1 /* LEFT */);
         //console.log( this.fragLTR, this.fragRTL, this.parentNode.xmlBeginning() );
     };
     TNode_Collection_Dettached.prototype.createRanges = function () {
@@ -6519,24 +6549,36 @@ var Fragment_Contextual_TextNode = (function (_super) {
 })(Fragment_Contextual_Item);
 var Fragment_Batch = (function () {
     function Fragment_Batch(range, items) {
+        this.ended = false;
         this.range = range;
         this.items = items;
     }
     Fragment_Batch.prototype.wrapInElement = function (elementName) {
+        if (this.ended) {
+            throw "ERR_BATCH_ENDED";
+        }
         for (var i = 0, len = this.items.length; i < len; i++) {
             this.items[i].wrapInElement(elementName);
         }
         return this;
     };
     Fragment_Batch.prototype.unwrapFromElement = function (elementName) {
+        if (this.ended) {
+            throw "ERR_BATCH_ENDED";
+        }
         for (var i = 0, len = this.items.length; i < len; i++) {
             this.items[i].unwrapFromElement(elementName);
         }
         return this;
     };
     Fragment_Batch.prototype.end = function () {
+        if (this.ended) {
+            throw "ERR_BATCH_ENDED";
+        }
+        this.ended = true;
         for (var i = 0, len = this.items.length; i < len; i++) {
             this.items[i].reInsert();
+            this.items[i].parentNode.defragment();
         }
         this.range.restore();
         return this;

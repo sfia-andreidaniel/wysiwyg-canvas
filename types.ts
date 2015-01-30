@@ -109,6 +109,12 @@ enum TNewLinePolicy {
 	SURGERY
 };
 
+enum TSurgeryHint {
+	NONE,
+	LEFT,
+	RIGHT
+}
+
 interface TextRemoval {
 	node: TNode_Text;
 	start: number;

@@ -810,9 +810,11 @@ class TNode_Element extends TNode {
 
 		returns the fragment position of the surgeried position.
 
+		The @hint argument should be used only by the 
+
 	*/
 
-	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null ): number {
+	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null, hint: TSurgeryHint = TSurgeryHint.NONE ): number {
 		
 		console.info( 'surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
@@ -823,7 +825,10 @@ class TNode_Element extends TNode {
 			t2: string = '',
 			leftCol : TNode_Collection,
 			rightCol: TNode_Collection,
-			rNode: TNode_Text;
+			rNode: TNode_Text,
+			whiteSpace: string = hint == TSurgeryHint.NONE ? ' ' : '';
+
+
 
 		if ( atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END ) {
 			if ( atFragmentIndex <= this.FRAGMENT_START ) {
@@ -844,7 +849,7 @@ class TNode_Element extends TNode {
 				return atFragmentIndex;
 			} else {
 				rParent = this.documentElement.createElement( nodeNameAfter === null ? this.nodeName : nodeNameAfter );
-				rParent.appendChild( this.documentElement.createTextNode( ' ' ) );
+				rParent.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 				
 				this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
 				this.documentElement.relayout( true );
@@ -873,9 +878,9 @@ class TNode_Element extends TNode {
 
 			rightCol = new TNode_Collection( splitNode.elementsAfterMyself( true ) );
 
-			rightCol.addFirst( this.documentElement.createTextNode( t2 || ' ' ) );
+			rightCol.addFirst( this.documentElement.createTextNode( t2 || whiteSpace ) );
 
-			(<TNode_Text>splitNode).textContents( t1 || ' ' );
+			(<TNode_Text>splitNode).textContents( t1 || whiteSpace );
 
 			splitNode.parentNode.appendChild( rightCol.at(0), splitNode.siblingIndex + 1 );
 
@@ -938,7 +943,7 @@ class TNode_Element extends TNode {
 			this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
 
 			if ( rParent.innerHTML() == '' ) {
-				rParent.appendChild( this.documentElement.createTextNode( ' ' ) );
+				rParent.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 			}
 
 		} else {
@@ -963,7 +968,7 @@ class TNode_Element extends TNode {
 		if ( this.innerHTML() == '' ) {
 
 			this.innerHTML('');
-			this.appendChild( this.documentElement.createTextNode( ' ' ) );
+			this.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 
 		}
 
@@ -971,6 +976,8 @@ class TNode_Element extends TNode {
 		this.documentElement.relayout(true);
 
 		return rParent.FRAGMENT_START;
+
+
 	}
 
 	public mergeWith( element: TNode_Element ) {
@@ -1034,6 +1041,33 @@ class TNode_Element extends TNode {
 		this.remove();
 
 		return collection;
+	}
+
+	public defragment( removeOrphans: boolean = true ) {
+
+		return;
+
+		if ( !this.childNodes ) {
+			return;
+		}
+
+		if ( removeOrphans ) {
+			this.removeOrphanNodes();
+		}
+
+		var i=0,
+		    len = this.childNodes.length;
+
+
+		for ( i=len - 1; i>=1; i-- ) {
+			if ( this.childNodes[i].nodeType == TNode_Type.TEXT && this.childNodes[i-1].nodeType == TNode_Type.TEXT ) {
+				(<TNode_Text>this.childNodes[i-1]).textContents( (<TNode_Text>this.childNodes[i-1]).textContents() + (<TNode_Text>this.childNodes[i]).textContents() );
+				this.childNodes[i].remove();
+			} else {
+				if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT )
+					(<TNode_Element>this.childNodes[i]).defragment( false );
+			}
+		}
 	}
 
 }

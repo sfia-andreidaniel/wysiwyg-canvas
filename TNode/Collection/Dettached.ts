@@ -45,8 +45,8 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 	public createSlices() {
 
-		this.parentNode.createSurgery( this.surgeryEnd, false, null );
-		this.parentNode.createSurgery( this.surgeryStart, false, null );
+		this.parentNode.createSurgery( this.surgeryEnd, false, null, TSurgeryHint.RIGHT );
+		this.parentNode.createSurgery( this.surgeryStart, false, null, TSurgeryHint.LEFT );
 
 		//console.log( this.fragLTR, this.fragRTL, this.parentNode.xmlBeginning() );
 

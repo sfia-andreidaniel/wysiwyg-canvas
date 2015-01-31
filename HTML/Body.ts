@@ -113,12 +113,14 @@ class HTML_Body extends TNode_Element {
 				node = new HTML_Heading5();
 				break;
 			case 'b':
+			case 'strong':
 				node = new HTML_Bold();
 				break;
 			case '!b':
 				node = new HTML_NegationNode('b');
 				break;
 			case 'i':
+			case 'em':
 				node = new HTML_Italic();
 				break;
 			case '!i':

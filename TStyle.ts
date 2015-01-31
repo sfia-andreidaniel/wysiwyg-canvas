@@ -36,9 +36,25 @@ class TStyle {
 
 	static $FontFamily: string[] = [
 		"Arial",
+		"Calibri",
+		"Cambria",
+		"Comic Sans MS",
+		"Corbel",
+		"Courier New",
+		"Gabriola",
+		"Georgia",
+		"Impact",
+		"Lucida Console",
+		"Miriam",
+		"Nyala",
+		"Palatino Linotype",
+		"Symbol",
+		"Tahoma",
 		"Times New Roman",
-		"Courier",
-		"Impact"
+		"Trebuchet MS",
+		"Verdana",
+		"Webdings",
+		"Wingdings"
 	];
 
 	static $FontStyle: string[] = [

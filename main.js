@@ -1974,12 +1974,14 @@ var HTML_Body = (function (_super) {
                 node = new HTML_Heading5();
                 break;
             case 'b':
+            case 'strong':
                 node = new HTML_Bold();
                 break;
             case '!b':
                 node = new HTML_NegationNode('b');
                 break;
             case 'i':
+            case 'em':
                 node = new HTML_Italic();
                 break;
             case '!i':
@@ -3722,9 +3724,25 @@ var TStyle = (function () {
     };
     TStyle.$FontFamily = [
         "Arial",
+        "Calibri",
+        "Cambria",
+        "Comic Sans MS",
+        "Corbel",
+        "Courier New",
+        "Gabriola",
+        "Georgia",
+        "Impact",
+        "Lucida Console",
+        "Miriam",
+        "Nyala",
+        "Palatino Linotype",
+        "Symbol",
+        "Tahoma",
         "Times New Roman",
-        "Courier",
-        "Impact"
+        "Trebuchet MS",
+        "Verdana",
+        "Webdings",
+        "Wingdings"
     ];
     TStyle.$FontStyle = [
         "normal",
@@ -5537,6 +5555,12 @@ var Viewport_KeyboardDriver = (function (_super) {
             case 74:
                 if (DOMEvent.ctrlKey) {
                     this.viewport.execCommand(7 /* ALIGN */, 'justified');
+                    cancelEvent = true;
+                }
+                break;
+            case 82:
+                if (DOMEvent.ctrlKey) {
+                    this.viewport.execCommand(7 /* ALIGN */, 'right');
                     cancelEvent = true;
                 }
                 break;
@@ -8297,6 +8321,12 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             }
             input.parentNode.appendChild(overlay);
         }
+        // webkit minor bugfix
+        overlay.addEventListener('mousewheel', function (DOMEvent) {
+            overlay.scrollTop -= DOMEvent.wheelDelta > 0 ? 10 : -10;
+            DOMEvent.preventDefault();
+            DOMEvent.stopPropagation();
+        }, true);
         overlay.addEventListener('click', function (DOMEvent) {
             var target = DOMEvent.target || DOMEvent.srcElement, which = DOMEvent.which;
             if (which != 1) {
@@ -8326,7 +8356,14 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             DOM.addClass(input.parentNode, 'focused');
             for (var i = 0, items = Array.prototype.slice.call(overlay.childNodes, 0) || [], len = items.length; i < len; i++) {
                 DOM.removeClass(items[i], 'hidden');
-                DOM.removeClass(items[i], 'on');
+                /* "select" the option if the option textContents equals with the input value */
+                if (items[i].textContent == input.value) {
+                    items[i].scrollIntoViewIfNeeded();
+                    DOM.addClass(items[i], 'on');
+                }
+                else {
+                    DOM.removeClass(items[i], 'on');
+                }
             }
         }, true);
         input.addEventListener('blur', function () {

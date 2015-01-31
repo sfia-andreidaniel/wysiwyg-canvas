@@ -133,6 +133,14 @@ class Viewport_KeyboardDriver extends Events {
 				}
 				break;
 
+			case 82: // r
+				if ( DOMEvent.ctrlKey ) {
+					this.viewport.execCommand( EditorCommand.ALIGN, 'right' );
+					cancelEvent = true;
+				}
+				break;
+
+
 			case 67: // c
 				if ( DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.COPY );
@@ -252,6 +260,7 @@ class Viewport_KeyboardDriver extends Events {
 				break;
 
 			default:
+			//console.log( DOMEvent.keyCode );
 				break;
 
 		}

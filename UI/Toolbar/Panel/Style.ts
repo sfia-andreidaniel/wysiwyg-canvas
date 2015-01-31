@@ -119,6 +119,13 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 
 		}
 
+		// webkit minor bugfix
+		overlay.addEventListener( 'mousewheel', function( DOMEvent ) {
+			overlay.scrollTop -= DOMEvent.wheelDelta > 0 ? 10 : -10;
+			DOMEvent.preventDefault();
+			DOMEvent.stopPropagation();
+		}, true );
+
 		overlay.addEventListener( 'click', function( DOMEvent ) {
 			var target: any = DOMEvent.target || DOMEvent.srcElement,
 			    which  = DOMEvent.which;
@@ -158,7 +165,13 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 			DOM.addClass( input.parentNode, 'focused' );
 			for ( var i=0, items = Array.prototype.slice.call( overlay.childNodes, 0 ) || [], len = items.length; i<len; i++ ) {
 				DOM.removeClass( items[i], 'hidden' );
-				DOM.removeClass( items[i], 'on' );
+				/* "select" the option if the option textContents equals with the input value */
+				if ( items[i].textContent == input.value ) {
+					items[i].scrollIntoViewIfNeeded();
+					DOM.addClass( items[i], 'on' );
+				} else {
+					DOM.removeClass( items[i], 'on' );
+				}
 			}
 		}, true );
 

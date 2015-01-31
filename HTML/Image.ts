@@ -128,6 +128,29 @@ class HTML_Image extends TNode_Element {
 
 	}
 
+	public xmlBeginning(): string {
+		var attrs: string[] = [],
+		      tmp: string;
+
+		if ( tmp = this.src() ) {
+			attrs.push( 'src="' + tmp + '"' );
+		}
+
+		if ( this.style._width.isSet ) {
+			attrs.push( 'width="' + this.style.width() + '"' );
+		}
+
+		if ( this.style._height.isSet ) {
+			attrs.push( 'height="' + this.style.height() + '"' );
+		}
+
+		if ( this.style._float.isSet ) {
+			attrs.push( 'align="' + this.style.float() + '"' );
+		}
+
+		return '<img ' + attrs.join( ' ' ) + ' />';
+	}
+
 	public removeOrphanNodes() {
 		// void, intentionally.
 	}

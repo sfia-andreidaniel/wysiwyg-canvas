@@ -116,6 +116,13 @@ enum TSurgeryHint {
 	RIGHT
 }
 
+enum TListBreakResult {
+	NONE_BEFORE, // could not break the list before
+	NONE_AFTER,  // could not break the list after
+	AFTER,       // created a list after this list
+	BEFORE       // created a list before this list
+}
+
 interface TextRemoval {
 	node: TNode_Text;
 	start: number;

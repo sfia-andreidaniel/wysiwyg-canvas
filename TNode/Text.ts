@@ -218,31 +218,24 @@ class TNode_Text extends TNode {
 		return returnValue;
 	}
 
-	// I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
-	// Don't even try to understand it, cause even I will not be able to understand it in a few hours
-	// from now on
+	// FIXED HOPEFULLY TO A MORE OPTIMIZED AND BUGLESS VERSION.
 	public textIndexToFragmentPosition( index: number ): number {
+		
 		var i: number = 0,
-		    j: number = 0,
-		    len: number = this._text.length,
-		    eol: number = 0,
-		    retVal: number = this.FRAGMENT_END;
+		    retVal: number = 0;
 
-		for ( i=0; i<len; i++ ) {
-			if ( this.EOL_POS && this.EOL_POS[i] ) {
-				eol++;
-			}
-			if ( index == i ) {
-				retVal = this.FRAGMENT_START + index + eol;
-				break;
+		for ( var i=0; i<=index; i++ ) {
+			if ( this.EOL_POS && this.EOL_POS[ i ] ) {
+				retVal += 2;
+			} else {
+				retVal++;
 			}
 		}
 
-		if ( retVal == this.FRAGMENT_END && this.documentElement.fragment.at( retVal ) == FragmentItem.EOL )
-			return retVal;
+		retVal = this.FRAGMENT_START + retVal - 1 - ( this.EOL_POS && this.EOL_POS[index] ? 1 : 0 );
 
 		// decrement retval if @jmp on !text
-		while ( retVal > 0 && [ FragmentItem.CHARACTER, FragmentItem.WHITE_SPACE ].indexOf( this.documentElement.fragment.at( retVal ) ) == -1 ) {
+		while ( retVal > 0 && [ FragmentItem.CHARACTER, FragmentItem.WHITE_SPACE, FragmentItem.EOL ].indexOf( this.documentElement.fragment.at( retVal ) ) == -1 ) {
 				retVal--;
 		}
 

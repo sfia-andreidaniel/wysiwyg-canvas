@@ -402,11 +402,13 @@ class Viewport_CommandRouter extends Events {
 
 		// create a lock @ new cursor position.
 		if ( amount < 0 ) {
-			lock = fragment.createLockTarget( newCursorPosition, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT );
+			lock = fragment.createLockTarget( newCursorPosition, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 'Remove' + amount );
 		} else {
-			lock = fragment.createLockTarget( cursorPosition, CaretLockDirection.FROM_ENDING_OF_DOCUMENT );
+			lock = fragment.createLockTarget( cursorPosition, CaretLockDirection.FROM_ENDING_OF_DOCUMENT, 'Remove' + amount );
 		}
 
+		// HACK 2 on caretLock ...
+		lock.canCancelEOL = false;
 
 		if ( destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable ) {
 			
@@ -445,8 +447,6 @@ class Viewport_CommandRouter extends Events {
 
 		// if we did a merging, we're not doing the locking
 		if ( collection === null ) {
-
-			console.warn( "removing text..." );
 
 			/* Remove text from traversed text nodes */
 			for ( i=0, n = traversedTextNodes.length; i<n; i++ ) {
@@ -892,7 +892,7 @@ class Viewport_CommandRouter extends Events {
 
 	// wraps into ul or ol the blocks.
 	public list( listType: string, on: boolean = true ) {
-
+		console.log( 'command: LIST[' + listType + ']');
 	}
 
 }

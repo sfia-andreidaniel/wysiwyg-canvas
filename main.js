@@ -76,6 +76,13 @@ var TSurgeryHint;
     TSurgeryHint[TSurgeryHint["LEFT"] = 1] = "LEFT";
     TSurgeryHint[TSurgeryHint["RIGHT"] = 2] = "RIGHT";
 })(TSurgeryHint || (TSurgeryHint = {}));
+var TListBreakResult;
+(function (TListBreakResult) {
+    TListBreakResult[TListBreakResult["NONE_BEFORE"] = 0] = "NONE_BEFORE";
+    TListBreakResult[TListBreakResult["NONE_AFTER"] = 1] = "NONE_AFTER";
+    TListBreakResult[TListBreakResult["AFTER"] = 2] = "AFTER";
+    TListBreakResult[TListBreakResult["BEFORE"] = 3] = "BEFORE"; // created a list before this list
+})(TListBreakResult || (TListBreakResult = {}));
 var CaretLockDirection;
 (function (CaretLockDirection) {
     CaretLockDirection[CaretLockDirection["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
@@ -508,23 +515,19 @@ var TNode_Text = (function (_super) {
         this.textContents(out);
         return returnValue;
     };
-    // I know it seems complicated, but that's 6 hours of work for this function (with empiric tests).
-    // Don't even try to understand it, cause even I will not be able to understand it in a few hours
-    // from now on
+    // FIXED HOPEFULLY TO A MORE OPTIMIZED AND BUGLESS VERSION.
     TNode_Text.prototype.textIndexToFragmentPosition = function (index) {
-        var i = 0, j = 0, len = this._text.length, eol = 0, retVal = this.FRAGMENT_END;
-        for (i = 0; i < len; i++) {
+        var i = 0, retVal = 0;
+        for (var i = 0; i <= index; i++) {
             if (this.EOL_POS && this.EOL_POS[i]) {
-                eol++;
+                retVal += 2;
             }
-            if (index == i) {
-                retVal = this.FRAGMENT_START + index + eol;
-                break;
+            else {
+                retVal++;
             }
         }
-        if (retVal == this.FRAGMENT_END && this.documentElement.fragment.at(retVal) == 2 /* EOL */)
-            return retVal;
-        while (retVal > 0 && [3 /* CHARACTER */, 4 /* WHITE_SPACE */].indexOf(this.documentElement.fragment.at(retVal)) == -1) {
+        retVal = this.FRAGMENT_START + retVal - 1 - (this.EOL_POS && this.EOL_POS[index] ? 1 : 0);
+        while (retVal > 0 && [3 /* CHARACTER */, 4 /* WHITE_SPACE */, 2 /* EOL */].indexOf(this.documentElement.fragment.at(retVal)) == -1) {
             retVal--;
         }
         return retVal;
@@ -1238,10 +1241,10 @@ var TNode_Element = (function (_super) {
 
     */
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
+        //console.info( 'surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
         if (createNodeAfter === void 0) { createNodeAfter = true; }
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
         if (hint === void 0) { hint = 0 /* NONE */; }
-        console.info('surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END);
         var splitNode, lParent, rParent = null, t1 = '', t2 = '', leftCol, rightCol, rNode, whiteSpace = hint == 0 /* NONE */ ? ' ' : '';
         if (atFragmentIndex <= this.FRAGMENT_START || atFragmentIndex >= this.FRAGMENT_END) {
             if (atFragmentIndex <= this.FRAGMENT_START) {
@@ -1497,6 +1500,17 @@ var TNode_Element = (function (_super) {
      */
     TNode_Element.prototype.canDefragmentWith = function (element) {
         return true;
+    };
+    TNode_Element.prototype.becomeElement = function (elementName) {
+        if (!this.parentNode) {
+            throw "ERR_NO_PARENT_NODE";
+        }
+        else {
+            var result = this.documentElement.createElement(elementName);
+            this.parentNode.appendChild(result, this.siblingIndex);
+            this.parentNode.mergeWith(this);
+            return result;
+        }
     };
     return TNode_Element;
 })(TNode);
@@ -2394,6 +2408,22 @@ var HTML_Image = (function (_super) {
             }
         }
     };
+    HTML_Image.prototype.xmlBeginning = function () {
+        var attrs = [], tmp;
+        if (tmp = this.src()) {
+            attrs.push('src="' + tmp + '"');
+        }
+        if (this.style._width.isSet) {
+            attrs.push('width="' + this.style.width() + '"');
+        }
+        if (this.style._height.isSet) {
+            attrs.push('height="' + this.style.height() + '"');
+        }
+        if (this.style._float.isSet) {
+            attrs.push('align="' + this.style.float() + '"');
+        }
+        return '<img ' + attrs.join(' ') + ' />';
+    };
     HTML_Image.prototype.removeOrphanNodes = function () {
         // void, intentionally.
     };
@@ -2512,6 +2542,30 @@ var HTML_BulletedList = (function (_super) {
         this.style.display('block');
         this.style.paddingLeft('30');
     }
+    HTML_BulletedList.prototype.breakBeforeOption = function (option) {
+        var i = 0, len = option.siblingIndex - 1, ol;
+        if (option.siblingIndex == 0 || this.childNodes.length == 1) {
+            return 0 /* NONE_BEFORE */;
+        }
+        ol = this.clone();
+        this.parentNode.appendChild(ol, this.siblingIndex);
+        for (i = 0; i <= len; i++) {
+            ol.appendChild(this.childNodes[0]);
+        }
+        return 3 /* BEFORE */;
+    };
+    HTML_BulletedList.prototype.breakAfterOption = function (option) {
+        var i = 0, len = this.childNodes.length, ol;
+        if (option.siblingIndex == this.childNodes.length - 1 || this.childNodes.length == 1) {
+            return 1 /* NONE_AFTER */;
+        }
+        ol = this.clone();
+        this.parentNode.appendChild(ol, this.siblingIndex + 1);
+        for (i = option.siblingIndex + 1; i < len; i++) {
+            ol.appendChild(this.childNodes[option.siblingIndex + 1], 0);
+        }
+        return 2 /* AFTER */;
+    };
     return HTML_BulletedList;
 })(TNode_Element);
 var HTML_OrderedList = (function (_super) {
@@ -2522,6 +2576,30 @@ var HTML_OrderedList = (function (_super) {
         this.style.display('block');
         this.style.paddingLeft('30');
     }
+    HTML_OrderedList.prototype.breakBeforeOption = function (option) {
+        var i = 0, len = option.siblingIndex - 1, ol;
+        if (option.siblingIndex == 0 || this.childNodes.length == 1) {
+            return 0 /* NONE_BEFORE */;
+        }
+        ol = this.clone();
+        this.parentNode.appendChild(ol, this.siblingIndex);
+        for (i = 0; i <= len; i++) {
+            ol.appendChild(this.childNodes[0]);
+        }
+        return 3 /* BEFORE */;
+    };
+    HTML_OrderedList.prototype.breakAfterOption = function (option) {
+        var i = 0, len = this.childNodes.length, ol;
+        if (option.siblingIndex == this.childNodes.length - 1 || this.childNodes.length == 1) {
+            return 1 /* NONE_AFTER */;
+        }
+        ol = this.clone();
+        this.parentNode.appendChild(ol, this.siblingIndex + 1);
+        for (i = option.siblingIndex + 1; i < len; i++) {
+            ol.appendChild(this.childNodes[option.siblingIndex + 1], 0);
+        }
+        return 2 /* AFTER */;
+    };
     return HTML_OrderedList;
 })(TNode_Element);
 var HTML_ListItem = (function (_super) {
@@ -2548,6 +2626,57 @@ var HTML_ListItem = (function (_super) {
         }
         else {
             ctx.fillText('\u25cf', layout.innerLeft - 5 - scrollLeft, layout.innerTop + this.style.fontSize() * this.style.lineHeight() - scrollTop);
+        }
+    };
+    HTML_ListItem.prototype.becomeElement = function (elementName) {
+        var breakResult, element, saveParent = this.parentNode;
+        if (elementName == 'li') {
+            return this;
+        }
+        // we must break the parent UL or OL when a LI becomes another element...
+        // aditionally, if the elementName is a UL, or a LI, we must treat this case also ...
+        if (!this.parentNode) {
+            throw "ERR_NO_PARENT_NODE";
+        }
+        if (elementName == this.parentNode.nodeName) {
+            return this;
+        }
+        if (elementName == 'ul' || elementName == 'ol') {
+            throw "ERR_NOT_IMPLEMENTED_IN_LI_BECOME_OL_OR_UL";
+        }
+        else {
+            if (['ul', 'ol'].indexOf(this.parentNode.nodeName) == -1) {
+                return _super.prototype.becomeElement.call(this, elementName);
+            }
+            else {
+                breakResult = this.parentNode.breakAfterOption(this);
+                element = this.documentElement.createElement(elementName);
+                this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex + 1);
+                element.mergeWith(this);
+                if (saveParent.childNodes.length == 0) {
+                    saveParent.remove();
+                }
+                return element;
+            }
+        }
+    };
+    HTML_ListItem.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
+        if (createNodeAfter === void 0) { createNodeAfter = true; }
+        if (nodeNameAfter === void 0) { nodeNameAfter = null; }
+        if (hint === void 0) { hint = 0 /* NONE */; }
+        var p = null;
+        if (createNodeAfter && (nodeNameAfter === null || nodeNameAfter == 'li')) {
+            if (this.textContents() == '' || this.textContents() == ' ') {
+                p = this.becomeElement('p');
+                this.documentElement.relayout(true);
+                return p.FRAGMENT_START;
+            }
+            else {
+                return _super.prototype.createSurgery.call(this, atFragmentIndex, createNodeAfter, nodeNameAfter, hint);
+            }
+        }
+        else {
+            return _super.prototype.createSurgery.call(this, atFragmentIndex, createNodeAfter, nodeNameAfter, hint);
         }
     };
     return HTML_ListItem;
@@ -5904,11 +6033,13 @@ var Viewport_CommandRouter = (function (_super) {
         }
         // create a lock @ new cursor position.
         if (amount < 0) {
-            lock = fragment.createLockTarget(newCursorPosition, 0 /* FROM_BEGINNING_OF_DOCUMENT */);
+            lock = fragment.createLockTarget(newCursorPosition, 0 /* FROM_BEGINNING_OF_DOCUMENT */, 'Remove' + amount);
         }
         else {
-            lock = fragment.createLockTarget(cursorPosition, 1 /* FROM_ENDING_OF_DOCUMENT */);
+            lock = fragment.createLockTarget(cursorPosition, 1 /* FROM_ENDING_OF_DOCUMENT */, 'Remove' + amount);
         }
+        // HACK 2 on caretLock ...
+        lock.canCancelEOL = false;
         if (destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable) {
             //console.warn( "MERGE BEGIN" );
             if (amount < 0) {
@@ -5933,7 +6064,6 @@ var Viewport_CommandRouter = (function (_super) {
         }
         // if we did a merging, we're not doing the locking
         if (collection === null) {
-            console.warn("removing text...");
             for (i = 0, n = traversedTextNodes.length; i < n; i++) {
                 traversedTextNodes[i].node.deleteTextContentsBetweenFragmentPositions(traversedTextNodes[i].start, traversedTextNodes[i].stop);
                 if (traversedTextNodes[i].node.textContents() == '') {
@@ -6239,6 +6369,7 @@ var Viewport_CommandRouter = (function (_super) {
     // wraps into ul or ol the blocks.
     Viewport_CommandRouter.prototype.list = function (listType, on) {
         if (on === void 0) { on = true; }
+        console.log('command: LIST[' + listType + ']');
     };
     return Viewport_CommandRouter;
 })(Events);
@@ -6374,8 +6505,9 @@ var Fragment = (function () {
         }
         return null;
     };
-    Fragment.prototype.createLockTarget = function (at, direction) {
-        return new Fragment_CaretLock(this, at, direction);
+    Fragment.prototype.createLockTarget = function (at, direction, lockName) {
+        if (lockName === void 0) { lockName = null; }
+        return new Fragment_CaretLock(this, at, direction, lockName);
     };
     return Fragment;
 })();
@@ -6387,6 +6519,7 @@ var Fragment_CaretLock = (function () {
         this.chars = 0;
         this.lockIndex = 0;
         this.startedEOL = false;
+        this.canCancelEOL = true;
         var at, i = 0, len = 0, n = 0;
         this.fragment = fragment;
         this.lockIndex = lockIndex;
@@ -6448,9 +6581,11 @@ var Fragment_CaretLock = (function () {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */ || (at == 2 /* EOL */ && n == chars - 1)) {
                     if (at == 2 /* EOL */ && n == chars - 1) {
-                        // There is a particular case in which we should not consider this particular case :)) hehe
+                        // HACK 1: There is a particular case in which we should not consider this particular case :)) hehe
+                        // HACK 2 (when HACK 1 should not work): Found a 2nd particular case of this particular case when we should not cancel ... :(
                         if (this.fragment.at(i + 1) == 1 /* NODE_END */ && this.fragment.getNodeAtIndex(i + 1).isBlockTextNode) {
-                            continue;
+                            if (this.canCancelEOL)
+                                continue;
                         }
                     }
                     n++;
@@ -7164,12 +7299,10 @@ var TRange = (function (_super) {
         if (this._focusNode) {
             this._focusLock = new Fragment_CaretLock(fragment, this._focusNode.fragPos + (this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 : -1), this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 /* FROM_BEGINNING_OF_DOCUMENT */ : 1 /* FROM_ENDING_OF_DOCUMENT */, 'Focus');
             this._anchorLock = new Fragment_CaretLock(fragment, this._anchorNode.fragPos + (this.length() < 0 ? -1 : 0), !this.length() ? this._focusLock.direction : (this._focusLock.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 1 /* FROM_ENDING_OF_DOCUMENT */ : 0 /* FROM_BEGINNING_OF_DOCUMENT */), 'Anchor');
-            console.info('Focus: ' + this._focusLock.direction + ', Anchor: ' + this._anchorLock.direction);
         }
         else {
             this._anchorLock = new Fragment_CaretLock(fragment, this._anchorNode.fragPos, 0 /* FROM_BEGINNING_OF_DOCUMENT */, 'Anchor');
             this._focusLock = null;
-            console.info('Anchor: ' + this._anchorLock.direction);
         }
         return this;
     };

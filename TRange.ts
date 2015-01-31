@@ -251,14 +251,14 @@ class TRange extends Events {
 				'Anchor'
 			);
 
-			console.info( 'Focus: ' + this._focusLock.direction + ', Anchor: ' + this._anchorLock.direction );
+			//console.info( 'Focus: ' + this._focusLock.direction + ', Anchor: ' + this._anchorLock.direction );
 
 		} else {
 
 			this._anchorLock = new Fragment_CaretLock( fragment, this._anchorNode.fragPos, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 'Anchor' );
 			this._focusLock  = null;
 
-			console.info( 'Anchor: ' + this._anchorLock.direction );
+			//console.info( 'Anchor: ' + this._anchorLock.direction );
 		}
 
 		return this;

@@ -6,13 +6,14 @@ class Fragment_CaretLock {
 	public  direction: CaretLockDirection;
 
 	private startedEOL: boolean = false;
+	public  canCancelEOL: boolean = true;
 
 
 	constructor( 
 		fragment: Fragment, 
 		lockIndex: number, 
 		direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 
-		public lockName = 'Lock' 
+		public lockName = 'Lock'
 	) {
 			
 		var at  : FragmentItem,
@@ -119,9 +120,11 @@ class Fragment_CaretLock {
 				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE || ( at == FragmentItem.EOL && n == chars - 1 ) ) {
 					
 					if ( at == FragmentItem.EOL && n == chars - 1 ) {
-						// There is a particular case in which we should not consider this particular case :)) hehe
+						// HACK 1: There is a particular case in which we should not consider this particular case :)) hehe
+						// HACK 2 (when HACK 1 should not work): Found a 2nd particular case of this particular case when we should not cancel ... :(
 						if ( this.fragment.at( i + 1 ) == FragmentItem.NODE_END && (<TNode_Element>this.fragment.getNodeAtIndex( i + 1 ) ).isBlockTextNode ) {
-							continue;
+							if ( this.canCancelEOL )
+								continue;
 						}
 					}
 

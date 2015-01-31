@@ -823,7 +823,7 @@ class TNode_Element extends TNode {
 
 	public createSurgery( atFragmentIndex: number, createNodeAfter: boolean = true, nodeNameAfter: string = null, hint: TSurgeryHint = TSurgeryHint.NONE ): number {
 		
-		console.info( 'surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
+		//console.info( 'surgery in ' + this.xmlBeginning() + " " + atFragmentIndex + ", bounds are: " + this.FRAGMENT_START + "," + this.FRAGMENT_END );
 
 		var splitNode: TNode,
 			lParent: TNode_Element,
@@ -1170,6 +1170,17 @@ class TNode_Element extends TNode {
 	 */
 	public canDefragmentWith( element: TNode_Element ) {
 		return true;
+	}
+
+	public becomeElement( elementName: string ): TNode_Element {
+		if ( !this.parentNode ) {
+			throw "ERR_NO_PARENT_NODE";
+		} else {
+			var result = this.documentElement.createElement( elementName );
+			this.parentNode.appendChild( result, this.siblingIndex );
+			this.parentNode.mergeWith( this );
+			return result;
+		}
 	}
 
 }

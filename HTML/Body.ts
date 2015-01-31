@@ -115,11 +115,20 @@ class HTML_Body extends TNode_Element {
 			case 'b':
 				node = new HTML_Bold();
 				break;
+			case '!b':
+				node = new HTML_NegationNode('b');
+				break;
 			case 'i':
 				node = new HTML_Italic();
 				break;
+			case '!i':
+				node = new HTML_NegationNode('i');
+				break;
 			case 'u':
 				node = new HTML_Underline();
+				break;
+			case '!u':
+				node = new HTML_NegationNode( 'u' );
 				break;
 			case 'a':
 				node = new HTML_Anchor();
@@ -136,8 +145,14 @@ class HTML_Body extends TNode_Element {
 			case 'sup':
 				node = new HTML_Superscript();
 				break;
+			case '!sup':
+				node = new HTML_NegationNode( 'sup' );
+				break;
 			case 'sub':
 				node = new HTML_Subscript();
+				break;
+			case '!sub':
+				node = new HTML_NegationNode('sub');
 				break;
 			case 'table':
 				node = new HTML_Table();

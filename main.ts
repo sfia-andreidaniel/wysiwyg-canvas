@@ -37,6 +37,7 @@
 /// <reference path="./HTML/Table/Edge.ts" />
 /// <reference path="./HTML/TableRow.ts" />
 /// <reference path="./HTML/TableCell.ts" />
+/// <reference path="./HTML/NegationNode.ts" />
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/TableCell.ts" />

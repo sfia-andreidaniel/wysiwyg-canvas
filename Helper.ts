@@ -53,7 +53,7 @@ class Helper {
 	// function arguments.
 	static spliceApply( thisArray: any[], startIndex: number, removeLength: number, addNodes: any[] = [] ) {
 
-		var apply: any[] = [ removeLength, startIndex ],
+		var apply: any[] = [ startIndex, removeLength ],
 		        i: number = 0,
 		      len: number = addNodes.length;
 

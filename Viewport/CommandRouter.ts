@@ -676,11 +676,15 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'b' ).wrapInElement( 'b' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( 'b', function() {
+				return this.style.fontWeight() != 'bold';
+			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'b' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( '!b', function() {
+				return this.style.fontWeight() == 'bold';
+			} ).end();
 
 		}
 
@@ -704,11 +708,15 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'i' ).wrapInElement( 'i' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement( 'i', function() {
+				return this.style.fontStyle() != 'italic';
+			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'i' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement('!i', function() {
+				return this.style.fontStyle() == 'italic';
+			} ).end();
 
 		}
 
@@ -732,11 +740,15 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'u' ).wrapInElement( 'u' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( 'u', function() {
+				return this.style.textDecoration() != 'underline';
+			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'u' ).end();
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( '!u', function() {
+				return this.style.textDecoration() == 'underline';
+			} ).end();
 
 		}
 

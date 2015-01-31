@@ -58,7 +58,8 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		    fragment: Fragment = this.parentNode.documentElement.fragment,
 		    i: number = 0,
 		    len: number = 0,
-		    computeLeftSibling: boolean = false;
+		    computeLeftSibling: boolean = false,
+		    node: TNode;
 
 		this.surgeryStart = this.parentNode.FRAGMENT_START;
 		this.surgeryEnd   = this.parentNode.FRAGMENT_END;
@@ -87,6 +88,18 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 		this.surgeryEnd -= i;
 
+		/*
+		while ( this.surgeryStart > this.parentNode.FRAGMENT_START && [FragmentItem.NODE_START, FragmentItem.EOL].indexOf( fragment.at( this.surgeryStart ) ) > -1 ) {
+			this.surgeryStart--;
+			console.log( '<' );
+		}
+
+		while ( this.surgeryEnd < this.parentNode.FRAGMENT_END && [FragmentItem.NODE_END, FragmentItem.EOL].indexOf( fragment.at( this.surgeryEnd + 1 ) ) > -1 ) {
+			this.surgeryEnd++;
+			console.log( '>' );
+		}
+		*/
+
 		computeLeftSibling = true;
 
 		for ( i=0, len = this.parentNode.childNodes.length; i<len; i++ ) {
@@ -103,9 +116,16 @@ class TNode_Collection_Dettached extends TNode_Collection {
 			}
 		}
 
+		//console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
+
 	}
 
-	public wrapInElement( nodeName: string ) {
+	public wrapInElement( nodeName: string, ifFunc: ( ) => boolean = null ) {
+
+		if ( ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
+			return;
+		}
+
 		var node: TNode_Element = this.parentNode.documentElement.createElement( nodeName ),
 		       i: number = 0,
 		     len: number = this.nodes.length;
@@ -119,7 +139,11 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		this.parentNode.appendChild( node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1 );
 	}
 
-	public unwrapFromElement( nodeName: string ) {
+	public unwrapFromElement( nodeName: string, ifFunc: ( ) => boolean = null ) {
+		
+		if ( ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
+			return;
+		}
 
 		var subWraps  	: TNode_Element[] = [],
 		    i 			: number 		  = 0,
@@ -138,13 +162,16 @@ class TNode_Collection_Dettached extends TNode_Collection {
 				case TNode_Type.ELEMENT:
 					if ( ( <TNode_Element>this.nodes[i] ).nodeName == nodeName ) {
 						
+						//console.error( 'unwrap ' + nodeName );
 						unwrapped = ( <TNode_Element>this.nodes[i] ).unwrap();
 
 						Helper.spliceApply( this.nodes, i, 1, unwrapped.nodes );
 
 						len = this.nodes.length;
 
-						i += unwrapped.nodes.length;
+						//console.error( 'after unwrap: ' + this.toString() );
+
+						i += unwrapped.nodes.length - 1;
 					}
 					break;
 			}
@@ -152,7 +179,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		}
 
 		/* finds all the nodes in direct children subtrees. */
-
 		for ( i=0; i<len; i++ ) {
 			if ( this.nodes[i].nodeType == TNode_Type.ELEMENT ) {
 				
@@ -169,6 +195,8 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		this.parentNode.appendCollection( this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0 );
 		this.parentNode.removeOrphanNodes();
 	}
+
+
 
 	public toString( separator: string = '' ) {
 		var out: string[] = [],
@@ -187,7 +215,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		}
 
 		return out.join( separator );
-
 	}
 
 }

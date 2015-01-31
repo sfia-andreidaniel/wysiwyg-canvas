@@ -275,7 +275,7 @@ var Helper = (function () {
     // function arguments.
     Helper.spliceApply = function (thisArray, startIndex, removeLength, addNodes) {
         if (addNodes === void 0) { addNodes = []; }
-        var apply = [removeLength, startIndex], i = 0, len = addNodes.length;
+        var apply = [startIndex, removeLength], i = 0, len = addNodes.length;
         for (i = 0; i < len; i++) {
             apply.push(addNodes[i]);
         }
@@ -638,6 +638,8 @@ var TNode_Element = (function (_super) {
         this.insertLinePolicy = 1 /* SURGERY */;
         this.alternateInsertLinePolicy = 0 /* BR */;
         this.isMergeable = true; // weather the "mergeWith" method works with this or with another element.
+        this.isDefragmentable = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
+        this.isNegation = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
@@ -1171,7 +1173,8 @@ var TNode_Element = (function (_super) {
         else
             return null;
     };
-    // removes the empty nodes from the document
+    // removes the empty text nodes from the element or this element if it has
+    // no nodes.
     TNode_Element.prototype.removeOrphanNodes = function () {
         if (this.childNodes) {
             if (!this.childNodes.length) {
@@ -1191,6 +1194,10 @@ var TNode_Element = (function (_super) {
             }
         }
     };
+    /* If this is an element in which the user can write (p, td, h*, etc, ) returns
+       this element, otherwise scans recursive the parents until it find one and
+       returns it.
+     */
     TNode_Element.prototype.ownerBlockElement = function () {
         if (this.isBlockTextNode) {
             return this;
@@ -1226,7 +1233,7 @@ var TNode_Element = (function (_super) {
 
         returns the fragment position of the surgeried position.
 
-        The @hint argument should be used only by the
+        The @hint setting should not be used by the user
 
     */
     TNode_Element.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
@@ -1336,6 +1343,8 @@ var TNode_Element = (function (_super) {
         this.documentElement.relayout(true);
         return rParent.FRAGMENT_START;
     };
+    /* Takes moves the contents of the @element inside this element, and removes the @element afterwards
+     */
     TNode_Element.prototype.mergeWith = function (element) {
         if (this.isMergeable && element.isMergeable) {
             if (element.nodeName != 'br' && element.childNodes && element.childNodes.length) {
@@ -1350,18 +1359,24 @@ var TNode_Element = (function (_super) {
             throw "ERR_CANNOT_MERGE_ELEMENTS";
         }
     };
+    /* Returns the last child Node of the element */
     TNode_Element.prototype.lastChild = function () {
         return !this.childNodes ? null : (this.childNodes[this.childNodes.length - 1] || null);
     };
+    /* Returns the first child Node of the element */
     TNode_Element.prototype.firstChild = function () {
         return !this.childNodes ? null : (this.childNodes[0] || null);
     };
+    /* When the user press Delete or Backspace key, and this element is Focused,
+       and selection is of type NODE, this function implements what happens then
+     */
     TNode_Element.prototype.removeFromDOMAtUserCommand = function () {
         if (this.style.display() == 'block' && this != this.documentElement) {
             this.remove();
             return true;
         }
     };
+    /* Removes all the child nodes of the element */
     TNode_Element.prototype.removeAllChildNodes = function () {
         if (this.childNodes) {
             for (var i = this.childNodes.length - 1; i >= 0; i--) {
@@ -1381,24 +1396,87 @@ var TNode_Element = (function (_super) {
         this.remove();
         return collection;
     };
+    /* Returns the node name minus the "!" sign at is's beginning, if it's the case */
+    TNode_Element.prototype.nodeNameWithoutNegation = function () {
+        if (this.nodeName[0] == '!') {
+            return this.nodeName.slice(1);
+        }
+        else {
+            return this.nodeName;
+        }
+    };
+    /* Returns true if element negates other element */
+    TNode_Element.prototype.negates = function (node) {
+        return ((~~this.isNegation + ~~node.isNegation) == 1) && (node.nodeNameWithoutNegation() == this.nodeNameWithoutNegation());
+    };
+    /* - Attempts to create an optized version of DOM for a node.
+       - Remove unnecessary negation nodes
+       @param removeOrphans should not be used.
+     */
     TNode_Element.prototype.defragment = function (removeOrphans) {
         if (removeOrphans === void 0) { removeOrphans = true; }
-        return;
         if (!this.childNodes) {
             return;
         }
         if (removeOrphans) {
             this.removeOrphanNodes();
         }
-        var i = 0, len = this.childNodes.length;
-        for (i = len - 1; i >= 1; i--) {
-            if (this.childNodes[i].nodeType == 1 /* TEXT */ && this.childNodes[i - 1].nodeType == 1 /* TEXT */) {
-                this.childNodes[i - 1].textContents(this.childNodes[i - 1].textContents() + this.childNodes[i].textContents());
-                this.childNodes[i].remove();
+        var i = 0, len = this.childNodes.length, returnValue = 0;
+        if (this.childNodes.length == 1 && this.childNodes[0].nodeType == 2 /* ELEMENT */) {
+            if (this.childNodes[0].negates(this)) {
+                returnValue = this.childNodes[0].childNodes.length - 1;
+                this.parentNode.appendCollection(new TNode_Collection(this.childNodes[0].childNodes), this.siblingIndex + 1);
+                this.remove();
+                return returnValue;
+            }
+        }
+        if (len != 1) {
+            for (i = len - 1; i >= 1; i--) {
+                if (this.childNodes[i].nodeType == 1 /* TEXT */ && this.childNodes[i - 1].nodeType == 1 /* TEXT */) {
+                    this.childNodes[i - 1].textContents(this.childNodes[i - 1].textContents() + this.childNodes[i].textContents());
+                    this.childNodes[i].remove();
+                }
+                else {
+                    if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                        if (this.childNodes[i - 1].nodeType == 2 /* ELEMENT */) {
+                            if (this.childNodes[i].nodeName == this.childNodes[i - 1].nodeName && this.childNodes[i].isDefragmentable)
+                                this.childNodes[i - 1].mergeWith(this.childNodes[i]);
+                            else
+                                len += this.childNodes[i].defragment(false);
+                        }
+                        else
+                            len += this.childNodes[i].defragment(false);
+                    }
+                }
+            }
+        }
+        else {
+            if (this.childNodes[0].nodeType == 2 /* ELEMENT */) {
+                this.childNodes[i].defragment(false);
+            }
+        }
+        return 0;
+    };
+    TNode_Element.prototype.textContents = function (contents) {
+        if (contents === void 0) { contents = null; }
+        if (contents !== null) {
+            throw "Setter not implemented";
+        }
+        else {
+            if (!this.childNodes) {
+                return '';
             }
             else {
-                if (this.childNodes[i].nodeType == 2 /* ELEMENT */)
-                    this.childNodes[i].defragment(false);
+                var i = 0, len = this.childNodes.length, out = [];
+                for (i = 0; i < len; i++) {
+                    if (this.childNodes[i].nodeType == 1 /* TEXT */) {
+                        out.push(this.childNodes[i].textContents());
+                    }
+                    else {
+                        out.push(this.childNodes[i].textContents());
+                    }
+                }
+                return out.join('');
             }
         }
     };
@@ -1495,7 +1573,7 @@ var TNode_Collection_Dettached = (function (_super) {
         //console.log( this.fragLTR, this.fragRTL, this.parentNode.xmlBeginning() );
     };
     TNode_Collection_Dettached.prototype.createRanges = function () {
-        var at = null, fragment = this.parentNode.documentElement.fragment, i = 0, len = 0, computeLeftSibling = false;
+        var at = null, fragment = this.parentNode.documentElement.fragment, i = 0, len = 0, computeLeftSibling = false, node;
         this.surgeryStart = this.parentNode.FRAGMENT_START;
         this.surgeryEnd = this.parentNode.FRAGMENT_END;
         i = 0;
@@ -1516,6 +1594,17 @@ var TNode_Collection_Dettached = (function (_super) {
             i++;
         }
         this.surgeryEnd -= i;
+        /*
+        while ( this.surgeryStart > this.parentNode.FRAGMENT_START && [FragmentItem.NODE_START, FragmentItem.EOL].indexOf( fragment.at( this.surgeryStart ) ) > -1 ) {
+            this.surgeryStart--;
+            console.log( '<' );
+        }
+
+        while ( this.surgeryEnd < this.parentNode.FRAGMENT_END && [FragmentItem.NODE_END, FragmentItem.EOL].indexOf( fragment.at( this.surgeryEnd + 1 ) ) > -1 ) {
+            this.surgeryEnd++;
+            console.log( '>' );
+        }
+        */
         computeLeftSibling = true;
         for (i = 0, len = this.parentNode.childNodes.length; i < len; i++) {
             if (this.parentNode.childNodes[i].FRAGMENT_START >= this.surgeryStart && this.parentNode.childNodes[i].FRAGMENT_END <= this.surgeryEnd) {
@@ -1526,8 +1615,13 @@ var TNode_Collection_Dettached = (function (_super) {
                 computeLeftSibling = false;
             }
         }
+        //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
     };
-    TNode_Collection_Dettached.prototype.wrapInElement = function (nodeName) {
+    TNode_Collection_Dettached.prototype.wrapInElement = function (nodeName, ifFunc) {
+        if (ifFunc === void 0) { ifFunc = null; }
+        if (ifFunc !== null && !(ifFunc.call(this.parentNode))) {
+            return;
+        }
         var node = this.parentNode.documentElement.createElement(nodeName), i = 0, len = this.nodes.length;
         for (i = 0; i < len; i++) {
             node.appendChild(this.nodes[i]);
@@ -1535,7 +1629,11 @@ var TNode_Collection_Dettached = (function (_super) {
         this.nodes = [node];
         this.parentNode.appendChild(node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1);
     };
-    TNode_Collection_Dettached.prototype.unwrapFromElement = function (nodeName) {
+    TNode_Collection_Dettached.prototype.unwrapFromElement = function (nodeName, ifFunc) {
+        if (ifFunc === void 0) { ifFunc = null; }
+        if (ifFunc !== null && !(ifFunc.call(this.parentNode))) {
+            return;
+        }
         var subWraps = [], i = 0, len = this.nodes.length, addLen = 0, subChildren = [], unwrapped;
         for (i = 0; i < len; i++) {
             switch (this.nodes[i].nodeType) {
@@ -1543,10 +1641,12 @@ var TNode_Collection_Dettached = (function (_super) {
                     break;
                 case 2 /* ELEMENT */:
                     if (this.nodes[i].nodeName == nodeName) {
+                        //console.error( 'unwrap ' + nodeName );
                         unwrapped = this.nodes[i].unwrap();
                         Helper.spliceApply(this.nodes, i, 1, unwrapped.nodes);
                         len = this.nodes.length;
-                        i += unwrapped.nodes.length;
+                        //console.error( 'after unwrap: ' + this.toString() );
+                        i += unwrapped.nodes.length - 1;
                     }
                     break;
             }
@@ -1839,11 +1939,20 @@ var HTML_Body = (function (_super) {
             case 'b':
                 node = new HTML_Bold();
                 break;
+            case '!b':
+                node = new HTML_NegationNode('b');
+                break;
             case 'i':
                 node = new HTML_Italic();
                 break;
+            case '!i':
+                node = new HTML_NegationNode('i');
+                break;
             case 'u':
                 node = new HTML_Underline();
+                break;
+            case '!u':
+                node = new HTML_NegationNode('u');
                 break;
             case 'a':
                 node = new HTML_Anchor();
@@ -1860,8 +1969,14 @@ var HTML_Body = (function (_super) {
             case 'sup':
                 node = new HTML_Superscript();
                 break;
+            case '!sup':
+                node = new HTML_NegationNode('sup');
+                break;
             case 'sub':
                 node = new HTML_Subscript();
+                break;
+            case '!sub':
+                node = new HTML_NegationNode('sub');
                 break;
             case 'table':
                 node = new HTML_Table();
@@ -2307,6 +2422,7 @@ var HTML_Bold = (function (_super) {
     __extends(HTML_Bold, _super);
     function HTML_Bold() {
         _super.call(this);
+        this.isDefragmentable = true;
         this.nodeName = 'b';
         this.style.display('inline');
         this.style.fontWeight('bold');
@@ -2317,6 +2433,7 @@ var HTML_Italic = (function (_super) {
     __extends(HTML_Italic, _super);
     function HTML_Italic() {
         _super.call(this);
+        this.isDefragmentable = true;
         this.nodeName = 'i';
         this.style.display('inline');
         this.style.fontStyle('italic');
@@ -2327,6 +2444,7 @@ var HTML_Underline = (function (_super) {
     __extends(HTML_Underline, _super);
     function HTML_Underline() {
         _super.call(this);
+        this.isDefragmentable = true;
         this.nodeName = 'u';
         this.style.display('inline');
         this.style.textDecoration('underline');
@@ -2933,6 +3051,32 @@ var HTML_TableCell = (function (_super) {
         return true;
     };
     return HTML_TableCell;
+})(TNode_Element);
+var HTML_NegationNode = (function (_super) {
+    __extends(HTML_NegationNode, _super);
+    function HTML_NegationNode(nodeName) {
+        _super.call(this);
+        this.isDefragmentable = true;
+        this.isNegation = true;
+        this.nodeName = '!' + nodeName;
+        this.style.display('inline');
+        switch (nodeName) {
+            case 'b':
+                this.style.fontWeight('normal');
+                break;
+            case 'i':
+                this.style.fontStyle('normal');
+                break;
+            case 'u':
+                this.style.textDecoration('none');
+                break;
+            case 'sup':
+            case 'sub':
+                this.style.verticalAlign('normal');
+                break;
+        }
+    }
+    return HTML_NegationNode;
 })(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
@@ -5743,10 +5887,14 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.bold);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('b').wrapInElement('b').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('b', function () {
+                return this.style.fontWeight() != 'bold';
+            }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('b').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('!b', function () {
+                return this.style.fontWeight() == 'bold';
+            }).end();
         }
         this.viewport.selection.editorState.compute();
     };
@@ -5761,10 +5909,14 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.italic);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('i').wrapInElement('i').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('i', function () {
+                return this.style.fontStyle() != 'italic';
+            }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('i').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('!i', function () {
+                return this.style.fontStyle() == 'italic';
+            }).end();
         }
         this.viewport.selection.editorState.compute();
     };
@@ -5779,10 +5931,14 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.underline);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('u').wrapInElement('u').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('u', function () {
+                return this.style.textDecoration() != 'underline';
+            }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('u').end();
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('!u', function () {
+                return this.style.textDecoration() == 'underline';
+            }).end();
         }
         this.viewport.selection.editorState.compute();
     };
@@ -6052,6 +6208,12 @@ var Fragment_CaretLock = (function () {
             for (i = 0, len = this.fragment.length(); i < len; i++) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */ || (at == 2 /* EOL */ && n == chars - 1)) {
+                    if (at == 2 /* EOL */ && n == chars - 1) {
+                        // There is a particular case in which we should not consider this particular case :)) hehe
+                        if (this.fragment.at(i + 1) == 1 /* NODE_END */ && this.fragment.getNodeAtIndex(i + 1).isBlockTextNode) {
+                            continue;
+                        }
+                    }
                     n++;
                     if (n == chars) {
                         if (this.startedEOL && at != 2 /* EOL */) {
@@ -6553,21 +6715,23 @@ var Fragment_Batch = (function () {
         this.range = range;
         this.items = items;
     }
-    Fragment_Batch.prototype.wrapInElement = function (elementName) {
+    Fragment_Batch.prototype.wrapInElement = function (elementName, ifFunc) {
+        if (ifFunc === void 0) { ifFunc = null; }
         if (this.ended) {
             throw "ERR_BATCH_ENDED";
         }
         for (var i = 0, len = this.items.length; i < len; i++) {
-            this.items[i].wrapInElement(elementName);
+            this.items[i].wrapInElement(elementName, ifFunc);
         }
         return this;
     };
-    Fragment_Batch.prototype.unwrapFromElement = function (elementName) {
+    Fragment_Batch.prototype.unwrapFromElement = function (elementName, ifFunc) {
+        if (ifFunc === void 0) { ifFunc = null; }
         if (this.ended) {
             throw "ERR_BATCH_ENDED";
         }
         for (var i = 0, len = this.items.length; i < len; i++) {
-            this.items[i].unwrapFromElement(elementName);
+            this.items[i].unwrapFromElement(elementName, ifFunc);
         }
         return this;
     };

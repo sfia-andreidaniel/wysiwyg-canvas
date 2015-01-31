@@ -8,7 +8,12 @@ class Fragment_CaretLock {
 	private startedEOL: boolean = false;
 
 
-	constructor( fragment: Fragment, lockIndex: number, direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, public lockName = 'Lock' ) {
+	constructor( 
+		fragment: Fragment, 
+		lockIndex: number, 
+		direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 
+		public lockName = 'Lock' 
+	) {
 			
 		var at  : FragmentItem,
 		    i   : number = 0,
@@ -113,6 +118,13 @@ class Fragment_CaretLock {
 				
 				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE || ( at == FragmentItem.EOL && n == chars - 1 ) ) {
 					
+					if ( at == FragmentItem.EOL && n == chars - 1 ) {
+						// There is a particular case in which we should not consider this particular case :)) hehe
+						if ( this.fragment.at( i + 1 ) == FragmentItem.NODE_END && (<TNode_Element>this.fragment.getNodeAtIndex( i + 1 ) ).isBlockTextNode ) {
+							continue;
+						}
+					}
+
 					n++;
 
 					if ( n == chars ) {

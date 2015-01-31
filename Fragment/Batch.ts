@@ -10,22 +10,22 @@ class Fragment_Batch {
 
 	}
 
-	public wrapInElement( elementName: string ): Fragment_Batch {
+	public wrapInElement( elementName: string, ifFunc: ( ) => boolean = null ): Fragment_Batch {
 		if ( this.ended ) {
 			throw "ERR_BATCH_ENDED";
 		}
 		for ( var i=0, len = this.items.length; i<len; i++ ) {
-			this.items[i].wrapInElement( elementName );
+			this.items[i].wrapInElement( elementName, ifFunc );
 		}
 		return this;
 	}
 
-	public unwrapFromElement( elementName: string ): Fragment_Batch {
+	public unwrapFromElement( elementName: string, ifFunc: ( ) => boolean = null ): Fragment_Batch {
 		if ( this.ended ) {
 			throw "ERR_BATCH_ENDED";
 		}
 		for ( var i=0, len = this.items.length; i<len; i++ ) {
-			this.items[i].unwrapFromElement( elementName );
+			this.items[i].unwrapFromElement( elementName, ifFunc );
 		}
 		return this;
 	}

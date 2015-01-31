@@ -17,7 +17,9 @@ class TNode_Element extends TNode {
 	public insertLinePolicy          : TNewLinePolicy = TNewLinePolicy.SURGERY;
 	public alternateInsertLinePolicy : TNewLinePolicy = TNewLinePolicy.BR;
 
-	public isMergeable               : boolean        = true; // weather the "mergeWith" method works with this or with another element.
+	public isMergeable               : boolean        = true;  // weather the "mergeWith" method works with this or with another element.
+	public isDefragmentable          : boolean        = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
+	public isNegation                : boolean        = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
 
 	/* @postStyleInit: weather to initialize the style property on this constructor,
 	                   or if that style property will be initialized in ancestor classes 
@@ -748,7 +750,8 @@ class TNode_Element extends TNode {
 
 	}
 
-	// removes the empty nodes from the document
+	// removes the empty text nodes from the element or this element if it has
+	// no nodes.
 	public removeOrphanNodes() {
 
 		if ( this.childNodes ) {
@@ -776,6 +779,10 @@ class TNode_Element extends TNode {
 
 	}
 
+	/* If this is an element in which the user can write (p, td, h*, etc, ) returns
+	   this element, otherwise scans recursive the parents until it find one and
+	   returns it.
+	 */
 	public ownerBlockElement(): TNode_Element {
 		if ( this.isBlockTextNode ) {
 			return this;
@@ -810,7 +817,7 @@ class TNode_Element extends TNode {
 
 		returns the fragment position of the surgeried position.
 
-		The @hint argument should be used only by the 
+		The @hint setting should not be used by the user
 
 	*/
 
@@ -980,6 +987,8 @@ class TNode_Element extends TNode {
 
 	}
 
+	/* Takes moves the contents of the @element inside this element, and removes the @element afterwards
+	 */
 	public mergeWith( element: TNode_Element ) {
 
 		if ( this.isMergeable && element.isMergeable ) {
@@ -1003,14 +1012,19 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Returns the last child Node of the element */
 	public lastChild(): TNode {
 		return !this.childNodes ? null : ( this.childNodes[ this.childNodes.length - 1 ] || null );
 	}
 
+	/* Returns the first child Node of the element */
 	public firstChild(): TNode {
 		return !this.childNodes ? null : ( this.childNodes[ 0 ] || null );
 	}
 
+	/* When the user press Delete or Backspace key, and this element is Focused,
+	   and selection is of type NODE, this function implements what happens then
+	 */
 	public removeFromDOMAtUserCommand(): boolean {
 		if ( this.style.display() == 'block' && this != this.documentElement ) {
 			this.remove();
@@ -1018,6 +1032,7 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	/* Removes all the child nodes of the element */
 	public removeAllChildNodes() {
 		if ( this.childNodes ) {
 			for ( var i=this.childNodes.length - 1; i>=0; i-- ) {
@@ -1043,9 +1058,25 @@ class TNode_Element extends TNode {
 		return collection;
 	}
 
-	public defragment( removeOrphans: boolean = true ) {
+	/* Returns the node name minus the "!" sign at is's beginning, if it's the case */
+	protected nodeNameWithoutNegation(): string {
+		if ( this.nodeName[0] == '!' ) {
+			return this.nodeName.slice(1);
+		} else {
+			return this.nodeName;
+		}
+	}
 
-		return;
+	/* Returns true if element negates other element */
+	public negates( node: TNode_Element ) {
+		return ( ( ~~this.isNegation + ~~node.isNegation ) == 1 ) && ( node.nodeNameWithoutNegation() == this.nodeNameWithoutNegation() );
+	}
+
+	/* - Attempts to create an optized version of DOM for a node.
+	   - Remove unnecessary negation nodes
+	   @param removeOrphans should not be used.
+	 */
+	public defragment( removeOrphans: boolean = true ): number {
 
 		if ( !this.childNodes ) {
 			return;
@@ -1056,16 +1087,66 @@ class TNode_Element extends TNode {
 		}
 
 		var i=0,
-		    len = this.childNodes.length;
+		    len = this.childNodes.length,
+		    returnValue: number = 0;
 
 
-		for ( i=len - 1; i>=1; i-- ) {
-			if ( this.childNodes[i].nodeType == TNode_Type.TEXT && this.childNodes[i-1].nodeType == TNode_Type.TEXT ) {
-				(<TNode_Text>this.childNodes[i-1]).textContents( (<TNode_Text>this.childNodes[i-1]).textContents() + (<TNode_Text>this.childNodes[i]).textContents() );
-				this.childNodes[i].remove();
+		if ( this.childNodes.length == 1 && this.childNodes[0].nodeType == TNode_Type.ELEMENT ) {
+			if ( ( <TNode_Element>this.childNodes[0] ).negates( this ) ) {
+				returnValue = (<TNode_Element>this.childNodes[0]).childNodes.length - 1;
+				this.parentNode.appendCollection( new TNode_Collection( (<TNode_Element>this.childNodes[0]).childNodes ), this.siblingIndex + 1 );
+				this.remove();
+				return returnValue;
+			}
+		}
+
+
+		if ( len != 1 ) {
+			for ( i=len - 1; i>=1; i-- ) {
+				if ( this.childNodes[i].nodeType == TNode_Type.TEXT && this.childNodes[i-1].nodeType == TNode_Type.TEXT ) {
+					(<TNode_Text>this.childNodes[i-1]).textContents( (<TNode_Text>this.childNodes[i-1]).textContents() + (<TNode_Text>this.childNodes[i]).textContents() );
+					this.childNodes[i].remove();
+				} else {
+					if ( (<TNode_Element>this.childNodes[i]).nodeType == TNode_Type.ELEMENT ) {
+						if ( (<TNode_Element>this.childNodes[i-1]).nodeType == TNode_Type.ELEMENT ) {
+							
+							if ((<TNode_Element>this.childNodes[i]).nodeName == (<TNode_Element>this.childNodes[i-1]).nodeName && (<TNode_Element>this.childNodes[i]).isDefragmentable )
+								(<TNode_Element>this.childNodes[i-1]).mergeWith( <TNode_Element>this.childNodes[i] );
+							else
+								len += (<TNode_Element>this.childNodes[i]).defragment( false );
+						
+						} else
+							len += (<TNode_Element>this.childNodes[i]).defragment( false );		
+					}
+				}
+			}
+		} else {
+			if ( this.childNodes[0].nodeType == TNode_Type.ELEMENT ) {
+				(<TNode_Element>this.childNodes[i]).defragment( false );
+			}
+		}
+
+		return 0;
+	}
+
+	public textContents( contents: string = null ) {
+		if ( contents !== null ) {
+			throw "Setter not implemented";
+		} else {
+			if ( !this.childNodes ) {
+				return '';
 			} else {
-				if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT )
-					(<TNode_Element>this.childNodes[i]).defragment( false );
+				var i : number = 0,
+				    len : number = this.childNodes.length,
+				    out: string[] = [];
+				for ( i=0; i<len; i++ ) {
+					if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+						out.push( (<TNode_Text>this.childNodes[i]).textContents() )
+					} else {
+						out.push( (<TNode_Element>this.childNodes[i]).textContents() );
+					}
+				}
+				return out.join('');
 			}
 		}
 	}

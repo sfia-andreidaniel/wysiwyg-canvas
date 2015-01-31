@@ -855,7 +855,12 @@ class TNode_Element extends TNode {
 			if ( createNodeAfter === false ) {
 				return atFragmentIndex;
 			} else {
-				rParent = this.documentElement.createElement( nodeNameAfter === null ? this.nodeName : nodeNameAfter );
+
+				if ( nodeNameAfter === null ) {
+					rParent = this.documentElement.createElement( nodeNameAfter );
+				} else {
+					rParent = this.clone();
+				}
 				rParent.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 				
 				this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
@@ -892,7 +897,7 @@ class TNode_Element extends TNode {
 			splitNode.parentNode.appendChild( rightCol.at(0), splitNode.siblingIndex + 1 );
 
 			lParent = splitNode.parentNode;
-			rParent = this.documentElement.createElement( lParent.nodeName );
+			rParent = lParent.clone();
 
 			rightCol = rightCol.wrapIn( rParent );
 			leftCol  = leftCol.wrapIn( lParent );
@@ -913,7 +918,7 @@ class TNode_Element extends TNode {
 			}
 
 			lParent = splitNode.parentNode;
-			rParent = this.documentElement.createElement( lParent.nodeName );
+			rParent = lParent.clone();
 
 			rightCol.wrapIn( rParent );
 		}
@@ -925,7 +930,7 @@ class TNode_Element extends TNode {
 
 			rightCol.addFirst( rParent );
 
-			rParent = this.documentElement.createElement( lParent.parentNode.nodeName );
+			rParent = lParent.parentNode.clone();
 
 			rightCol.wrapIn( rParent );
 
@@ -1110,7 +1115,9 @@ class TNode_Element extends TNode {
 					if ( (<TNode_Element>this.childNodes[i]).nodeType == TNode_Type.ELEMENT ) {
 						if ( (<TNode_Element>this.childNodes[i-1]).nodeType == TNode_Type.ELEMENT ) {
 							
-							if ((<TNode_Element>this.childNodes[i]).nodeName == (<TNode_Element>this.childNodes[i-1]).nodeName && (<TNode_Element>this.childNodes[i]).isDefragmentable )
+							if ( (<TNode_Element>this.childNodes[i]).nodeName == (<TNode_Element>this.childNodes[i-1]).nodeName && 
+								 (<TNode_Element>this.childNodes[i]).isDefragmentable &&
+								 (<TNode_Element>this.childNodes[i]).canDefragmentWith(<TNode_Element>this.childNodes[i-1]) )
 								(<TNode_Element>this.childNodes[i-1]).mergeWith( <TNode_Element>this.childNodes[i] );
 							else
 								len += (<TNode_Element>this.childNodes[i]).defragment( false );
@@ -1129,6 +1136,7 @@ class TNode_Element extends TNode {
 		return 0;
 	}
 
+	/* Returns the text contents of the element */
 	public textContents( contents: string = null ) {
 		if ( contents !== null ) {
 			throw "Setter not implemented";
@@ -1149,6 +1157,19 @@ class TNode_Element extends TNode {
 				return out.join('');
 			}
 		}
+	}
+
+	/* Returns an element with exactly the same settings like this.
+	   Should be overrided if needed.
+	 */
+	public clone(): TNode_Element {
+		return this.documentElement.createElement( this.nodeName );
+	}
+
+	/* Used in the process of defragmentation, for disallowing a <font color="red"> to be merged with a <font color="blue">
+	 */
+	public canDefragmentWith( element: TNode_Element ) {
+		return true;
 	}
 
 }

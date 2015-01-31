@@ -120,7 +120,7 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 	}
 
-	public wrapInElement( nodeName: string, ifFunc: ( ) => boolean = null ) {
+	public wrapInElement( nodeName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ) {
 
 		if ( ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
 			return;
@@ -129,6 +129,10 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		var node: TNode_Element = this.parentNode.documentElement.createElement( nodeName ),
 		       i: number = 0,
 		     len: number = this.nodes.length;
+
+		if ( elAttributeName !== null ) {
+			node.setAttribute( elAttributeName, elAttributeValue || '' );
+		}
 
 		for ( i=0; i<len; i++ ) {
 			node.appendChild( this.nodes[i] );

@@ -163,6 +163,12 @@ class HTML_Body extends TNode_Element {
 			case 'td':
 				node = new HTML_TableCell();
 				break;
+			case 'font':
+				node = new HTML_Font();
+				break;
+			case 'color':
+				node = new HTML_Color();
+				break;
 			default:
 				node = new TNode_Element();
 				node.nodeName = elementName;

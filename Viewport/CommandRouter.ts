@@ -676,13 +676,13 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( 'b', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( 'b', null, null, function() {
 				return this.style.fontWeight() != 'bold';
 			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( '!b', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!b' ).unwrapFromElement( 'b' ).wrapInElement( '!b', null, null, function() {
 				return this.style.fontWeight() == 'bold';
 			} ).end();
 
@@ -708,13 +708,13 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement( 'i', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement( 'i', null, null, function() {
 				return this.style.fontStyle() != 'italic';
 			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement('!i', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement( 'i' ).wrapInElement('!i', null, null, function() {
 				return this.style.fontStyle() == 'italic';
 			} ).end();
 
@@ -740,13 +740,13 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( 'u', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( 'u', null, null, function() {
 				return this.style.textDecoration() != 'underline';
 			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( '!u', function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( '!u', null, null, function() {
 				return this.style.textDecoration() == 'underline';
 			} ).end();
 
@@ -808,6 +808,20 @@ class Viewport_CommandRouter extends Events {
 
 	// sets the font of the text.
 	public font( fontFamily: string = "Arial" ) {
+		
+		var selection = this.viewport.selection,
+		          rng = selection.getRange(),
+		          len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'font' ).wrapInElement( 'font', 'name', fontFamily, function() {
+			return fontFamily ? this.style.fontFamily() != fontFamily : false;
+		} ).end();
+
+		this.viewport.selection.editorState.compute();
 
 	}
 

@@ -19,7 +19,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 			'</div>',
 			'<div class="item index-1">',
 				'<div class="text-dropdown">',
-					'<input class="fontFamily" type="text" data-suggestions="Arial,Times New Roman,Courier New" value="" placeholder="Font" />',
+					'<input class="fontFamily" type="text" data-suggestions="' + TStyle.$FontFamily.join(',') + '" value="" placeholder="Font" />',
 					'<div class="expander"></div>',
 				'</div>',
 			'</div>',
@@ -58,7 +58,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 	}
 
 	private setFontFamily( fontFamily: string ) {
-		console.log( 'setfontfamily: ' + fontFamily );
+		this.toolbar.router.dispatchCommand( EditorCommand.FONT, [ fontFamily ] );
 	}
 
 	private setFontSize( fontSize: string ) {

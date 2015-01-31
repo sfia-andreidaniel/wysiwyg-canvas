@@ -36,7 +36,7 @@ class TStyle {
 
 	static $FontFamily: string[] = [
 		"Arial",
-		"Times",
+		"Times New Roman",
 		"Courier",
 		"Impact"
 	];

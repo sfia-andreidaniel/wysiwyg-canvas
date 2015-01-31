@@ -1258,7 +1258,12 @@ var TNode_Element = (function (_super) {
                 return atFragmentIndex;
             }
             else {
-                rParent = this.documentElement.createElement(nodeNameAfter === null ? this.nodeName : nodeNameAfter);
+                if (nodeNameAfter === null) {
+                    rParent = this.documentElement.createElement(nodeNameAfter);
+                }
+                else {
+                    rParent = this.clone();
+                }
                 rParent.appendChild(this.documentElement.createTextNode(whiteSpace));
                 this.parentNode.appendChild(rParent, this.siblingIndex + 1);
                 this.documentElement.relayout(true);
@@ -1282,7 +1287,7 @@ var TNode_Element = (function (_super) {
             splitNode.textContents(t1 || whiteSpace);
             splitNode.parentNode.appendChild(rightCol.at(0), splitNode.siblingIndex + 1);
             lParent = splitNode.parentNode;
-            rParent = this.documentElement.createElement(lParent.nodeName);
+            rParent = lParent.clone();
             rightCol = rightCol.wrapIn(rParent);
             leftCol = leftCol.wrapIn(lParent);
         }
@@ -1298,14 +1303,14 @@ var TNode_Element = (function (_super) {
                 rightCol = new TNode_Collection(splitNode.elementsAfterMyself(false));
             }
             lParent = splitNode.parentNode;
-            rParent = this.documentElement.createElement(lParent.nodeName);
+            rParent = lParent.clone();
             rightCol.wrapIn(rParent);
         }
         while (lParent != this) {
             leftCol = new TNode_Collection(lParent.elementsBeforeMyself(true));
             rightCol = new TNode_Collection(lParent.elementsAfterMyself(false));
             rightCol.addFirst(rParent);
-            rParent = this.documentElement.createElement(lParent.parentNode.nodeName);
+            rParent = lParent.parentNode.clone();
             rightCol.wrapIn(rParent);
             lParent = lParent.parentNode;
         }
@@ -1439,7 +1444,7 @@ var TNode_Element = (function (_super) {
                 else {
                     if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
                         if (this.childNodes[i - 1].nodeType == 2 /* ELEMENT */) {
-                            if (this.childNodes[i].nodeName == this.childNodes[i - 1].nodeName && this.childNodes[i].isDefragmentable)
+                            if (this.childNodes[i].nodeName == this.childNodes[i - 1].nodeName && this.childNodes[i].isDefragmentable && this.childNodes[i].canDefragmentWith(this.childNodes[i - 1]))
                                 this.childNodes[i - 1].mergeWith(this.childNodes[i]);
                             else
                                 len += this.childNodes[i].defragment(false);
@@ -1457,6 +1462,7 @@ var TNode_Element = (function (_super) {
         }
         return 0;
     };
+    /* Returns the text contents of the element */
     TNode_Element.prototype.textContents = function (contents) {
         if (contents === void 0) { contents = null; }
         if (contents !== null) {
@@ -1479,6 +1485,17 @@ var TNode_Element = (function (_super) {
                 return out.join('');
             }
         }
+    };
+    /* Returns an element with exactly the same settings like this.
+       Should be overrided if needed.
+     */
+    TNode_Element.prototype.clone = function () {
+        return this.documentElement.createElement(this.nodeName);
+    };
+    /* Used in the process of defragmentation, for disallowing a <font color="red"> to be merged with a <font color="blue">
+     */
+    TNode_Element.prototype.canDefragmentWith = function (element) {
+        return true;
     };
     return TNode_Element;
 })(TNode);
@@ -1617,12 +1634,17 @@ var TNode_Collection_Dettached = (function (_super) {
         }
         //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
     };
-    TNode_Collection_Dettached.prototype.wrapInElement = function (nodeName, ifFunc) {
+    TNode_Collection_Dettached.prototype.wrapInElement = function (nodeName, elAttributeName, elAttributeValue, ifFunc) {
+        if (elAttributeName === void 0) { elAttributeName = null; }
+        if (elAttributeValue === void 0) { elAttributeValue = null; }
         if (ifFunc === void 0) { ifFunc = null; }
         if (ifFunc !== null && !(ifFunc.call(this.parentNode))) {
             return;
         }
         var node = this.parentNode.documentElement.createElement(nodeName), i = 0, len = this.nodes.length;
+        if (elAttributeName !== null) {
+            node.setAttribute(elAttributeName, elAttributeValue || '');
+        }
         for (i = 0; i < len; i++) {
             node.appendChild(this.nodes[i]);
         }
@@ -1986,6 +2008,12 @@ var HTML_Body = (function (_super) {
                 break;
             case 'td':
                 node = new HTML_TableCell();
+                break;
+            case 'font':
+                node = new HTML_Font();
+                break;
+            case 'color':
+                node = new HTML_Color();
                 break;
             default:
                 node = new TNode_Element();
@@ -3078,6 +3106,108 @@ var HTML_NegationNode = (function (_super) {
     }
     return HTML_NegationNode;
 })(TNode_Element);
+var HTML_Font = (function (_super) {
+    __extends(HTML_Font, _super);
+    function HTML_Font() {
+        _super.call(this);
+        this.isDefragmentable = true;
+        this._name = null;
+        this.nodeName = 'font';
+        this.style.display('inline');
+    }
+    HTML_Font.prototype.name = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            //getter
+            return this._name || '';
+        }
+        else {
+            //setter
+            this._name = value || null;
+            this.style.fontFamily(this._name || '');
+            return value;
+        }
+    };
+    HTML_Font.prototype.setAttribute = function (attributeName, attributeValue) {
+        if (attributeValue === void 0) { attributeValue = null; }
+        switch (attributeName) {
+            case 'name':
+                this.name(attributeValue || null);
+                break;
+            default:
+                _super.prototype.setAttribute.call(this, attributeName, attributeValue || '');
+                break;
+        }
+    };
+    HTML_Font.prototype.xmlBeginning = function () {
+        return '<font' + (this._name ? ' name="' + this._name + '"' : '') + '>';
+    };
+    HTML_Font.prototype.xmlEnding = function () {
+        return '</font>';
+    };
+    HTML_Font.prototype.clone = function () {
+        var returnValue = _super.prototype.clone.call(this);
+        if (this._name) {
+            returnValue.setAttribute('name', this._name);
+        }
+        return returnValue;
+    };
+    HTML_Font.prototype.canDefragmentWith = function (font) {
+        return font.name() == this.name();
+    };
+    return HTML_Font;
+})(TNode_Element);
+var HTML_Color = (function (_super) {
+    __extends(HTML_Color, _super);
+    function HTML_Color() {
+        _super.call(this);
+        this.isDefragmentable = true;
+        this._name = null;
+        this.nodeName = 'color';
+        this.style.display('inline');
+    }
+    HTML_Color.prototype.name = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            //getter
+            return this._name || '';
+        }
+        else {
+            //setter
+            this._name = value || null;
+            this.style.color(this._name || '');
+            return value;
+        }
+    };
+    HTML_Color.prototype.setAttribute = function (attributeName, attributeValue) {
+        if (attributeValue === void 0) { attributeValue = null; }
+        switch (attributeName) {
+            case 'name':
+                this.name(attributeValue || null);
+                break;
+            default:
+                _super.prototype.setAttribute.call(this, attributeName, attributeValue || '');
+                break;
+        }
+    };
+    HTML_Color.prototype.xmlBeginning = function () {
+        return '<color' + (this._name ? ' name="' + this._name + '"' : '') + '>';
+    };
+    HTML_Color.prototype.xmlEnding = function () {
+        return '</color>';
+    };
+    HTML_Color.prototype.clone = function () {
+        var returnValue = _super.prototype.clone.call(this);
+        if (this._name) {
+            returnValue.setAttribute('name', this._name);
+        }
+        return returnValue;
+    };
+    HTML_Color.prototype.canDefragmentWith = function (color) {
+        return color.name() == this.name();
+    };
+    return HTML_Color;
+})(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
         this.node = node;
@@ -3401,7 +3531,7 @@ var TStyle = (function () {
     };
     TStyle.$FontFamily = [
         "Arial",
-        "Times",
+        "Times New Roman",
         "Courier",
         "Impact"
     ];
@@ -5887,12 +6017,12 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.bold);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('b', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('b', null, null, function () {
                 return this.style.fontWeight() != 'bold';
             }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('!b', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!b').unwrapFromElement('b').wrapInElement('!b', null, null, function () {
                 return this.style.fontWeight() == 'bold';
             }).end();
         }
@@ -5909,12 +6039,12 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.italic);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('i', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('i', null, null, function () {
                 return this.style.fontStyle() != 'italic';
             }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('!i', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!i').unwrapFromElement('i').wrapInElement('!i', null, null, function () {
                 return this.style.fontStyle() == 'italic';
             }).end();
         }
@@ -5931,12 +6061,12 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.underline);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('u', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('u', null, null, function () {
                 return this.style.textDecoration() != 'underline';
             }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('!u', function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('!u', null, null, function () {
                 return this.style.textDecoration() == 'underline';
             }).end();
         }
@@ -5985,6 +6115,14 @@ var Viewport_CommandRouter = (function (_super) {
     // sets the font of the text.
     Viewport_CommandRouter.prototype.font = function (fontFamily) {
         if (fontFamily === void 0) { fontFamily = "Arial"; }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('font').wrapInElement('font', 'name', fontFamily, function () {
+            return fontFamily ? this.style.fontFamily() != fontFamily : false;
+        }).end();
+        this.viewport.selection.editorState.compute();
     };
     // sets the color of the selected text. if empty value
     // is used, color is removed.
@@ -6715,13 +6853,15 @@ var Fragment_Batch = (function () {
         this.range = range;
         this.items = items;
     }
-    Fragment_Batch.prototype.wrapInElement = function (elementName, ifFunc) {
+    Fragment_Batch.prototype.wrapInElement = function (elementName, elAttributeName, elAttributeValue, ifFunc) {
+        if (elAttributeName === void 0) { elAttributeName = null; }
+        if (elAttributeValue === void 0) { elAttributeValue = null; }
         if (ifFunc === void 0) { ifFunc = null; }
         if (this.ended) {
             throw "ERR_BATCH_ENDED";
         }
         for (var i = 0, len = this.items.length; i < len; i++) {
-            this.items[i].wrapInElement(elementName, ifFunc);
+            this.items[i].wrapInElement(elementName, elAttributeName, elAttributeValue, ifFunc);
         }
         return this;
     };
@@ -7851,7 +7991,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             '</div>',
             '<div class="item index-1">',
             '<div class="text-dropdown">',
-            '<input class="fontFamily" type="text" data-suggestions="Arial,Times New Roman,Courier New" value="" placeholder="Font" />',
+            '<input class="fontFamily" type="text" data-suggestions="' + TStyle.$FontFamily.join(',') + '" value="" placeholder="Font" />',
             '<div class="expander"></div>',
             '</div>',
             '</div>',
@@ -7881,7 +8021,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         console.log('setnodename: ' + nodeName);
     };
     UI_Toolbar_Panel_Style.prototype.setFontFamily = function (fontFamily) {
-        console.log('setfontfamily: ' + fontFamily);
+        this.toolbar.router.dispatchCommand(14 /* FONT */, [fontFamily]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontSize = function (fontSize) {
         console.log('setfontsize: ' + fontSize);

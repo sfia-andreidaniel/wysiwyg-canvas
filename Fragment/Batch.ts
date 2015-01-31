@@ -10,12 +10,12 @@ class Fragment_Batch {
 
 	}
 
-	public wrapInElement( elementName: string, ifFunc: ( ) => boolean = null ): Fragment_Batch {
+	public wrapInElement( elementName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ): Fragment_Batch {
 		if ( this.ended ) {
 			throw "ERR_BATCH_ENDED";
 		}
 		for ( var i=0, len = this.items.length; i<len; i++ ) {
-			this.items[i].wrapInElement( elementName, ifFunc );
+			this.items[i].wrapInElement( elementName, elAttributeName, elAttributeValue, ifFunc );
 		}
 		return this;
 	}

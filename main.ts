@@ -38,6 +38,8 @@
 /// <reference path="./HTML/TableRow.ts" />
 /// <reference path="./HTML/TableCell.ts" />
 /// <reference path="./HTML/NegationNode.ts" />
+/// <reference path="./HTML/Font.ts" />
+/// <reference path="./HTML/Color.ts" />
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/TableCell.ts" />

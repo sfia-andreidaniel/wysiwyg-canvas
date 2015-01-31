@@ -60,8 +60,9 @@ var EditorCommand;
     EditorCommand[EditorCommand["VALIGN"] = 13] = "VALIGN";
     EditorCommand[EditorCommand["FONT"] = 14] = "FONT";
     EditorCommand[EditorCommand["COLOR"] = 15] = "COLOR";
-    EditorCommand[EditorCommand["SIZE"] = 16] = "SIZE";
-    EditorCommand[EditorCommand["LIST"] = 17] = "LIST"; // ol, ul
+    EditorCommand[EditorCommand["BGCOLOR"] = 16] = "BGCOLOR";
+    EditorCommand[EditorCommand["SIZE"] = 17] = "SIZE";
+    EditorCommand[EditorCommand["LIST"] = 18] = "LIST"; // ol, ul
 })(EditorCommand || (EditorCommand = {}));
 var TNewLinePolicy;
 (function (TNewLinePolicy) {
@@ -2015,6 +2016,9 @@ var HTML_Body = (function (_super) {
             case 'color':
                 node = new HTML_Color();
                 break;
+            case 'size':
+                node = new HTML_Size();
+                break;
             default:
                 node = new TNode_Element();
                 node.nodeName = elementName;
@@ -2128,6 +2132,16 @@ var HTML_Body = (function (_super) {
                     this.childNodes[i].remove();
                 }
             }
+        }
+    };
+    HTML_Body.prototype.setAttribute = function (attributeName, attributeValue) {
+        switch (attributeName) {
+            case 'bgcolor':
+            case 'color':
+            case 'align':
+                break;
+            default:
+                _super.prototype.setAttribute.call(this, attributeName, attributeValue);
         }
     };
     HTML_Body.AUTOCLOSE_TAGS = [
@@ -2542,6 +2556,7 @@ var HTML_Superscript = (function (_super) {
     __extends(HTML_Superscript, _super);
     function HTML_Superscript() {
         _super.call(this);
+        this.isDefragmentable = true;
         this.nodeName = 'sup';
         this.style.display('inline');
         this.style.verticalAlign('super');
@@ -2553,6 +2568,7 @@ var HTML_Subscript = (function (_super) {
     __extends(HTML_Subscript, _super);
     function HTML_Subscript() {
         _super.call(this);
+        this.isDefragmentable = true;
         this.nodeName = 'sub';
         this.style.display('inline');
         this.style.verticalAlign('sub');
@@ -3207,6 +3223,52 @@ var HTML_Color = (function (_super) {
         return color.name() == this.name();
     };
     return HTML_Color;
+})(TNode_Element);
+var HTML_Size = (function (_super) {
+    __extends(HTML_Size, _super);
+    function HTML_Size() {
+        _super.call(this);
+        this.isDefragmentable = true;
+        this._value = '';
+        this.nodeName = 'size';
+        this.style.display('inline');
+    }
+    HTML_Size.prototype.value = function (v) {
+        if (v === void 0) { v = null; }
+        if (v === null) {
+            return this._value;
+        }
+        else {
+            this.style.fontSize(this._value = (v || ''));
+        }
+    };
+    HTML_Size.prototype.setAttribute = function (attributeName, attributeValue) {
+        switch (attributeName) {
+            case 'value':
+                this.value(attributeValue);
+                break;
+            default:
+                _super.prototype.setAttribute.call(this, attributeName, attributeValue);
+                break;
+        }
+    };
+    HTML_Size.prototype.clone = function () {
+        var returnValue = _super.prototype.clone.call(this);
+        if (this._value) {
+            returnValue.setAttribute('value', this._value);
+        }
+        return returnValue;
+    };
+    HTML_Size.prototype.xmlBeginning = function () {
+        return '<size' + ((this._value) ? ' value="' + this._value + '"' : '') + '>';
+    };
+    HTML_Size.prototype.xmlEnding = function () {
+        return '</size>';
+    };
+    HTML_Size.prototype.canDefragmentWith = function (size) {
+        return size.value() == this.value();
+    };
+    return HTML_Size;
 })(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
@@ -5369,14 +5431,14 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 189:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(16 /* SIZE */, '-1');
+                    this.viewport.execCommand(17 /* SIZE */, '-1');
                     cancelEvent = true;
                 }
                 break;
             case 107:
             case 187:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(16 /* SIZE */, '+1');
+                    this.viewport.execCommand(17 /* SIZE */, '+1');
                     cancelEvent = true;
                 }
                 break;
@@ -5525,10 +5587,13 @@ var Viewport_CommandRouter = (function (_super) {
             case 15 /* COLOR */:
                 return 'setColor';
                 break;
-            case 16 /* SIZE */:
+            case 16 /* BGCOLOR */:
+                return 'setBgColor';
+                break;
+            case 17 /* SIZE */:
                 return 'setSize';
                 break;
-            case 17 /* LIST */:
+            case 18 /* LIST */:
                 return 'list';
                 break;
             default:
@@ -5679,7 +5744,15 @@ var Viewport_CommandRouter = (function (_super) {
                     this.color(String(args[0] || ''));
                 }
                 break;
-            case 16 /* SIZE */:
+            case 16 /* BGCOLOR */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single argument!";
+                }
+                else {
+                    this.bgColor(String(args[0] || ''));
+                }
+                break;
+            case 17 /* SIZE */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -5687,7 +5760,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.size(String(args[0] || ''));
                 }
                 break;
-            case 17 /* LIST */:
+            case 18 /* LIST */:
                 if (!this.ensureArgs(args, 2, 2)) {
                     throw "Command: " + commandName + " requires two arguments: string, boolean";
                 }
@@ -6128,12 +6201,40 @@ var Viewport_CommandRouter = (function (_super) {
     // is used, color is removed.
     Viewport_CommandRouter.prototype.color = function (colorName) {
         if (colorName === void 0) { colorName = ""; }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('color').wrapInElement('color', 'name', colorName, function () {
+            return colorName ? this.style.color() != colorName : false;
+        }).end();
+        this.viewport.selection.editorState.compute();
+    };
+    // sets the backgroundColor of the selected text. if empty value
+    // is used, color is removed.
+    //
+    // BETA NOTE: background will be set to root elements, not inline.
+    Viewport_CommandRouter.prototype.bgColor = function (colorName) {
+        if (colorName === void 0) { colorName = ""; }
+        var selection = this.viewport.selection, rng = selection.getRange(), nodes = rng.affectedBlockNodes(), i = 0, len = nodes.length;
+        for (i = 0; i < len; i++) {
+            nodes[i].setAttribute('bgcolor', colorName);
+        }
+        this.viewport.selection.editorState.compute();
     };
     // sets the font size. value can be also relative
     // using + or -. Eg: fontSize( "+1" ) will increase the text size
     // with 1 value.
     Viewport_CommandRouter.prototype.size = function (fontSize) {
         if (fontSize === void 0) { fontSize = ''; }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').wrapInElement('size', 'value', fontSize, function () {
+            return fontSize ? String(this.style.fontSize()) != fontSize : false;
+        }).end();
+        this.viewport.selection.editorState.compute();
     };
     // wraps into ul or ol the blocks.
     Viewport_CommandRouter.prototype.list = function (listType, on) {
@@ -8024,7 +8125,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.toolbar.router.dispatchCommand(14 /* FONT */, [fontFamily]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontSize = function (fontSize) {
-        console.log('setfontsize: ' + fontSize);
+        this.toolbar.router.dispatchCommand(17 /* SIZE */, [fontSize]);
     };
     UI_Toolbar_Panel_Style.prototype.dropdownize = function (input, submit, allowSuggestionsOnly) {
         /* indeed.com corby nn18 nn95nb */
@@ -8433,10 +8534,10 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(17 /* LIST */, ['ul', true]);
+                me.toolbar.router.dispatchCommand(18 /* LIST */, ['ul', true]);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(17 /* LIST */, ['ol', true]);
+                me.toolbar.router.dispatchCommand(18 /* LIST */, ['ol', true]);
             }, true);
         })(this);
     }
@@ -8530,12 +8631,107 @@ var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
         DOM.addClass(this.node, 'ui-panel-borders-and-colors');
         this.node.innerHTML = [
             '<div class="item index-0">',
-            '<div class="ui-button borderColor" title="Border Color"></div>',
-            '<div class="ui-button backgroundColor" title="Background Color"></div>',
-            '<div class="ui-button color" title="Color"></div>',
+            '<div class="ui-button ui-color-button borderColor" title="Border Color"></div>',
+            '<div class="ui-button ui-color-button backgroundColor" title="Background Color"></div>',
+            '<div class="ui-button ui-color-button color" title="Color"></div>',
             '</div>',
         ].join('');
+        this.btnBorderColor = this.node.querySelector('div.ui-button.borderColor');
+        this.btnBackgroundColor = this.node.querySelector('div.ui-button.backgroundColor');
+        this.btnColor = this.node.querySelector('div.ui-button.color');
+        (function (me) {
+            me.makeColorDropdown(me.btnBorderColor, function (color) {
+                me.setBorderColor(color);
+            }, '');
+            me.makeColorDropdown(me.btnBackgroundColor, function (color) {
+                me.setBackgroundColor(color);
+            }, '');
+            me.makeColorDropdown(me.btnColor, function (color) {
+                me.setColor(color);
+            }, '');
+        })(this);
     }
+    UI_Toolbar_Panel_BordersAndColors.prototype.makeColorDropdown = function (element, onchange, initialColor) {
+        element.tabIndex = 0;
+        var icon = document.createElement('div');
+        DOM.addClass(icon, 'icon');
+        var expander = document.createElement('div');
+        DOM.addClass(expander, 'expander');
+        var lastColor = document.createElement('div');
+        DOM.addClass(lastColor, 'color');
+        var overlay = document.createElement('div');
+        DOM.addClass(overlay, 'overlay');
+        var hdr, c;
+        c = document.createElement('div');
+        DOM.addClass(c, 'c');
+        DOM.addClass(c, 'none');
+        c.setAttribute('data-color', '');
+        c.title = 'Default Color';
+        overlay.appendChild(c);
+        for (var k in TStyle_Color.$NamedColors) {
+            c = document.createElement('div');
+            DOM.addClass(c, 'c');
+            c.setAttribute('data-color', TStyle_Color.$NamedColors[k]);
+            c.style.backgroundColor = k;
+            overlay.appendChild(c);
+        }
+        expander.tabIndex = 0;
+        element.appendChild(icon);
+        element.appendChild(lastColor);
+        element.appendChild(expander);
+        element.appendChild(overlay);
+        lastColor.style.backgroundColor = initialColor;
+        lastColor.setAttribute('data-color', initialColor);
+        if (!initialColor) {
+            DOM.addClass(lastColor, 'none');
+        }
+        function setColor(c) {
+            lastColor.style.backgroundColor = c || '';
+            lastColor.setAttribute('data-color', c || '');
+            if (!c) {
+                DOM.addClass(lastColor, 'none');
+            }
+            else {
+                DOM.removeClass(lastColor, 'none');
+            }
+            onchange(c || '');
+        }
+        element.addEventListener('mousedown', function (e) {
+            var target = (e.target || e.toElement);
+            if (target && DOM.hasClass(target, 'color')) {
+                // clicked on the last color
+                e.stopPropagation();
+                e.preventDefault();
+                setColor(lastColor.getAttribute('data-color'));
+                return;
+            }
+            if (target && DOM.hasClass(target, 'c')) {
+                e.stopPropagation();
+                e.preventDefault();
+                setColor(target.getAttribute('data-color'));
+                overlay.style.display = 'none';
+                return;
+            }
+            overlay.style.display = 'block';
+        }, true);
+        element.addEventListener('blur', function () {
+            overlay.style.display = 'none';
+        }, true);
+        expander.addEventListener('click', function () {
+            setTimeout(function () {
+                overlay.style.display = 'block';
+            }, 10);
+        }, true);
+    };
+    UI_Toolbar_Panel_BordersAndColors.prototype.setBorderColor = function (color) {
+        console.info('setBorderColor: ' + color);
+    };
+    UI_Toolbar_Panel_BordersAndColors.prototype.setBackgroundColor = function (color) {
+        this.toolbar.router.dispatchCommand(16 /* BGCOLOR */, [color]);
+    };
+    UI_Toolbar_Panel_BordersAndColors.prototype.setColor = function (color) {
+        this.toolbar.router.dispatchCommand(15 /* COLOR */, [color]);
+    };
     return UI_Toolbar_Panel_BordersAndColors;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Multimedia = (function (_super) {

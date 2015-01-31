@@ -24,9 +24,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="164.30894"
-     inkscape:cy="127.49148"
+     inkscape:zoom="1"
+     inkscape:cx="16.660533"
+     inkscape:cy="20.561548"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -118,6 +118,16 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
+    <rect
+       style="fill:#ff0000;fill-opacity:1;stroke:none"
+       id="rect3137"
+       width="9.7251673"
+       height="9.3736401"
+       x="65.40564"
+       y="1036.8035"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
     <rect
        style="fill:none;stroke:none"
        id="rect3524"
@@ -860,5 +870,13 @@
          x="32.869667"
          id="tspan3141"
          sodipodi:role="line">2</tspan></text>
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 66.3215,1036.7911 3.847695,4.056 3.874984,-4.056 -7.722679,0 z m 8.623203,0 0.19102,0.1999 0,-0.1999 -0.19102,0 z m 0.19102,0.6569 -4.093292,4.2846 4.093292,4.2845 0,-8.5691 z m -9.742036,0.1715 0,8.2262 3.929561,-4.1131 -3.929561,-4.1131 z m 4.775508,4.9985 -3.383789,3.5705 6.794866,0 -3.411077,-3.5705 z"
+       id="rect3125"
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
   </g>
 </svg>

@@ -169,6 +169,9 @@ class HTML_Body extends TNode_Element {
 			case 'color':
 				node = new HTML_Color();
 				break;
+			case 'size':
+				node = new HTML_Size();
+				break;
 			default:
 				node = new TNode_Element();
 				node.nodeName = elementName;
@@ -184,6 +187,7 @@ class HTML_Body extends TNode_Element {
 	get needRelayout(): boolean {
 		return this._needRelayout;
 	}
+
 
 	set needRelayout( v: boolean ) {
 		if ( !this._needRelayout ) {
@@ -316,6 +320,17 @@ class HTML_Body extends TNode_Element {
 					this.childNodes[i].remove();
 				}
 			}
+		}
+	}
+
+	public setAttribute( attributeName: string, attributeValue: string ) {
+		switch ( attributeName ) {
+			case 'bgcolor':
+			case 'color':
+			case 'align':
+				break;
+			default:
+				super.setAttribute( attributeName, attributeValue );
 		}
 	}
 

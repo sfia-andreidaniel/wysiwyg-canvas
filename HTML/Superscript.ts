@@ -1,4 +1,7 @@
 class HTML_Superscript extends TNode_Element {
+	
+	public isDefragmentable : boolean = true;
+	
 	constructor() {
 		super();
 		this.nodeName = 'sup';

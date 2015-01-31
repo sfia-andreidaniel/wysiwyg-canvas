@@ -40,6 +40,7 @@
 /// <reference path="./HTML/NegationNode.ts" />
 /// <reference path="./HTML/Font.ts" />
 /// <reference path="./HTML/Color.ts" />
+/// <reference path="./HTML/Size.ts" /> 
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/TableCell.ts" />

@@ -13,6 +13,12 @@ div.html-editor > div.toolbar {
 	display: none;
 	background-color: #ddd;
 	height: 40px;
+
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none;
 }
 
 div.html-editor.has-toolbar > div.toolbar {
@@ -29,6 +35,13 @@ div.html-editor > div.body {
 	display: block;
 	background-color: #ddd;
 
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+
+
 }
 
 div.html-editor > div.statusbar {
@@ -44,10 +57,18 @@ div.html-editor > div.statusbar {
 	font-size: 12px;
 	font-family: Arial;
 	color: #333;
+
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+
 }
 
 div.html-editor.has-statusbar > div.statusbar {
 	display: block;
+
 }
 
 /* Toolbars styling */
@@ -62,6 +83,7 @@ div.html-editor > div.toolbar > div.ui-panel {
 div.html-editor > div.toolbar > div.ui-panel > div.item {
 	display: inline-block;
 	margin: 0px 1px;
+	height: 20px;
 }
 
 div.html-editor > div.toolbar *:focus {
@@ -106,6 +128,7 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay {
 	overflow-y: auto;
 	overflow-x: hidden;
 	max-height: 50px;
+	z-index: 100;
 }
 
 div.html-editor > div.toolbar > div.ui-panel div.text-dropdown.focused > .overlay {
@@ -142,9 +165,85 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > div.expander {
 	border: 1px solid transparent;
 }
 
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button {
+	padding-right: 30px;
+	position: relative;
+	background-image: none !important;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.icon {
+	display: block;
+	width: 20px;
+	height: 20px;
+	background-repeat: no-repeat;
+	padding: 0;
+	margin: 0;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.color {
+	display: block;
+	margin-left: 20px;
+	width: 11px;
+	height: 12px;
+	position: absolute;
+	top: 2px;
+	left: 0px;
+	border: 1px solid transparent;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.color.none {
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: -65px -103px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay > div.c.none {
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: -63px -102px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay {
+	position: absolute;
+	z-index: 100;
+	background-color: #ddd;
+	width: 170px;
+	padding: 2px;
+	line-height: 10px;
+	display: none;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay > div.c {
+	display: inline-block;
+	width: 15px; height: 15px;
+}
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.expander {
+	display: block;
+	width: 10px;
+	height: 14px;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: 0px -101px;
+	background-color: #ddd;
+	border: 1px solid transparent;
+	position: absolute;
+	top: 1px;
+	left: 35px;
+}
+
 div.html-editor > div.toolbar > div.ui-panel div.ui-button:hover,
-div.html-editor > div.toolbar > div.ui-panel div.expander:hover {
+div.html-editor > div.toolbar > div.ui-panel div.expander:hover,
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button:hover > div.color {
 	border: 1px outset #ddd !important;
+}
+
+
+div.html-editor > div.toolbar > div.ui-panel div.ui-color-button:active > div.color {
+	border: 1px inset #ddd;
 }
 
 div.html-editor > div.toolbar > div.ui-panel div.ui-button:active,
@@ -235,15 +334,15 @@ div.html-editor .ui-panel-text-scripting .ui-button.superscript {
 	background-position: -41px -101px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor {
+div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor > .icon {
 	background-position: -61px -81px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.backgroundColor {
+div.html-editor .ui-panel-borders-and-colors .ui-button.backgroundColor > .icon {
 	background-position: -1px -21px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.color {
+div.html-editor .ui-panel-borders-and-colors .ui-button.color > .icon {
 	background-position: -21px -21px !important;
 }
 

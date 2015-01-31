@@ -62,7 +62,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 	}
 
 	private setFontSize( fontSize: string ) {
-		console.log( 'setfontsize: ' + fontSize );
+		this.toolbar.router.dispatchCommand( EditorCommand.SIZE, [ fontSize ] );
 	}
 
 	private dropdownize( input: HTMLInputElement, submit: ( v: string ) => any, allowSuggestionsOnly: boolean = false ) {

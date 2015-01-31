@@ -34,6 +34,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.VALIGN:		return 'verticalAlign'; break;
 			case EditorCommand.FONT:		return 'setFont';	 break;
 			case EditorCommand.COLOR:		return 'setColor';   break;
+			case EditorCommand.BGCOLOR:     return 'setBgColor'; break;
 			case EditorCommand.SIZE:		return 'setSize';	 break;
 			case EditorCommand.LIST:        return 'list';       break;
 			default:
@@ -174,6 +175,13 @@ class Viewport_CommandRouter extends Events {
 					throw "Command: " + commandName + " requires a single argument!";
 				} else {
 					this.color( String( args[0] || '' ) );
+				}
+				break;
+			case EditorCommand.BGCOLOR:
+				if ( !this.ensureArgs( args, 1, 1 ) ) {
+					throw "Command: " + commandName + " requires a single argument!";
+				} else {
+					this.bgColor( String( args[0] || '' ) );
 				}
 				break;
 			case EditorCommand.SIZE:
@@ -828,6 +836,38 @@ class Viewport_CommandRouter extends Events {
 	// sets the color of the selected text. if empty value
 	// is used, color is removed.
 	public color( colorName: string = "" ) {
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'color' ).wrapInElement( 'color', 'name', colorName, function() {
+			return colorName ? this.style.color() != colorName : false;
+		} ).end();
+
+		this.viewport.selection.editorState.compute();
+
+	}
+
+	// sets the backgroundColor of the selected text. if empty value
+	// is used, color is removed.
+	//
+	// BETA NOTE: background will be set to root elements, not inline.
+	public bgColor( colorName: string = "" ) {
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    nodes: TNode_Element[] = rng.affectedBlockNodes(),
+		    i: number = 0,
+		    len: number = nodes.length;
+
+		for ( i=0; i<len; i++ ) {
+			nodes[i].setAttribute( 'bgcolor', colorName );
+		}
+
+		this.viewport.selection.editorState.compute();
 
 	}
 
@@ -835,7 +875,19 @@ class Viewport_CommandRouter extends Events {
 	// using + or -. Eg: fontSize( "+1" ) will increase the text size
 	// with 1 value.
 	public size( fontSize: string = '' ) {
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    len = rng.length();
 
+		if ( !len ) {
+			return;
+		}
+
+		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'size' ).wrapInElement( 'size', 'value', fontSize, function() {
+			return fontSize ? String( this.style.fontSize() ) != fontSize : false;
+		} ).end();
+
+		this.viewport.selection.editorState.compute();
 	}
 
 	// wraps into ul or ol the blocks.

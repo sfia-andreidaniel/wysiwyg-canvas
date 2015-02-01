@@ -52,18 +52,19 @@ var EditorCommand;
     EditorCommand[EditorCommand["ITALIC"] = 5] = "ITALIC";
     EditorCommand[EditorCommand["UNDERLINE"] = 6] = "UNDERLINE";
     EditorCommand[EditorCommand["ALIGN"] = 7] = "ALIGN";
-    EditorCommand[EditorCommand["COPY"] = 8] = "COPY";
-    EditorCommand[EditorCommand["CUT"] = 9] = "CUT";
-    EditorCommand[EditorCommand["PASTE"] = 10] = "PASTE";
-    EditorCommand[EditorCommand["INDENT"] = 11] = "INDENT";
-    EditorCommand[EditorCommand["UNINDENT"] = 12] = "UNINDENT";
-    EditorCommand[EditorCommand["VALIGN"] = 13] = "VALIGN";
-    EditorCommand[EditorCommand["FONT"] = 14] = "FONT";
-    EditorCommand[EditorCommand["COLOR"] = 15] = "COLOR";
-    EditorCommand[EditorCommand["BGCOLOR"] = 16] = "BGCOLOR";
-    EditorCommand[EditorCommand["SIZE"] = 17] = "SIZE";
-    EditorCommand[EditorCommand["BLOCK_LEVEL"] = 18] = "BLOCK_LEVEL";
-    EditorCommand[EditorCommand["LIST"] = 19] = "LIST"; // sets the list level of the elements ( UL or LI )
+    EditorCommand[EditorCommand["CLEAR_FORMATTING"] = 8] = "CLEAR_FORMATTING";
+    EditorCommand[EditorCommand["COPY"] = 9] = "COPY";
+    EditorCommand[EditorCommand["CUT"] = 10] = "CUT";
+    EditorCommand[EditorCommand["PASTE"] = 11] = "PASTE";
+    EditorCommand[EditorCommand["INDENT"] = 12] = "INDENT";
+    EditorCommand[EditorCommand["UNINDENT"] = 13] = "UNINDENT";
+    EditorCommand[EditorCommand["VALIGN"] = 14] = "VALIGN";
+    EditorCommand[EditorCommand["FONT"] = 15] = "FONT";
+    EditorCommand[EditorCommand["COLOR"] = 16] = "COLOR";
+    EditorCommand[EditorCommand["BGCOLOR"] = 17] = "BGCOLOR";
+    EditorCommand[EditorCommand["SIZE"] = 18] = "SIZE";
+    EditorCommand[EditorCommand["BLOCK_LEVEL"] = 19] = "BLOCK_LEVEL";
+    EditorCommand[EditorCommand["LIST"] = 20] = "LIST"; // sets the list level of the elements ( UL or LI )
 })(EditorCommand || (EditorCommand = {}));
 var TNewLinePolicy;
 (function (TNewLinePolicy) {
@@ -2604,7 +2605,6 @@ var HTML_BulletedList = (function (_super) {
         this.nodeName = 'ul';
         this.style.display('block');
         this.style.paddingLeft('30');
-        this.style.marginTop('10');
         this.style.marginBottom('10');
     }
     HTML_BulletedList.prototype.breakBeforeOption = function (option) {
@@ -2645,7 +2645,6 @@ var HTML_OrderedList = (function (_super) {
         this.nodeName = 'ol';
         this.style.display('block');
         this.style.paddingLeft('30');
-        this.style.marginTop('10');
         this.style.marginBottom('10');
     }
     HTML_OrderedList.prototype.breakBeforeOption = function (option) {
@@ -5630,7 +5629,7 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 9:
                 cancelEvent = true;
-                this.viewport.execCommand(DOMEvent.shiftKey ? 12 /* UNINDENT */ : 11 /* INDENT */);
+                this.viewport.execCommand(DOMEvent.shiftKey ? 13 /* UNINDENT */ : 12 /* INDENT */);
                 break;
             case 66:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
@@ -5676,32 +5675,32 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 67:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(8 /* COPY */);
+                    this.viewport.execCommand(9 /* COPY */);
                     cancelEvent = true;
                 }
                 break;
             case 88:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(9 /* CUT */);
+                    this.viewport.execCommand(10 /* CUT */);
                     cancelEvent = true;
                 }
                 break;
             case 86:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(10 /* PASTE */);
+                    this.viewport.execCommand(11 /* PASTE */);
                     cancelEvent = true;
                 }
                 break;
             case 189:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(17 /* SIZE */, '-1');
+                    this.viewport.execCommand(18 /* SIZE */, '-1');
                     cancelEvent = true;
                 }
                 break;
             case 107:
             case 187:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(17 /* SIZE */, '+1');
+                    this.viewport.execCommand(18 /* SIZE */, '+1');
                     cancelEvent = true;
                 }
                 break;
@@ -5826,41 +5825,44 @@ var Viewport_CommandRouter = (function (_super) {
             case 7 /* ALIGN */:
                 return 'align';
                 break;
-            case 8 /* COPY */:
+            case 9 /* COPY */:
                 return 'copy';
                 break;
-            case 9 /* CUT */:
+            case 10 /* CUT */:
                 return 'cut';
                 break;
-            case 10 /* PASTE */:
+            case 11 /* PASTE */:
                 return 'paste';
                 break;
-            case 11 /* INDENT */:
+            case 12 /* INDENT */:
                 return 'indent';
                 break;
-            case 12 /* UNINDENT */:
+            case 13 /* UNINDENT */:
                 return 'unindent';
                 break;
-            case 13 /* VALIGN */:
+            case 14 /* VALIGN */:
                 return 'verticalAlign';
                 break;
-            case 14 /* FONT */:
+            case 15 /* FONT */:
                 return 'setFont';
                 break;
-            case 15 /* COLOR */:
+            case 16 /* COLOR */:
                 return 'setColor';
                 break;
-            case 16 /* BGCOLOR */:
+            case 17 /* BGCOLOR */:
                 return 'setBgColor';
                 break;
-            case 17 /* SIZE */:
+            case 18 /* SIZE */:
                 return 'setSize';
                 break;
-            case 18 /* BLOCK_LEVEL */:
+            case 19 /* BLOCK_LEVEL */:
                 return 'setBlockLevel';
                 break;
-            case 19 /* LIST */:
+            case 20 /* LIST */:
                 return 'list';
+                break;
+            case 8 /* CLEAR_FORMATTING */:
+                return 'clearFormatting';
                 break;
             default:
                 throw "ERR_UNKNOWN_COMMAND";
@@ -5946,7 +5948,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.align(String(args[0]));
                 }
                 break;
-            case 8 /* COPY */:
+            case 9 /* COPY */:
                 if (!this.ensureArgs(args, 0, 0)) {
                     throw "Command: " + commandName + " doesn't require any arguments!";
                 }
@@ -5954,7 +5956,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.copy();
                 }
                 break;
-            case 9 /* CUT */:
+            case 10 /* CUT */:
                 if (!this.ensureArgs(args, 0, 0)) {
                     throw "Command: " + commandName + " doesn't require any arguments!";
                 }
@@ -5962,7 +5964,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.cut();
                 }
                 break;
-            case 10 /* PASTE */:
+            case 11 /* PASTE */:
                 if (!this.ensureArgs(args, 0, 2)) {
                     throw "Command: " + commandName + " require 2 optional args of type string!";
                 }
@@ -5970,7 +5972,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.paste(args.length == 0 ? null : String(args[0]), args.length == 2 ? args[1] : null);
                 }
                 break;
-            case 11 /* INDENT */:
+            case 12 /* INDENT */:
                 if (!this.ensureArgs(args, 0, 1)) {
                     throw "Command: " + commandName + " requires a single optional number argument!";
                 }
@@ -5978,7 +5980,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.indent(args.length ? ~~args[0] : null);
                 }
                 break;
-            case 12 /* UNINDENT */:
+            case 13 /* UNINDENT */:
                 if (!this.ensureArgs(args, 0, 1)) {
                     throw "Command: " + commandName + " requires a single optional number argument!";
                 }
@@ -5986,7 +5988,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.unindent(args.length ? ~~args[0] : null);
                 }
                 break;
-            case 13 /* VALIGN */:
+            case 14 /* VALIGN */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -5994,7 +5996,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.valign(String(args[0] || 'normal'));
                 }
                 break;
-            case 14 /* FONT */:
+            case 15 /* FONT */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single string argument!";
                 }
@@ -6002,7 +6004,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.font(String(args[0] || "Arial"));
                 }
                 break;
-            case 15 /* COLOR */:
+            case 16 /* COLOR */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument!";
                 }
@@ -6010,7 +6012,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.color(String(args[0] || ''));
                 }
                 break;
-            case 16 /* BGCOLOR */:
+            case 17 /* BGCOLOR */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument!";
                 }
@@ -6018,7 +6020,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.bgColor(String(args[0] || ''));
                 }
                 break;
-            case 17 /* SIZE */:
+            case 18 /* SIZE */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -6026,7 +6028,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.size(String(args[0] || ''));
                 }
                 break;
-            case 18 /* BLOCK_LEVEL */:
+            case 19 /* BLOCK_LEVEL */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -6034,7 +6036,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.blockLevel(String(args[0] || ''));
                 }
                 break;
-            case 19 /* LIST */:
+            case 20 /* LIST */:
                 if (!this.ensureArgs(args, 1, 2)) {
                     throw "Command: " + commandName + " requires two arguments: string, boolean";
                 }
@@ -6045,6 +6047,14 @@ var Viewport_CommandRouter = (function (_super) {
                     else {
                         this.list(String(args[0] || 'ul'), !!args[1]);
                     }
+                }
+                break;
+            case 8 /* CLEAR_FORMATTING */:
+                if (!this.ensureArgs(args, 0, 0)) {
+                    throw "Command: " + commandName + " don't have any arguments.";
+                }
+                else {
+                    this.clearFormatting();
                 }
                 break;
             default:
@@ -6586,6 +6596,14 @@ var Viewport_CommandRouter = (function (_super) {
             }
         }
         rng.restore();
+    };
+    Viewport_CommandRouter.prototype.clearFormatting = function () {
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('color').end();
+        this.viewport.selection.editorState.compute();
     };
     return Viewport_CommandRouter;
 })(Events);
@@ -8532,8 +8550,13 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.blockLevel = null;
         this.fontFamily = null;
         this.fontSize = null;
+        this.btnClearFormatting = null;
         DOM.addClass(this.node, 'ui-panel-style');
         this.node.innerHTML = [
+            '<div class="item">',
+            '<div class="ui-button remove-formatting" title="Clear Formatting">',
+            '</div>',
+            '</div>',
             '<div class="item index-0">',
             '<div class="text-dropdown">',
             '<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
@@ -8556,6 +8579,12 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.blockLevel = this.node.querySelector('input.nodeName');
         this.fontFamily = this.node.querySelector('input.fontFamily');
         this.fontSize = this.node.querySelector('input.fontSize');
+        this.btnClearFormatting = this.node.querySelector('div.ui-button.remove-formatting');
+        (function (me) {
+            me.btnClearFormatting.addEventListener('click', function (DOMEvent) {
+                me.toolbar.router.dispatchCommand(8 /* CLEAR_FORMATTING */, []);
+            }, true);
+        })(this);
         (function (me) {
             me.dropdownize(me.blockLevel, function (v) {
                 me.setBlockLevel(v);
@@ -8569,13 +8598,13 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         })(this);
     }
     UI_Toolbar_Panel_Style.prototype.setBlockLevel = function (nodeName) {
-        this.toolbar.router.dispatchCommand(18 /* BLOCK_LEVEL */, [nodeName]);
+        this.toolbar.router.dispatchCommand(19 /* BLOCK_LEVEL */, [nodeName]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontFamily = function (fontFamily) {
-        this.toolbar.router.dispatchCommand(14 /* FONT */, [fontFamily]);
+        this.toolbar.router.dispatchCommand(15 /* FONT */, [fontFamily]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontSize = function (fontSize) {
-        this.toolbar.router.dispatchCommand(17 /* SIZE */, [fontSize]);
+        this.toolbar.router.dispatchCommand(18 /* SIZE */, [fontSize]);
     };
     UI_Toolbar_Panel_Style.prototype.dropdownize = function (input, submit, allowSuggestionsOnly) {
         /* indeed.com corby nn18 nn95nb */
@@ -9001,10 +9030,10 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ul']);
+                me.toolbar.router.dispatchCommand(20 /* LIST */, ['ul']);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ol']);
+                me.toolbar.router.dispatchCommand(20 /* LIST */, ['ol']);
             }, true);
         })(this);
     }
@@ -9051,10 +9080,10 @@ var UI_Toolbar_Panel_Indentation = (function (_super) {
         this.btnUnindent = this.node.querySelector('.ui-button.decrease');
         (function (me) {
             me.btnIndent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(11 /* INDENT */, []);
+                me.toolbar.router.dispatchCommand(12 /* INDENT */, []);
             }, true);
             me.btnUnindent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(12 /* UNINDENT */, []);
+                me.toolbar.router.dispatchCommand(13 /* UNINDENT */, []);
             }, true);
         })(this);
     }
@@ -9079,18 +9108,18 @@ var UI_Toolbar_Panel_TextScripting = (function (_super) {
         (function (me) {
             me.btnSubscript.addEventListener('click', function (DOMEvent) {
                 if (me.toolbar.state.state.verticalAlign == 'sub') {
-                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['normal']);
+                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['normal']);
                 }
                 else {
-                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sub']);
+                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['sub']);
                 }
             }, true);
             me.btnSuperscript.addEventListener('click', function (DOMEvent) {
                 if (me.toolbar.state.state.verticalAlign == 'super') {
-                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['normal']);
+                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['normal']);
                 }
                 else {
-                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sup']);
+                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['sup']);
                 }
             }, true);
         })(this);
@@ -9224,10 +9253,10 @@ var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
         console.info('setBorderColor: ' + color);
     };
     UI_Toolbar_Panel_BordersAndColors.prototype.setBackgroundColor = function (color) {
-        this.toolbar.router.dispatchCommand(16 /* BGCOLOR */, [color]);
+        this.toolbar.router.dispatchCommand(17 /* BGCOLOR */, [color]);
     };
     UI_Toolbar_Panel_BordersAndColors.prototype.setColor = function (color) {
-        this.toolbar.router.dispatchCommand(15 /* COLOR */, [color]);
+        this.toolbar.router.dispatchCommand(16 /* COLOR */, [color]);
     };
     return UI_Toolbar_Panel_BordersAndColors;
 })(UI_Toolbar_Panel);

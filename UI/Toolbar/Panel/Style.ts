@@ -1,8 +1,9 @@
 class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 	
-	public blockLevel: HTMLInputElement   = null;
-	public fontFamily: HTMLInputElement = null;
-	public fontSize: HTMLInputElement   = null;
+	public blockLevel         : HTMLInputElement   = null;
+	public fontFamily 		  : HTMLInputElement   = null;
+	public fontSize 		  : HTMLInputElement   = null;
+	public btnClearFormatting : HTMLDivElement     = null;
 
 	constructor( toolbar: UI_Toolbar ) {
 		
@@ -11,6 +12,10 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 		DOM.addClass( this.node, 'ui-panel-style')
 
 		this.node.innerHTML = [
+			'<div class="item">',
+				'<div class="ui-button remove-formatting" title="Clear Formatting">',
+				'</div>',
+			'</div>',
 			'<div class="item index-0">',
 				'<div class="text-dropdown">',
 					'<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
@@ -34,6 +39,13 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 		this.blockLevel   = <HTMLInputElement>this.node.querySelector( 'input.nodeName' );
 		this.fontFamily = <HTMLInputElement>this.node.querySelector( 'input.fontFamily' );
 		this.fontSize   = <HTMLInputElement>this.node.querySelector( 'input.fontSize' );
+		this.btnClearFormatting = <HTMLDivElement>this.node.querySelector( 'div.ui-button.remove-formatting' );
+
+		( function( me ) {
+			me.btnClearFormatting.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.CLEAR_FORMATTING, [] );
+			}, true );
+		})( this );
 
 		( function( me ) {
 

@@ -38,6 +38,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.SIZE:		return 'setSize';	 break;
 			case EditorCommand.BLOCK_LEVEL: return 'setBlockLevel'; break;
 			case EditorCommand.LIST:        return 'list';       break;
+			case EditorCommand.CLEAR_FORMATTING: return 'clearFormatting'; break;
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
 				break;
@@ -211,6 +212,14 @@ class Viewport_CommandRouter extends Events {
 					
 				}
 				break;
+			case EditorCommand.CLEAR_FORMATTING:
+				if ( !this.ensureArgs( args, 0, 0 ) ) {
+					throw "Command: " + commandName + " don't have any arguments.";
+				} else {
+					this.clearFormatting();
+				}
+				break;
+
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
 				break;
@@ -1008,6 +1017,31 @@ class Viewport_CommandRouter extends Events {
 		}
 
 		rng.restore();
+
+	}
+
+	public clearFormatting() {
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		this.viewport.selection.getRange().affectedRanges()
+			.unwrapFromElement( 'size' )
+			.unwrapFromElement('font')
+			.unwrapFromElement( 'b' )
+			.unwrapFromElement( '!b')
+			.unwrapFromElement( 'i' )
+			.unwrapFromElement( '!i' )
+			.unwrapFromElement( 'u' )
+			.unwrapFromElement( '!u' )
+			.unwrapFromElement( 'color' )
+			.end();
+
+		this.viewport.selection.editorState.compute();
 
 	}
 

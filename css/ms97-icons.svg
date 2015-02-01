@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="16.660533"
-     inkscape:cy="20.561548"
+     inkscape:cx="4.467216"
+     inkscape:cy="160.74496"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -119,28 +119,18 @@
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="fill:#ff0000;fill-opacity:1;stroke:none"
-       id="rect3137"
-       width="9.7251673"
-       height="9.3736401"
-       x="65.40564"
-       y="1036.8035"
-       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
-       inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
-    <rect
        style="fill:none;stroke:none"
        id="rect3524"
        width="80"
-       height="120.15254"
-       x="0"
-       y="932.36218"
+       height="140.13904"
+       x="0.13033295"
+       y="912.23608"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90" />
     <path
        style="fill:#000000;stroke:none"
-       d="m 5.3011362,1018.2648 0,1 1,0 0,6.9999 -1,0 0,1 7.9999988,0 0,-1 1,0 0,-2.9686 -1,0 0,-1.0313 1,0 0,-2.9687 -0.96875,0 0,-1.0313 -8.0312488,0 z m 5.9999988,1 0,3 -1.9999988,0 0,-2.9687 1.9999988,-0.031 z m 0,4 0,2.9999 -1.9999988,0 0,-2.9686 1.9999988,-0.031 z"
+       d="m 5.431469,998.1387 0,1 1,0 0,6.9999 -1,0 0,1 7.999999,0 0,-1 1,0 0,-2.9686 -1,0 0,-1.0313 1,0 0,-2.9687 -0.96875,0 0,-1.0313 -8.031249,0 z m 5.999999,1 0,3 -1.999999,0 0,-2.9687 1.999999,-0.031 z m 0,4 0,2.9999 -1.999999,0 0,-2.9686 1.999999,-0.031 z"
        id="path2996"
        inkscape:connector-curvature="0"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
@@ -148,7 +138,7 @@
        inkscape:export-ydpi="90" />
     <path
        style="fill:#000000;stroke:none"
-       d="m 30.728996,1019.2268 -3.70535,7.0535 -1.54017,0 0,0.9598 5.40178,0 0,-0.9598 -1.31697,0 3.683043,-7.0535 1.18304,0 0,-0.9375 -4.910723,0 0,0.9598 z"
+       d="m 30.859329,999.1007 -3.70535,7.0535 -1.54017,0 0,0.9598 5.40178,0 0,-0.9598 -1.31697,0 3.683043,-7.0535 1.18304,0 0,-0.9375 -4.910723,0 0,0.9598 z"
        id="path3004"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccccccccccc"
@@ -157,7 +147,7 @@
        inkscape:export-ydpi="90" />
     <path
        style="fill:#000000;stroke:none"
-       d="m 45.204699,1017.9993 0,1 1,0 0,7.0312 0.96875,0 0,0.9687 4.96875,0 0,-0.9375 1.03125,0 0,-6.9999 1.03125,0 0,-0.9687 -4,0 0,0.9375 0.96875,0 0,6.0312 -0.9375,0.9374 -0.96875,0 -1.03125,-1.0311 0,-5.9375 0.9375,0 0,-0.9688 -3.96875,-0.062 z m 8.96875,10.0312 -9,0.031 0,0.9687 9,0 0,-1 z"
+       d="m 45.335032,997.8732 0,1 1,0 0,7.0312 0.96875,0 0,0.9687 4.96875,0 0,-0.9375 1.03125,0 0,-6.9999 1.03125,0 0,-0.9687 -4,0 0,0.9375 0.96875,0 0,6.0312 -0.9375,0.9374 -0.96875,0 -1.03125,-1.0311 0,-5.9375 0.9375,0 0,-0.9688 -3.96875,-0.062 z m 8.96875,10.0312 -9,0.031 0,0.9687 9,0 0,-1 z"
        id="path3008"
        inkscape:connector-curvature="0"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
@@ -165,7 +155,7 @@
        inkscape:export-ydpi="90" />
     <path
        style="fill:#000000;stroke:none"
-       d="m 2.8167612,997.69946 0,1 13.9687498,0 0,-1 -13.9687498,0 z m 0,2 0,1.00004 9.9687498,0 0,-1.00004 -9.9687498,0 z m 0,2.00004 0,1 13.9687498,0 0,-1 -13.9687498,0 z m 0,2 0,1 9.9687498,0 0,-1 -9.9687498,0 z m 0,2 0,1 13.9687498,0 0,-1 -13.9687498,0 z m 0,2 0,1 9.9687498,0 0,-1 -9.9687498,0 z"
+       d="m 2.947094,977.57336 0,1 13.96875,0 0,-1 -13.96875,0 z m 0,2 0,1.00004 9.96875,0 0,-1.00004 -9.96875,0 z m 0,2.00004 0,1 13.96875,0 0,-1 -13.96875,0 z m 0,2 0,1 9.96875,0 0,-1 -9.96875,0 z m 0,2 0,1 13.96875,0 0,-1 -13.96875,0 z m 0,2 0,1 9.96875,0 0,-1 -9.96875,0 z"
        id="path3013"
        inkscape:connector-curvature="0"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
@@ -173,7 +163,7 @@
        inkscape:export-ydpi="90" />
     <path
        id="path3026"
-       d="m 36.943299,997.69936 0,1 -13.968753,0 0,-1 13.968753,0 z m 0,2 0,1.00004 -9.968753,0 0,-1.00004 9.968753,0 z m 0,2.00004 0,1 -13.968753,0 0,-1 13.968753,0 z m 0,2 0,1 -9.968753,0 0,-1 9.968753,0 z m 0,2 0,1.0001 -13.968753,0 0,-1 13.968753,0 z m 0,2.0001 0,1 -9.968753,0 0,-1 9.968753,0 z"
+       d="m 37.073632,977.57326 0,1 -13.968753,0 0,-1 13.968753,0 z m 0,2 0,1.00004 -9.968753,0 0,-1.00004 9.968753,0 z m 0,2.00004 0,1 -13.968753,0 0,-1 13.968753,0 z m 0,2 0,1 -9.968753,0 0,-1 9.968753,0 z m 0,2 0,1.0001 -13.968753,0 0,-1 13.968753,0 z m 0,2.0001 0,1 -9.968753,0 0,-1 9.968753,0 z"
        style="fill:#000000;stroke:none"
        inkscape:connector-curvature="0"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
@@ -181,7 +171,7 @@
        inkscape:export-ydpi="90" />
     <g
        id="g3042"
-       transform="translate(-437.12733,663.49529)"
+       transform="translate(-436.997,643.36919)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -218,7 +208,7 @@
     </g>
     <g
        id="g3064"
-       transform="translate(-437.17614,663.85243)"
+       transform="translate(-437.04581,643.72633)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -258,7 +248,7 @@
     </g>
     <g
        id="g3084"
-       transform="translate(-545.19877,522.37418)"
+       transform="translate(-545.06844,502.24808)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -295,7 +285,7 @@
     </g>
     <g
        id="g3104"
-       transform="translate(-548.02196,522.96146)"
+       transform="translate(-547.89163,502.83536)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -332,7 +322,7 @@
     </g>
     <g
        id="g3134"
-       transform="translate(-552.26262,522.85911)"
+       transform="translate(-552.13229,502.73301)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -401,7 +391,7 @@
     </g>
     <g
        id="g3182"
-       transform="translate(-555.34714,522.81448)"
+       transform="translate(-555.21681,502.68838)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -470,7 +460,7 @@
     </g>
     <g
        id="g3218"
-       transform="translate(-584.87536,561.53034)"
+       transform="translate(-584.74503,541.40424)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -527,7 +517,7 @@
     </g>
     <g
        id="g3247"
-       transform="translate(-678.26186,503.58348)"
+       transform="translate(-678.13153,483.45738)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -570,7 +560,7 @@
     </g>
     <path
        style="fill:#000080;fill-opacity:1;stroke:none"
-       d="m 29.990966,956.88098 -5.28125,10 -1.15625,0 0,1.0313 3.9375,0 0,-1.0322 -1.5625,0 1.59375,-2.9678 3.71304,0.063 1.375,2.9687 -1.29918,-0.063 0,1.0625 5.053303,0 0,-1.1263 -1.77966,0 z m -0.50444,3.0328 1.40657,2.9991 -2.83963,-0.063 z"
+       d="m 30.121299,936.75488 -5.28125,10 -1.15625,0 0,1.0313 3.9375,0 0,-1.0322 -1.5625,0 1.59375,-2.9678 3.71304,0.063 1.375,2.9687 -1.29918,-0.063 0,1.0625 5.053303,0 0,-1.1263 -1.77966,0 z m -0.50444,3.0328 1.40657,2.9991 -2.83963,-0.063 z"
        id="path3256"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="cccccccccccccccccccc"
@@ -579,7 +569,7 @@
        inkscape:export-ydpi="90" />
     <g
        id="g3292"
-       transform="translate(-477.2953,528.19348)"
+       transform="translate(-477.16497,508.06738)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -602,7 +592,7 @@
     </g>
     <path
        style="fill:#000080;stroke:none"
-       d="m 4.5723632,938.91836 -0.64713,5.3033 5.303309,0 -2.241279,-2.1308 c 0,0 2.159709,-2.7044 4.5443588,-2.7044 2.38466,0 3.73157,0.8305 2.8602,2.9549 -0.88423,2.1557 -1.45448,2.5192 -1.45448,2.5192 l 0.60404,0.6041 c 0,0 3.3783,-4.3681 1.637,-6.1094 -1.7413,-1.7413 -7.0942788,-1.0609 -8.9123988,2.0882 z"
+       d="m 4.702696,918.79226 -0.64713,5.3033 5.303309,0 -2.241279,-2.1308 c 0,0 2.159709,-2.7044 4.544359,-2.7044 2.38466,0 3.73157,0.8305 2.8602,2.9549 -0.88423,2.1557 -1.45448,2.5192 -1.45448,2.5192 l 0.60404,0.6041 c 0,0 3.3783,-4.3681 1.637,-6.1094 -1.7413,-1.7413 -7.094279,-1.0609 -8.912399,2.0882 z"
        id="path3308"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccssccscc"
@@ -613,14 +603,14 @@
        sodipodi:nodetypes="ccccssccscc"
        inkscape:connector-curvature="0"
        id="path3310"
-       d="m 35.187699,938.91835 0.64713,5.3033 -5.303315,0 2.24128,-2.1308 c 0,0 -2.15971,-2.7044 -4.54436,-2.7044 -2.38466,0 -3.73157,0.8306 -2.8602,2.9549 0.88423,2.1557 1.45448,2.5192 1.45448,2.5192 l -0.60404,0.6041 c 0,0 -3.3783,-4.3681 -1.637,-6.1094 1.7413,-1.7413 7.09428,-1.0608 8.912405,2.0882 z"
+       d="m 35.318032,918.79225 0.64713,5.3033 -5.303315,0 2.24128,-2.1308 c 0,0 -2.15971,-2.7044 -4.54436,-2.7044 -2.38466,0 -3.73157,0.8306 -2.8602,2.9549 0.88423,2.1557 1.45448,2.5192 1.45448,2.5192 l -0.60404,0.6041 c 0,0 -3.3783,-4.3681 -1.637,-6.1094 1.7413,-1.7413 7.09428,-1.0608 8.912405,2.0882 z"
        style="fill:#000080;stroke:none"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90" />
     <g
        id="g3367"
-       transform="translate(-479.41031,472.56433)"
+       transform="translate(-479.27998,452.43823)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -708,7 +698,7 @@
     </g>
     <g
        id="g3412"
-       transform="translate(-532.87536,504.33219)"
+       transform="translate(-532.74503,484.20609)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -739,7 +729,7 @@
     </g>
     <g
        id="g3473"
-       transform="translate(-456.59215,644.28946)"
+       transform="translate(-456.46182,624.16336)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
@@ -804,79 +794,166 @@
         </g>
       </g>
     </g>
-    <path
-       style="fill:#000000;stroke:none"
-       d="m 1.3317202,1040.1836 3.75,3.75 3.457107,-3.7665 z"
-       id="path3117"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cccc"
+    <g
+       id="g3159"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
-    <path
-       sodipodi:nodetypes="cccc"
-       inkscape:connector-curvature="0"
-       id="path3119"
-       d="m 11.20672,1043.9171 3.75,-3.75 3.457107,3.7665 z"
-       style="fill:#000000;stroke:none"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         sodipodi:nodetypes="cccc"
+         inkscape:connector-curvature="0"
+         id="path3117"
+         d="m 1.462053,1020.0575 3.75,3.75 3.457107,-3.7665 z"
+         style="fill:#000000;stroke:none" />
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         style="fill:#000000;stroke:none"
+         d="m 11.337053,1023.791 3.75,-3.75 3.457107,3.7665 z"
+         id="path3119"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="cccc" />
+    </g>
+    <g
+       id="g3149"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
-    <path
-       style="fill:#000000;stroke:none"
-       d="m 46.336157,1039.0493 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
-       id="path3131"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccccccccc"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         sodipodi:nodetypes="ccccccccccccc"
+         inkscape:connector-curvature="0"
+         id="path3131"
+         d="m 46.46649,1018.9232 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
+         style="fill:#000000;stroke:none" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         sodipodi:linespacing="125%"
+         id="text3133"
+         y="1019.463"
+         x="53.928398"
+         style="font-size:7.45088577px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#fc0f0f;fill-opacity:1;stroke:none;font-family:Sans"
+         xml:space="preserve"><tspan
+           style="font-weight:bold;fill:#fc0f0f;fill-opacity:1"
+           y="1019.463"
+           x="53.928398"
+           id="tspan3135"
+           sodipodi:role="line">2</tspan></text>
+    </g>
+    <g
+       id="g3154"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
-    <text
-       xml:space="preserve"
-       style="font-size:7.45088577px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#fc0f0f;fill-opacity:1;stroke:none;font-family:Sans"
-       x="53.798065"
-       y="1039.5891"
-       id="text3133"
-       sodipodi:linespacing="125%"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         style="fill:#000000;stroke:none"
+         d="m 25.563946,1019.0999 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
+         id="path3137"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="ccccccccccccc" />
+      <text
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         xml:space="preserve"
+         style="font-size:7.2711463px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000080;fill-opacity:1;stroke:none;font-family:Sans"
+         x="33"
+         y="1027.3622"
+         id="text3139"
+         sodipodi:linespacing="125%"><tspan
+           sodipodi:role="line"
+           id="tspan3141"
+           x="33"
+           y="1027.3622"
+           style="font-weight:bold;fill:#000080;fill-opacity:1">2</tspan></text>
+    </g>
+    <g
+       id="g3145"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90"><tspan
-         sodipodi:role="line"
-         id="tspan3135"
-         x="53.798065"
-         y="1039.5891"
-         style="font-weight:bold;fill:#fc0f0f;fill-opacity:1">2</tspan></text>
-    <path
-       sodipodi:nodetypes="ccccccccccccc"
-       inkscape:connector-curvature="0"
-       id="path3137"
-       d="m 25.433613,1039.226 2.705101,2.4207 -2.28232,2.3989 0.947298,0.9349 2.278141,-2.4271 2.523962,2.5394 1.037161,-1.0323 -2.47179,-2.3762 2.475678,-2.5271 -1.091596,-1.0444 -2.459252,2.5231 -2.671898,-2.4302 z"
-       style="fill:#000000;stroke:none"
+       inkscape:export-ydpi="90">
+      <rect
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         y="1016.6774"
+         x="65.535973"
+         height="9.3736401"
+         width="9.7251673"
+         id="rect3137"
+         style="fill:#ff0000;fill-opacity:1;stroke:none" />
+      <path
+         inkscape:export-ydpi="90"
+         inkscape:export-xdpi="90"
+         inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+         inkscape:connector-curvature="0"
+         id="rect3125"
+         d="m 66.451833,1016.665 3.847695,4.056 3.874984,-4.056 -7.722679,0 z m 8.623203,0 0.19102,0.1999 0,-0.1999 -0.19102,0 z m 0.19102,0.6569 -4.093292,4.2846 4.093292,4.2845 0,-8.5691 z m -9.742036,0.1715 0,8.2262 3.929561,-4.1131 -3.929561,-4.1131 z m 4.775508,4.9985 -3.383789,3.5705 6.794866,0 -3.411077,-3.5705 z"
+         style="fill:#ffffff;fill-opacity:1;stroke:none" />
+    </g>
+    <g
+       id="g3204"
+       transform="translate(34.206291,-23.688077)"
        inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
-    <text
-       sodipodi:linespacing="125%"
-       id="text3139"
-       y="1047.4883"
-       x="32.869667"
-       style="font-size:7.2711463px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000080;fill-opacity:1;stroke:none;font-family:Sans"
-       xml:space="preserve"
-       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
-       inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90"><tspan
-         style="font-weight:bold;fill:#000080;fill-opacity:1"
-         y="1047.4883"
-         x="32.869667"
-         id="tspan3141"
-         sodipodi:role="line">2</tspan></text>
-    <path
-       style="fill:#ffffff;fill-opacity:1;stroke:none"
-       d="m 66.3215,1036.7911 3.847695,4.056 3.874984,-4.056 -7.722679,0 z m 8.623203,0 0.19102,0.1999 0,-0.1999 -0.19102,0 z m 0.19102,0.6569 -4.093292,4.2846 4.093292,4.2845 0,-8.5691 z m -9.742036,0.1715 0,8.2262 3.929561,-4.1131 -3.929561,-4.1131 z m 4.775508,4.9985 -3.383789,3.5705 6.794866,0 -3.411077,-3.5705 z"
-       id="rect3125"
-       inkscape:connector-curvature="0"
-       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
-       inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3182"
+         d="m -31.156893,1058.9913 0,7.955 12.06501,0 0,-7.9108 z"
+         style="fill:#ffffff;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+      <g
+         transform="matrix(0.1858782,0,0,0.1858782,9.0070365,877.04003)"
+         id="text3184"
+         style="font-size:40px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans">
+        <path
+           inkscape:connector-curvature="0"
+           id="path3194"
+           style="font-weight:bold"
+           d="m -180.9267,1012.7642 -6.28906,0 -2.5,-6.5039 -11.44531,0 -2.36328,6.5039 -6.13282,0 11.15235,-28.63279 6.11328,0 z m -10.64453,-11.3281 -3.94531,-10.625 -3.86719,10.625 z" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path3196"
+           style="font-weight:bold"
+           d="m -173.77826,998.35016 -4.98047,-0.89844 c 0.5599,-2.00519 1.52344,-3.48956 2.89063,-4.45312 1.36718,-0.96352 3.39843,-1.4453 6.09375,-1.44532 2.4479,2e-5 4.27082,0.28974 5.46875,0.86914 1.1979,0.57945 2.04099,1.31513 2.52929,2.20704 0.48827,0.89194 0.73241,2.52931 0.73243,4.9121 l -0.0586,6.40624 c -2e-5,1.8229 0.0879,3.1673 0.26367,4.0332 0.17577,0.8659 0.50454,1.7936 0.98633,2.7832 l -5.42969,0 c -0.14324,-0.3646 -0.31902,-0.9049 -0.52734,-1.6211 -0.0912,-0.3255 -0.15626,-0.5403 -0.19531,-0.6445 -0.93752,0.9115 -1.94012,1.595 -3.00781,2.0508 -1.06772,0.4557 -2.20705,0.6836 -3.41797,0.6836 -2.13543,0 -3.81837,-0.5795 -5.04883,-1.7383 -1.23047,-1.1589 -1.84571,-2.6237 -1.8457,-4.3945 -1e-5,-1.1719 0.27994,-2.2168 0.83984,-3.1348 0.55989,-0.918 1.3444,-1.6211 2.35352,-2.1094 1.0091,-0.4883 2.46418,-0.9147 4.36523,-1.2793 2.56509,-0.4817 4.34243,-0.93096 5.33203,-1.34764 l 0,-0.54687 c -1e-5,-1.05467 -0.26043,-1.80662 -0.78125,-2.25586 -0.52085,-0.4492 -1.50392,-0.67381 -2.94922,-0.67383 -0.97657,2e-5 -1.73829,0.19208 -2.28515,0.57617 -0.54689,0.38413 -0.98959,1.05796 -1.32813,2.02149 z m 7.34375,4.45314 c -0.70314,0.2344 -1.81642,0.5143 -3.33984,0.8398 -1.52345,0.3256 -2.51954,0.6446 -2.98828,0.9571 -0.71616,0.5078 -1.07423,1.1523 -1.07422,1.9336 -1e-5,0.7682 0.28645,1.4322 0.85937,1.9921 0.57291,0.5599 1.30208,0.8399 2.1875,0.8399 0.98957,0 1.93358,-0.3255 2.83203,-0.9766 0.66405,-0.4948 1.10025,-1.1002 1.3086,-1.8164 0.14321,-0.4687 0.21483,-1.3607 0.21484,-2.6758 z" />
+      </g>
+      <g
+         transform="translate(-0.44194174,-0.97227183)"
+         id="g3198">
+        <path
+           style="fill:#dfdeb0;fill-opacity:1;stroke:none"
+           d="m -26.09375,1070.8934 -0.0625,1.125 2.0625,1.9063 2.78125,0.2187 5.25,-4.9687 -0.03125,-3.1563 -1.234375,-1.2343 -3.296875,0 z"
+           id="path3174"
+           inkscape:connector-curvature="0" />
+        <path
+           style="fill:#808080;fill-opacity:1;stroke:none"
+           d="m -22.296875,1072.159 5.921875,-6.0781 0,2.8438 -3.597541,3.3781 z"
+           id="path3176"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="ccccc" />
+        <path
+           style="fill:#808080;fill-opacity:1;stroke:none"
+           d="m -23.909048,1073.1776 0.961223,-0.9612 -2.077126,-2.0771 -0.773398,0.7734 -0.03315,0.7844 1.690427,1.6905 z"
+           id="path3178"
+           inkscape:connector-curvature="0" />
+        <path
+           style="fill:#808080;fill-opacity:1;stroke:none"
+           d="m -22.5,1072.3935 -1.132813,1.1484 2.132813,0.1171 1.273437,-1.1015 z"
+           id="path3180"
+           inkscape:connector-curvature="0"
+           sodipodi:nodetypes="ccccc" />
+      </g>
+    </g>
   </g>
 </svg>

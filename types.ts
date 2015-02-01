@@ -69,6 +69,7 @@ enum EditorCommand {
 	UNDERLINE,
 
 	ALIGN,			// set text align
+	CLEAR_FORMATTING, // obvious :)
 
 	COPY,
 	CUT,

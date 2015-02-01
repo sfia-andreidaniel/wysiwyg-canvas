@@ -102,6 +102,7 @@ div.html-editor > div.toolbar > div.ui-panel > div.item {
 	display: inline-block;
 	margin: 0px 1px;
 	height: 20px;
+	vertical-align: top;
 }
 
 div.html-editor > div.toolbar *:focus {
@@ -299,6 +300,11 @@ div.html-editor > div.toolbar > div.ui-panel input.fontFamily {
 div.html-editor > div.toolbar > div.ui-panel input.fontSize {
 	width: 25px;
 }
+
+div.html-editor .ui-panel-style .ui-button.remove-formatting {
+	background-position: -1px -119px !important;
+}
+
 
 div.html-editor .ui-panel-formatting .ui-button.bold {
 	background-position: -1px -81px !important;

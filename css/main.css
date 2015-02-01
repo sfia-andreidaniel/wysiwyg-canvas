@@ -63,6 +63,25 @@ div.html-editor > div.statusbar {
 	-o-user-select: none;
 	user-select: none;
 
+	border: 1px inset #ddd;
+
+}
+
+div.html-editor > div.statusbar > a {
+	display: inline-block;
+	padding-top: 4px;
+	margin-right: 5px;
+	text-decoration: none;
+	color: black;
+}
+
+div.html-editor > div.statusbar > a:not(:last-child):after {
+	display: inline-block;
+	content: '\00bb';
+	color: #333;
+	text-decoration: none;
+	padding-left: 5px;
+	padding-right: 5px;
 }
 
 div.html-editor.has-statusbar > div.statusbar {

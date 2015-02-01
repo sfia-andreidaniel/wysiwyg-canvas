@@ -214,31 +214,71 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 	});
 
 	(function( me ) {
-		var textNode: any;
+		var links: HTMLAnchorElement[] = [],
+		    i: number = 0,
+		    len: number = 0,
+		    anchor: HTMLAnchorElement = null;
 
-		(<any>statusbar).innerHTML = 'StatusBar';
-		
-		textNode = statusbar.firstChild;
+		for ( i=0; i<40; i++ ) {
+			anchor = <HTMLAnchorElement>document.createElement('a');
+			anchor.appendChild( document.createTextNode(' ' ) );
+			
+			( function( link ) {
+
+				link.addEventListener( 'click' ,function() {
+					
+					var start = ~~link.getAttribute('data-start'),
+					     stop = ~~link.getAttribute('data-stop');
+
+					viewport.selection.selectByFragmentIndexes( start, stop );
+
+					viewport.canvas.focus();
+
+				} );
+
+				link.href = 'javascript:;'
+
+			} )( anchor );
+
+			links.push( anchor );
+		}
 
 		viewport.selection.on( 'changed', function() {
+
 
 			var rng: TRange = viewport.selection.getRange(),
 			    focus: TRange_Target = rng.focusNode(),
 			    anchor: TRange_Target = rng.anchorNode(),
 			    debug = focus || anchor,
 			    node: TNode = debug.target,
-			    stack: string[] = [];
+			    stack: string[] = [],
+			    i: number = 0,
+			    j: number = 0;
+
+			/* Clear the contents of the statusBar */
+			while ( statusbar.childNodes.length ) {
+				statusbar.removeChild( statusbar.childNodes[0] );
+			}
+
+			i = -1;
 
 			while ( node ) {
+				i++;
 				if ( node.nodeType == TNode_Type.TEXT ) {
-					stack.push( '#text' );
+					links[i].firstChild.textContent = '#text';
 				} else {
-					stack.push( (<TNode_Element>node).nodeName );
+					links[i].firstChild.textContent = (<TNode_Element>node).nodeName.toUpperCase();
 				}
+
+				links[i].setAttribute('data-start', String(node.FRAGMENT_START) );
+				links[i].setAttribute('data-stop',  String(node.FRAGMENT_END) );
+
 				node = node.parentNode;
 			}
 
-			textNode.textContent = Helper.reverse( stack ).join( ' > ' ) || 'Click somewhere in editor to see here it\'s path';
+			for ( j=i; j>=0; j-- ) {
+				statusbar.appendChild( links[j] );
+			}
 
 		} );
 

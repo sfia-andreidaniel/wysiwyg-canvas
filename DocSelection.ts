@@ -119,4 +119,46 @@ class DocSelection extends Events {
 		}
 	}
 
+	/* This function is used by the default StatusBar, and *might* not treat
+	   all the test cases.
+	 */
+	public selectByFragmentIndexes( start: number, stop: number ) {
+		var nStart: TNode = this.viewport.document.findNodeAtIndex( start ),
+		    nStop : TNode = this.viewport.document.findNodeAtIndex( stop ),
+		    fragment: Fragment = this.viewport.document.fragment,
+		    fragLen: number = fragment.length(),
+		    at: FragmentItem;
+
+		switch ( true ) {
+			case nStart == nStop && nStart.nodeType == TNode_Type.TEXT:
+				this.anchorTo( new TRange_Target( nStart, start ) );
+				this.focusTo( new TRange_Target( nStart, stop ) );
+				break;
+
+			case ( nStart.nodeType == TNode_Type.ELEMENT && (<TNode_Element>nStart).isBlockTextNode ) || 
+			     ( nStop.nodeType == TNode_Type.ELEMENT && (<TNode_Element>nStop).isBlockTextNode ) :
+			case ( nStart.nodeType == TNode_Type.ELEMENT && !(<TNode_Element>nStart).isSelectable ) && 
+			     ( nStop.nodeType == TNode_Type.ELEMENT && !(<TNode_Element>nStop).isSelectable ) :
+				
+				while ( start < fragLen && start <= stop && [ FragmentItem.WHITE_SPACE, FragmentItem.CHARACTER, FragmentItem.EOL ].indexOf( fragment.at( start ) ) == -1 ) {
+					start++;
+				}
+
+				while ( stop > 0 && stop >= start && [ FragmentItem.WHITE_SPACE, FragmentItem.CHARACTER, FragmentItem.EOL ].indexOf( fragment.at( stop ) ) == -1 ) {
+					stop--;
+				}
+
+				this.anchorTo( new TRange_Target( this.viewport.document.findNodeAtIndex( start ), start ) );
+				this.focusTo ( new TRange_Target( this.viewport.document.findNodeAtIndex( stop ), stop ) );
+
+
+				break;
+
+			default:
+				console.warn('a');
+				this.anchorTo( new TRange_Target( nStart, start ) );
+				break;
+		}
+	}
+
 }

@@ -7952,6 +7952,33 @@ var DocSelection = (function (_super) {
             range.moveRightUntilCharacterIfNotLandedOnText();
         }
     };
+    /* This function is used by the default StatusBar, and *might* not treat
+       all the test cases.
+     */
+    DocSelection.prototype.selectByFragmentIndexes = function (start, stop) {
+        var nStart = this.viewport.document.findNodeAtIndex(start), nStop = this.viewport.document.findNodeAtIndex(stop), fragment = this.viewport.document.fragment, fragLen = fragment.length(), at;
+        switch (true) {
+            case nStart == nStop && nStart.nodeType == 1 /* TEXT */:
+                this.anchorTo(new TRange_Target(nStart, start));
+                this.focusTo(new TRange_Target(nStart, stop));
+                break;
+            case (nStart.nodeType == 2 /* ELEMENT */ && nStart.isBlockTextNode) || (nStop.nodeType == 2 /* ELEMENT */ && nStop.isBlockTextNode):
+            case (nStart.nodeType == 2 /* ELEMENT */ && !nStart.isSelectable) && (nStop.nodeType == 2 /* ELEMENT */ && !nStop.isSelectable):
+                while (start < fragLen && start <= stop && [4 /* WHITE_SPACE */, 3 /* CHARACTER */, 2 /* EOL */].indexOf(fragment.at(start)) == -1) {
+                    start++;
+                }
+                while (stop > 0 && stop >= start && [4 /* WHITE_SPACE */, 3 /* CHARACTER */, 2 /* EOL */].indexOf(fragment.at(stop)) == -1) {
+                    stop--;
+                }
+                this.anchorTo(new TRange_Target(this.viewport.document.findNodeAtIndex(start), start));
+                this.focusTo(new TRange_Target(this.viewport.document.findNodeAtIndex(stop), stop));
+                break;
+            default:
+                console.warn('a');
+                this.anchorTo(new TRange_Target(nStart, start));
+                break;
+        }
+    };
     // selection is painted with two colors, depending on
     // the focus state of the viewport
     DocSelection.$Colors = {
@@ -8322,21 +8349,41 @@ function HTMLEditor(value, hasToolbars, hasStatusbar, initialWidth, initialHeigh
         ui_toolbar.updateDocumentState(properties);
     });
     (function (me) {
-        var textNode;
-        statusbar.innerHTML = 'StatusBar';
-        textNode = statusbar.firstChild;
+        var links = [], i = 0, len = 0, anchor = null;
+        for (i = 0; i < 40; i++) {
+            anchor = document.createElement('a');
+            anchor.appendChild(document.createTextNode(' '));
+            (function (link) {
+                link.addEventListener('click', function () {
+                    var start = ~~link.getAttribute('data-start'), stop = ~~link.getAttribute('data-stop');
+                    viewport.selection.selectByFragmentIndexes(start, stop);
+                    viewport.canvas.focus();
+                });
+                link.href = 'javascript:;';
+            })(anchor);
+            links.push(anchor);
+        }
         viewport.selection.on('changed', function () {
-            var rng = viewport.selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), debug = focus || anchor, node = debug.target, stack = [];
+            var rng = viewport.selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), debug = focus || anchor, node = debug.target, stack = [], i = 0, j = 0;
+            while (statusbar.childNodes.length) {
+                statusbar.removeChild(statusbar.childNodes[0]);
+            }
+            i = -1;
             while (node) {
+                i++;
                 if (node.nodeType == 1 /* TEXT */) {
-                    stack.push('#text');
+                    links[i].firstChild.textContent = '#text';
                 }
                 else {
-                    stack.push(node.nodeName);
+                    links[i].firstChild.textContent = node.nodeName.toUpperCase();
                 }
+                links[i].setAttribute('data-start', String(node.FRAGMENT_START));
+                links[i].setAttribute('data-stop', String(node.FRAGMENT_END));
                 node = node.parentNode;
             }
-            textNode.textContent = Helper.reverse(stack).join(' > ') || 'Click somewhere in editor to see here it\'s path';
+            for (j = i; j >= 0; j--) {
+                statusbar.appendChild(links[j]);
+            }
         });
     })(this);
     element['value'] = value;

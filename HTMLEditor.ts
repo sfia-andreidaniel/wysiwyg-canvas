@@ -265,13 +265,16 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 			while ( node ) {
 				i++;
 				if ( node.nodeType == TNode_Type.TEXT ) {
-					links[i].firstChild.textContent = '#text';
+					i--;
+					node = node.parentNode;
+					continue; // ignore text nodes
+					//links[i].firstChild.textContent = '#text';
 				} else {
 					links[i].firstChild.textContent = (<TNode_Element>node).nodeName.toUpperCase();
 				}
 
 				links[i].setAttribute('data-start', String(node.FRAGMENT_START) );
-				links[i].setAttribute('data-stop',  String(node.FRAGMENT_END) );
+				links[i].setAttribute('data-stop',  String(node.FRAGMENT_END ) );
 
 				node = node.parentNode;
 			}

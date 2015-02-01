@@ -155,4 +155,9 @@ class HTML_Image extends TNode_Element {
 		// void, intentionally.
 	}
 
+	// images don't have tabstops
+	public tabStop( value: number = null ): number {
+		return 0;
+	}
+
 }

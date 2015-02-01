@@ -49,6 +49,9 @@ class HTML_OrderedList extends TNode_Element {
 		return TListBreakResult.AFTER;
 	}
 
-
+	// lists don't have tabstops, only list items.
+	public tabStop( value: number = null ): number {
+		return 0;
+	}
 	
 }

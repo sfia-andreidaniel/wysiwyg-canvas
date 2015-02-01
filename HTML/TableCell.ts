@@ -111,4 +111,9 @@ class HTML_TableCell extends TNode_Element {
 		return this;
 	}
 
+	// table cells don't have tabstops
+	public tabStop( value: number = null ): number {
+		return 0;
+	}
+
 }

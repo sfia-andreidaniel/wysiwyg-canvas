@@ -34,5 +34,10 @@ class HTML_TableRow extends TNode_Element {
 		return false; // table rows cannot be removed even if they are selected when the user press a removal key
 	}
 
+	// table rows don't have tabstops
+	public tabStop( value: number = null ): number {
+		return 0;
+	}
+
 
 }

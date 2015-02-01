@@ -21,6 +21,8 @@ class TNode_Element extends TNode {
 	public isDefragmentable          : boolean        = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
 	public isNegation                : boolean        = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
 
+	private _tabStop                 : number         = 0;
+
 	/* @postStyleInit: weather to initialize the style property on this constructor,
 	                   or if that style property will be initialized in ancestor classes 
 	 */
@@ -1219,6 +1221,20 @@ class TNode_Element extends TNode {
 			 ) {
 				this.childNodes[i].remove();
 			}
+		}
+	}
+
+	public tabStop( value: number = null ): number {
+		if ( value === null ) {
+			return this._tabStop;
+		} else {
+			//setter
+			this._tabStop = ~~value;
+			this._tabStop = this._tabStop < 0 ? 0 : this._tabStop;
+			if ( this.documentElement ) {
+				this.documentElement.requestRelayout();
+			}
+			return this._tabStop;
 		}
 	}
 

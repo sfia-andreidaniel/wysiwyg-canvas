@@ -28,7 +28,8 @@ class Layout_Vertical extends Layout {
 
 	public computeWidths() {
 		var i: number = 0,
-		    len: number = this.children.length;
+		    len: number = this.children.length,
+		    tabSize = ( this.children && len && this.children[0].node && this.children[0].node.documentElement ) ? this.children[0].node.documentElement.tabSize() : 0;
 
 		for ( i=0; i<len; i++ ) {
 
@@ -37,7 +38,7 @@ class Layout_Vertical extends Layout {
 				
 				// compute offsetleft and innerLeft
 				this.children[i].offsetLeft = this.innerLeft + this.children[i].node.style.marginLeft() - this.children[i].node.style.borderWidth();
-				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.borderWidth() + this.children[i].node.style.paddingLeft();
+				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.borderWidth() + ( this.children[i].node.style.paddingLeft() + this.children[i].node.tabStop() * tabSize );
 				
 				// if the child has a specified width, set the width to the layout,
 				// otherwise determine it's width by this parent
@@ -52,6 +53,7 @@ class Layout_Vertical extends Layout {
 						this.innerWidth
 						- ( this.children[i].node.style.borderWidth() * 2 )
 						- this.children[i].node.style.paddingLeft()
+						- ( this.children[i].node.tabStop() * tabSize )
 						- this.children[i].node.style.paddingRight()
 						- this.children[i].node.style.marginLeft()
 						- this.children[i].node.style.marginRight();
@@ -59,6 +61,7 @@ class Layout_Vertical extends Layout {
 					this.children[i].offsetWidth =
 						this.children[i].innerWidth
 						+ this.children[i].node.style.paddingLeft()
+						+ ( this.children[i].node.tabStop() * tabSize )
 						+ this.children[i].node.style.paddingRight()
 						+ ( this.children[i].node.style.borderWidth() * 2 );
 				}

@@ -149,7 +149,7 @@ class DocSelection extends Events {
 				}
 
 				this.anchorTo( new TRange_Target( this.viewport.document.findNodeAtIndex( start ), start ) );
-				this.focusTo ( new TRange_Target( this.viewport.document.findNodeAtIndex( stop ), stop ) );
+				this.focusTo ( new TRange_Target( this.viewport.document.findNodeAtIndex( stop ), stop + 1 ) );
 
 
 				break;

@@ -59,12 +59,13 @@ class Layout_Horizontal extends Layout {
 		    computeAfter: Layout[] = [],
 		    leftPosition: number = this.innerLeft,
 		    i: number = 0,
-		    len: number = 0,
+		    len: number = this.children.length,
 		    averageWidth: number = 0,
 		    sumWidths: number = 0,
-		    optimalWidth: number = 0;
+		    optimalWidth: number = 0,
+		    tabSize: number = ( this.children && len && this.children[0].node && this.children[0].node.documentElement ) ? this.children[0].node.documentElement.tabSize() : 0;
 
-		for ( i=0, len = this.children.length; i<len; i++ ) {
+		for ( i=0; i<len; i++ ) {
 
 			if ( this.children[i].node ) {
 				// the child has a node associated.
@@ -73,7 +74,7 @@ class Layout_Horizontal extends Layout {
 
 				if ( this.children[i].node.style._width.isSet ) {
 
-					this.children[i].offsetWidth = this.children[i].node.style.width() + ( this.children[i].node.style.borderWidth() * 2 ) + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight();
+					this.children[i].offsetWidth = this.children[i].node.style.width() + ( this.children[i].node.style.borderWidth() * 2 ) + this.children[i].node.style.paddingLeft() + ( this.children[i].node.tabStop() * tabSize ) + this.children[i].node.style.paddingRight();
 					sumWidths += this.children[i].offsetWidth;
 
 				} else {
@@ -115,8 +116,8 @@ class Layout_Horizontal extends Layout {
 			
 			if ( this.children[i].node ) {
 				this.children[i].offsetLeft = leftPosition - this.children[i].node.style.marginLeft();
-				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + this.children[i].node.style.borderWidth();
-				this.children[i].innerWidth = this.children[i].offsetWidth - ( this.children[i].node.style.borderWidth() * 2 ) - this.children[i].node.style.paddingLeft() - this.children[i].node.style.paddingRight();
+				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + ( this.children[i].node.tabStop() * tabSize ) + this.children[i].node.style.borderWidth();
+				this.children[i].innerWidth = this.children[i].offsetWidth - ( this.children[i].node.style.borderWidth() * 2 ) - this.children[i].node.style.paddingLeft() - ( this.children[i].node.tabStop() * tabSize ) - this.children[i].node.style.paddingRight();
 
 				leftPosition += this.children[i].node.style.marginRight();
 

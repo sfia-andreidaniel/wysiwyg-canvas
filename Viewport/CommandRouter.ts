@@ -819,11 +819,26 @@ class Viewport_CommandRouter extends Events {
 
 	// indents text with a number of tabs on the left. A tab width is 20px.
 	public indent( tabs: number = null ) {
+		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
+		        i: number,
+		      len: number;
+
+		for ( i=0, len = nodes.length; i<len; i++ ) {
+			nodes[i].tabStop( nodes[i].tabStop() + 1 );
+		}
 
 	}
 
 	// unindents text with a number of tabs on the left. A tab width is 20px.
 	public unindent( tabs: number = null ) {
+		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
+		        i: number,
+		      len: number;
+		      
+		for ( i=0, len = nodes.length; i<len; i++ ) {
+			nodes[i].tabStop( nodes[i].tabStop() - 1 );
+		}
+
 
 	}
 

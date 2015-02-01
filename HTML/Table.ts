@@ -181,4 +181,9 @@ class HTML_Table extends TNode_Element {
 		return false; // tables cannot be removed even if they are selected when the user press a removal key
 	}
 
+	// tables don't have tabstops
+	public tabStop( value: number = null ): number {
+		return 0;
+	}
+
 }

@@ -12,6 +12,8 @@ class HTML_Body extends TNode_Element {
 	
 	public changeThrottler   : Throttler= null; // a throttler that is executed each time a dom subtree modification occurs.
 
+	private _tabSize         : number = 20;
+
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
 		'canvas',
@@ -40,6 +42,16 @@ class HTML_Body extends TNode_Element {
 		'body',
 		'span'
 	];
+
+	public tabSize( size: number = null ): number {
+		if ( size === null ) {
+			return this._tabSize;
+		} else {
+			this._tabSize = ~~size < 0 ? 0 : ~~size;
+			this.requestRelayout();
+			return this._tabSize;
+		}
+	}
 
 	constructor( viewport: Viewport ) {
 		super();

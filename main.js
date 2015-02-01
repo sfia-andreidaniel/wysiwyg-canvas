@@ -645,6 +645,7 @@ var TNode_Element = (function (_super) {
         this.isMergeable = true; // weather the "mergeWith" method works with this or with another element.
         this.isDefragmentable = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
         this.isNegation = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
+        this._tabStop = 0;
         if (!postStyleInit)
             this.style = new TStyle(this);
     }
@@ -1535,6 +1536,21 @@ var TNode_Element = (function (_super) {
             }
         }
     };
+    TNode_Element.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        if (value === null) {
+            return this._tabStop;
+        }
+        else {
+            //setter
+            this._tabStop = ~~value;
+            this._tabStop = this._tabStop < 0 ? 0 : this._tabStop;
+            if (this.documentElement) {
+                this.documentElement.requestRelayout();
+            }
+            return this._tabStop;
+        }
+    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -1933,6 +1949,7 @@ var HTML_Body = (function (_super) {
         this.isBlockTextNode = true; //user can write inside this element ( or sub-elements );
         this.canRelayout = true; //we can disable relayouting of the document by setting this flag to false.
         this.changeThrottler = null; // a throttler that is executed each time a dom subtree modification occurs.
+        this._tabSize = 20;
         this.fragment = new Fragment(this);
         this.viewport = viewport;
         this.lines = new Character_LinesCollection();
@@ -1959,6 +1976,17 @@ var HTML_Body = (function (_super) {
         this.style.textAlign('left');
         this.relayout();
     }
+    HTML_Body.prototype.tabSize = function (size) {
+        if (size === void 0) { size = null; }
+        if (size === null) {
+            return this._tabSize;
+        }
+        else {
+            this._tabSize = ~~size < 0 ? 0 : ~~size;
+            this.requestRelayout();
+            return this._tabSize;
+        }
+    };
     HTML_Body.prototype.createTextNode = function (textContents) {
         var node = new TNode_Text(textContents);
         node.documentElement = this;
@@ -2456,6 +2484,11 @@ var HTML_Image = (function (_super) {
     HTML_Image.prototype.removeOrphanNodes = function () {
         // void, intentionally.
     };
+    // images don't have tabstops
+    HTML_Image.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
+    };
     return HTML_Image;
 })(TNode_Element);
 var HTML_Heading1 = (function (_super) {
@@ -2597,6 +2630,11 @@ var HTML_BulletedList = (function (_super) {
         }
         return 2 /* AFTER */;
     };
+    // lists don't have tabstops, only list items.
+    HTML_BulletedList.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
+    };
     return HTML_BulletedList;
 })(TNode_Element);
 var HTML_OrderedList = (function (_super) {
@@ -2632,6 +2670,11 @@ var HTML_OrderedList = (function (_super) {
             ol.appendChild(this.childNodes[option.siblingIndex + 1], 0);
         }
         return 2 /* AFTER */;
+    };
+    // lists don't have tabstops, only list items.
+    HTML_OrderedList.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
     };
     return HTML_OrderedList;
 })(TNode_Element);
@@ -2900,6 +2943,11 @@ var HTML_Table = (function (_super) {
     };
     HTML_Table.prototype.removeFromDOMAtUserCommand = function () {
         return false; // tables cannot be removed even if they are selected when the user press a removal key
+    };
+    // tables don't have tabstops
+    HTML_Table.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
     };
     return HTML_Table;
 })(TNode_Element);
@@ -3188,6 +3236,11 @@ var HTML_TableRow = (function (_super) {
     HTML_TableRow.prototype.removeFromDOMAtUserCommand = function () {
         return false; // table rows cannot be removed even if they are selected when the user press a removal key
     };
+    // table rows don't have tabstops
+    HTML_TableRow.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
+    };
     return HTML_TableRow;
 })(TNode_Element);
 var HTML_TableCell = (function (_super) {
@@ -3275,6 +3328,11 @@ var HTML_TableCell = (function (_super) {
     // a table cell cannot become other element type.
     HTML_TableCell.prototype.becomeElement = function (elementName) {
         return this;
+    };
+    // table cells don't have tabstops
+    HTML_TableCell.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return 0;
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -4659,14 +4717,14 @@ var Layout_Horizontal = (function (_super) {
     Layout_Horizontal.prototype.computeWidths = function () {
         /* on horizontal layouts, we set the widths for the layouts which have nodes.
            the rest of the widths is computed as the average undefined widths */
-        var widthLeft = this.innerWidth, computeAfter = [], leftPosition = this.innerLeft, i = 0, len = 0, averageWidth = 0, sumWidths = 0, optimalWidth = 0;
-        for (i = 0, len = this.children.length; i < len; i++) {
+        var widthLeft = this.innerWidth, computeAfter = [], leftPosition = this.innerLeft, i = 0, len = this.children.length, averageWidth = 0, sumWidths = 0, optimalWidth = 0, tabSize = (this.children && len && this.children[0].node && this.children[0].node.documentElement) ? this.children[0].node.documentElement.tabSize() : 0;
+        for (i = 0; i < len; i++) {
             if (this.children[i].node) {
                 // the child has a node associated.
                 // if the node has a width, we set it's width as the
                 // node width, otherwise we set it's width automatically
                 if (this.children[i].node.style._width.isSet) {
-                    this.children[i].offsetWidth = this.children[i].node.style.width() + (this.children[i].node.style.borderWidth() * 2) + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight();
+                    this.children[i].offsetWidth = this.children[i].node.style.width() + (this.children[i].node.style.borderWidth() * 2) + this.children[i].node.style.paddingLeft() + (this.children[i].node.tabStop() * tabSize) + this.children[i].node.style.paddingRight();
                     sumWidths += this.children[i].offsetWidth;
                 }
                 else {
@@ -4692,8 +4750,8 @@ var Layout_Horizontal = (function (_super) {
         for (i = 0, len = this.children.length; i < len; i++) {
             if (this.children[i].node) {
                 this.children[i].offsetLeft = leftPosition - this.children[i].node.style.marginLeft();
-                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + this.children[i].node.style.borderWidth();
-                this.children[i].innerWidth = this.children[i].offsetWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - this.children[i].node.style.paddingRight();
+                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + (this.children[i].node.tabStop() * tabSize) + this.children[i].node.style.borderWidth();
+                this.children[i].innerWidth = this.children[i].offsetWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - (this.children[i].node.tabStop() * tabSize) - this.children[i].node.style.paddingRight();
                 leftPosition += this.children[i].node.style.marginRight();
             }
             else {
@@ -4764,13 +4822,13 @@ var Layout_Vertical = (function (_super) {
         }
     };
     Layout_Vertical.prototype.computeWidths = function () {
-        var i = 0, len = this.children.length;
+        var i = 0, len = this.children.length, tabSize = (this.children && len && this.children[0].node && this.children[0].node.documentElement) ? this.children[0].node.documentElement.tabSize() : 0;
         for (i = 0; i < len; i++) {
             if (this.children[i].node) {
                 // the child is represented by a node
                 // compute offsetleft and innerLeft
                 this.children[i].offsetLeft = this.innerLeft + this.children[i].node.style.marginLeft() - this.children[i].node.style.borderWidth();
-                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.borderWidth() + this.children[i].node.style.paddingLeft();
+                this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.borderWidth() + (this.children[i].node.style.paddingLeft() + this.children[i].node.tabStop() * tabSize);
                 // if the child has a specified width, set the width to the layout,
                 // otherwise determine it's width by this parent
                 if (this.children[i].node.style._width.isSet) {
@@ -4778,8 +4836,8 @@ var Layout_Vertical = (function (_super) {
                     this.children[i].offsetWidth = this.children[i].node.style.offsetWidth();
                 }
                 else {
-                    this.children[i].innerWidth = this.innerWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - this.children[i].node.style.paddingRight() - this.children[i].node.style.marginLeft() - this.children[i].node.style.marginRight();
-                    this.children[i].offsetWidth = this.children[i].innerWidth + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight() + (this.children[i].node.style.borderWidth() * 2);
+                    this.children[i].innerWidth = this.innerWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - (this.children[i].node.tabStop() * tabSize) - this.children[i].node.style.paddingRight() - this.children[i].node.style.marginLeft() - this.children[i].node.style.marginRight();
+                    this.children[i].offsetWidth = this.children[i].innerWidth + this.children[i].node.style.paddingLeft() + (this.children[i].node.tabStop() * tabSize) + this.children[i].node.style.paddingRight() + (this.children[i].node.style.borderWidth() * 2);
                 }
             }
             else {
@@ -6401,10 +6459,18 @@ var Viewport_CommandRouter = (function (_super) {
     // indents text with a number of tabs on the left. A tab width is 20px.
     Viewport_CommandRouter.prototype.indent = function (tabs) {
         if (tabs === void 0) { tabs = null; }
+        var nodes = this.viewport.selection.getRange().affectedBlockNodes(), i, len;
+        for (i = 0, len = nodes.length; i < len; i++) {
+            nodes[i].tabStop(nodes[i].tabStop() + 1);
+        }
     };
     // unindents text with a number of tabs on the left. A tab width is 20px.
     Viewport_CommandRouter.prototype.unindent = function (tabs) {
         if (tabs === void 0) { tabs = null; }
+        var nodes = this.viewport.selection.getRange().affectedBlockNodes(), i, len;
+        for (i = 0, len = nodes.length; i < len; i++) {
+            nodes[i].tabStop(nodes[i].tabStop() - 1);
+        }
     };
     // sets the text alignment as "sup", "sub", or "normal".
     // "sup" stands for superscript
@@ -7971,7 +8037,7 @@ var DocSelection = (function (_super) {
                     stop--;
                 }
                 this.anchorTo(new TRange_Target(this.viewport.document.findNodeAtIndex(start), start));
-                this.focusTo(new TRange_Target(this.viewport.document.findNodeAtIndex(stop), stop));
+                this.focusTo(new TRange_Target(this.viewport.document.findNodeAtIndex(stop), stop + 1));
                 break;
             default:
                 console.warn('a');
@@ -8372,7 +8438,9 @@ function HTMLEditor(value, hasToolbars, hasStatusbar, initialWidth, initialHeigh
             while (node) {
                 i++;
                 if (node.nodeType == 1 /* TEXT */) {
-                    links[i].firstChild.textContent = '#text';
+                    i--;
+                    node = node.parentNode;
+                    continue;
                 }
                 else {
                     links[i].firstChild.textContent = node.nodeName.toUpperCase();

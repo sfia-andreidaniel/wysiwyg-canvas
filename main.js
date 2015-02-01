@@ -62,7 +62,8 @@ var EditorCommand;
     EditorCommand[EditorCommand["COLOR"] = 15] = "COLOR";
     EditorCommand[EditorCommand["BGCOLOR"] = 16] = "BGCOLOR";
     EditorCommand[EditorCommand["SIZE"] = 17] = "SIZE";
-    EditorCommand[EditorCommand["LIST"] = 18] = "LIST"; // ol, ul
+    EditorCommand[EditorCommand["BLOCK_LEVEL"] = 18] = "BLOCK_LEVEL";
+    EditorCommand[EditorCommand["LIST"] = 19] = "LIST"; // sets the list level of the elements ( UL or LI )
 })(EditorCommand || (EditorCommand = {}));
 var TNewLinePolicy;
 (function (TNewLinePolicy) {
@@ -1501,15 +1502,37 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.canDefragmentWith = function (element) {
         return true;
     };
+    /* Morphs this element into another element */
     TNode_Element.prototype.becomeElement = function (elementName) {
         if (!this.parentNode) {
             throw "ERR_NO_PARENT_NODE";
         }
         else {
-            var result = this.documentElement.createElement(elementName);
-            this.parentNode.appendChild(result, this.siblingIndex);
-            this.parentNode.mergeWith(this);
-            return result;
+            if (elementName != 'li' && elementName != 'ul' && elementName != 'ol') {
+                var result = this.documentElement.createElement(elementName);
+                this.parentNode.appendChild(result, this.siblingIndex);
+                result.mergeWith(this);
+                return result;
+            }
+            else {
+                var result = this.documentElement.createElement(['li', 'ul'].indexOf(elementName) >= 0 ? 'ul' : 'ol');
+                this.parentNode.appendChild(result, this.siblingIndex);
+                var li = (result.appendChild(this.documentElement.createElement('li')));
+                li.mergeWith(this);
+                li.parentNode.parentNode.mergeAdjacentLists();
+                return li;
+            }
+        }
+    };
+    /* Merges <ul>...</ul><ul>...</ul> and <ol>...</ol><ol>...</ol> into single lists. */
+    TNode_Element.prototype.mergeAdjacentLists = function () {
+        for (var i = this.childNodes.length - 1; i > 0; i--) {
+            if ((this.childNodes[i].nodeType == 2 /* ELEMENT */) && (this.childNodes[i - 1].nodeType == 2 /* ELEMENT */) && (this.childNodes[i].nodeName == this.childNodes[i - 1].nodeName) && ['ul', 'ol'].indexOf(this.childNodes[i].nodeName) >= 0) {
+                this.childNodes[i - 1].mergeWith(this.childNodes[i]);
+            }
+            else if ((this.childNodes[i].nodeType == 2 /* ELEMENT */) && ['ul', 'ol'].indexOf(this.childNodes[i].nodeName) >= 0 && this.childNodes[i].childNodes.length == 0) {
+                this.childNodes[i].remove();
+            }
         }
     };
     return TNode_Element;
@@ -2160,6 +2183,10 @@ var HTML_Body = (function (_super) {
                 _super.prototype.setAttribute.call(this, attributeName, attributeValue);
         }
     };
+    // the body cannot become other thing excepting itself.
+    HTML_Body.prototype.becomeElement = function (elementName) {
+        return this;
+    };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
         'canvas',
@@ -2631,7 +2658,7 @@ var HTML_ListItem = (function (_super) {
         }
     };
     HTML_ListItem.prototype.becomeElement = function (elementName) {
-        var breakResult, element, saveParent = this.parentNode;
+        var breakResult, element;
         if (elementName == 'li') {
             return this;
         }
@@ -2644,22 +2671,38 @@ var HTML_ListItem = (function (_super) {
             return this;
         }
         if (elementName == 'ul' || elementName == 'ol') {
-            throw "ERR_NOT_IMPLEMENTED_IN_LI_BECOME_OL_OR_UL";
+            switch (this.siblingIndex) {
+                case 0:
+                    // append before current list
+                    element = this.documentElement.createElement(elementName);
+                    this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex);
+                    element.appendChild(this);
+                    break;
+                case this.parentNode.childNodes.length - 1:
+                    // append after
+                    element = this.documentElement.createElement(elementName);
+                    this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex + 1);
+                    element.appendChild(this);
+                    element.parentNode.mergeAdjacentLists();
+                    break;
+                default:
+                    // break current list and append after the first list
+                    breakResult = this.parentNode.breakAfterOption(this);
+                    element = this.documentElement.createElement(elementName);
+                    this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex + 1);
+                    element.appendChild(this);
+                    break;
+            }
+            this.parentNode.parentNode.mergeAdjacentLists();
+            return this;
         }
         else {
-            if (['ul', 'ol'].indexOf(this.parentNode.nodeName) == -1) {
-                return _super.prototype.becomeElement.call(this, elementName);
-            }
-            else {
-                breakResult = this.parentNode.breakAfterOption(this);
-                element = this.documentElement.createElement(elementName);
-                this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex + 1);
-                element.mergeWith(this);
-                if (saveParent.childNodes.length == 0) {
-                    saveParent.remove();
-                }
-                return element;
-            }
+            breakResult = this.parentNode.breakBeforeOption(this);
+            element = this.documentElement.createElement(elementName);
+            this.parentNode.parentNode.appendChild(element, this.parentNode.siblingIndex);
+            element.mergeWith(this);
+            element.parentNode.mergeAdjacentLists();
+            return element;
         }
     };
     HTML_ListItem.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
@@ -3224,6 +3267,10 @@ var HTML_TableCell = (function (_super) {
         this.removeAllChildNodes();
         this.appendChild(this.documentElement.createTextNode(' '));
         return true;
+    };
+    // a table cell cannot become other element type.
+    HTML_TableCell.prototype.becomeElement = function (elementName) {
+        return this;
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -5746,7 +5793,10 @@ var Viewport_CommandRouter = (function (_super) {
             case 17 /* SIZE */:
                 return 'setSize';
                 break;
-            case 18 /* LIST */:
+            case 18 /* BLOCK_LEVEL */:
+                return 'setBlockLevel';
+                break;
+            case 19 /* LIST */:
                 return 'list';
                 break;
             default:
@@ -5913,7 +5963,15 @@ var Viewport_CommandRouter = (function (_super) {
                     this.size(String(args[0] || ''));
                 }
                 break;
-            case 18 /* LIST */:
+            case 18 /* BLOCK_LEVEL */:
+                if (!this.ensureArgs(args, 1, 1)) {
+                    throw "Command: " + commandName + " requires a single argument of type string!";
+                }
+                else {
+                    this.blockLevel(String(args[0] || ''));
+                }
+                break;
+            case 19 /* LIST */:
                 if (!this.ensureArgs(args, 2, 2)) {
                     throw "Command: " + commandName + " requires two arguments: string, boolean";
                 }
@@ -6084,6 +6142,12 @@ var Viewport_CommandRouter = (function (_super) {
                     mergeOrder[0].appendCollection(collection, mergePosition == 1 ? null : 0);
                 }
                 this.viewport.document.removeOrphanNodes();
+                if (destinationBlockElement.nodeName == 'li') {
+                    destinationBlockElement.parentNode.parentNode.mergeAdjacentLists();
+                }
+                else if (sourceBlockElement.nodeName == 'li') {
+                    sourceBlockElement.parentNode.parentNode.mergeAdjacentLists();
+                }
             }
         }
         // if we did a merging, we're not doing the locking
@@ -6394,6 +6458,35 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.list = function (listType, on) {
         if (on === void 0) { on = true; }
         console.log('command: LIST[' + listType + ']');
+    };
+    // sets the affected block nodes to be "normal", or "h1".."h6"
+    Viewport_CommandRouter.prototype.blockLevel = function (blockType) {
+        if (["normal", "h1", "h2", "h3", "h4", "h5", "h6", "h7"].indexOf(blockType) == -1) {
+            throw "Invalid block type!";
+        }
+        var selection = this.viewport.selection, rng = selection.getRange(), nodes = rng.affectedBlockNodes(), i = 0, len = nodes.length;
+        rng.save();
+        for (i = 0; i < len; i++) {
+            switch (blockType) {
+                case 'normal':
+                    if (['p', 'ol', 'ul', 'li', 'td', 'table', 'tr', 'body'].indexOf(nodes[i].nodeName) == -1) {
+                        nodes[i].becomeElement('p');
+                    }
+                    break;
+                case 'h1':
+                case 'h2':
+                case 'h3':
+                case 'h4':
+                case 'h5':
+                case 'h6':
+                case 'h7':
+                    if (nodes[i].nodeName != blockType) {
+                        nodes[i].becomeElement(blockType);
+                    }
+                    break;
+            }
+        }
+        rng.restore();
     };
     return Viewport_CommandRouter;
 })(Events);
@@ -7870,11 +7963,12 @@ var Selection_EditorState = (function (_super) {
             fontFamily: undefined,
             fontSize: undefined,
             fontColor: undefined,
-            verticalAlign: undefined
+            verticalAlign: undefined,
+            blockLevel: undefined
         };
     };
     Selection_EditorState.prototype.compute = function () {
-        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, nulls = 0, changed = [], k = '';
+        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, nulls = 0, changed = [], k = '', blockElement;
         if (focus && rng.length()) {
             frag = rng.createContextualFragment();
             nodes = frag.affectedTextNodes();
@@ -7888,6 +7982,24 @@ var Selection_EditorState = (function (_super) {
             if (nodes[i].parentNode != element) {
                 element = nodes[i].parentNode;
                 if (element) {
+                    blockElement = element.ownerBlockElement();
+                    switch (blockElement.nodeName) {
+                        case 'p':
+                        case 'li':
+                        case 'td':
+                        case 'body':
+                            fBlockLevel = 'normal';
+                            break;
+                        case 'h1':
+                        case 'h2':
+                        case 'h3':
+                        case 'h4':
+                        case 'h5':
+                        case 'h6':
+                        case 'h7':
+                            fBlockLevel = blockElement.nodeName;
+                            break;
+                    }
                     fBold = element.style.fontWeight() == 'bold';
                     fItalic = element.style.fontStyle() == 'italic';
                     fUnderline = element.style.textDecoration() == 'underline';
@@ -7896,6 +8008,15 @@ var Selection_EditorState = (function (_super) {
                     fFontSize = ~~element.style.fontSize() || 0;
                     fFontColor = element.style.color() || '#000000';
                     fVerticalAlign = element.style.verticalAlign() || 'normal';
+                    if (state.blockLevel === undefined) {
+                        state.blockLevel = fBlockLevel;
+                    }
+                    else {
+                        if (state.blockLevel !== null && state.blockLevel !== fBlockLevel) {
+                            state.blockLevel = null;
+                            nulls++;
+                        }
+                    }
                     if (state.bold === undefined) {
                         state.bold = fBold;
                     }
@@ -7970,7 +8091,7 @@ var Selection_EditorState = (function (_super) {
                     }
                 }
             }
-            if (nulls == 8) {
+            if (nulls == 9) {
                 break;
             }
         }
@@ -8236,14 +8357,14 @@ var UI_Toolbar_Panel_Style = (function (_super) {
     __extends(UI_Toolbar_Panel_Style, _super);
     function UI_Toolbar_Panel_Style(toolbar) {
         _super.call(this, toolbar, 'Style');
-        this.nodeName = null;
+        this.blockLevel = null;
         this.fontFamily = null;
         this.fontSize = null;
         DOM.addClass(this.node, 'ui-panel-style');
         this.node.innerHTML = [
             '<div class="item index-0">',
             '<div class="text-dropdown">',
-            '<input class="nodeName" type="text" data-suggestions="p:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+            '<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
             '<div class="expander"></div>',
             '</div>',
             '</div>',
@@ -8260,12 +8381,12 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             '</div>',
             '</div>'
         ].join('');
-        this.nodeName = this.node.querySelector('input.nodeName');
+        this.blockLevel = this.node.querySelector('input.nodeName');
         this.fontFamily = this.node.querySelector('input.fontFamily');
         this.fontSize = this.node.querySelector('input.fontSize');
         (function (me) {
-            me.dropdownize(me.nodeName, function (v) {
-                me.setNodeName(v);
+            me.dropdownize(me.blockLevel, function (v) {
+                me.setBlockLevel(v);
             }, true);
             me.dropdownize(me.fontFamily, function (v) {
                 me.setFontFamily(v);
@@ -8275,8 +8396,8 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             }, false);
         })(this);
     }
-    UI_Toolbar_Panel_Style.prototype.setNodeName = function (nodeName) {
-        console.log('setnodename: ' + nodeName);
+    UI_Toolbar_Panel_Style.prototype.setBlockLevel = function (nodeName) {
+        this.toolbar.router.dispatchCommand(18 /* BLOCK_LEVEL */, [nodeName]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontFamily = function (fontFamily) {
         this.toolbar.router.dispatchCommand(14 /* FONT */, [fontFamily]);
@@ -8495,8 +8616,17 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         }
         input.addEventListener('keydown', changed, true);
     };
-    UI_Toolbar_Panel_Style.prototype.updateNodeName = function () {
-        console.warn("updateNodeName: NOT IMPLEMENTED!");
+    UI_Toolbar_Panel_Style.prototype.updateBlockLevel = function () {
+        var level = String(this.toolbar.state.state.blockLevel || ''), strs = {
+            "normal": "Normal",
+            "h1": "Heading 1",
+            "h2": "Heading 2",
+            "h3": "Heading 3",
+            "h4": "Heading 4",
+            "h5": "Heading 5",
+            "h6": "Heading 6"
+        };
+        this.blockLevel.value = strs[level] || '';
     };
     UI_Toolbar_Panel_Style.prototype.updateFontFamily = function () {
         var family = String(this.toolbar.state.state.fontFamily || '');
@@ -8509,8 +8639,8 @@ var UI_Toolbar_Panel_Style = (function (_super) {
     UI_Toolbar_Panel_Style.prototype.updateDocumentState = function (propertiesList) {
         for (var i = 0, len = propertiesList.length; i < len; i++) {
             switch (propertiesList[i]) {
-                case 'nodeName':
-                    this.updateNodeName();
+                case 'blockLevel':
+                    this.updateBlockLevel();
                     break;
                 case 'fontFamily':
                     this.updateFontFamily();
@@ -8704,10 +8834,10 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(18 /* LIST */, ['ul', true]);
+                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ul', true]);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(18 /* LIST */, ['ol', true]);
+                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ol', true]);
             }, true);
         })(this);
     }

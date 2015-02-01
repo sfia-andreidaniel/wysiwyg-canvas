@@ -336,4 +336,9 @@ class HTML_Body extends TNode_Element {
 		}
 	}
 
+	// the body cannot become other thing excepting itself.
+	public becomeElement( elementName: string ): TNode_Element {
+		return this;
+	}
+
 }

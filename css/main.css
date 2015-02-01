@@ -127,7 +127,7 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay {
 	outline: 1px solid black;
 	overflow-y: auto;
 	overflow-x: hidden;
-	max-height: 50px;
+	max-height: 110px;
 	z-index: 100;
 }
 

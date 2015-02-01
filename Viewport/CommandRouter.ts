@@ -36,6 +36,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.COLOR:		return 'setColor';   break;
 			case EditorCommand.BGCOLOR:     return 'setBgColor'; break;
 			case EditorCommand.SIZE:		return 'setSize';	 break;
+			case EditorCommand.BLOCK_LEVEL: return 'setBlockLevel'; break;
 			case EditorCommand.LIST:        return 'list';       break;
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
@@ -189,6 +190,13 @@ class Viewport_CommandRouter extends Events {
 					throw "Command: " + commandName + " requires a single argument of type string!";
 				} else {
 					this.size( String( args[0] || '' ) );
+				}
+				break;
+			case EditorCommand.BLOCK_LEVEL:
+				if ( !this.ensureArgs( args, 1, 1 ) ) {
+					throw "Command: " + commandName + " requires a single argument of type string!";
+				} else {
+					this.blockLevel( String( args[0] || '' ) );
 				}
 				break;
 			case EditorCommand.LIST:
@@ -439,6 +447,13 @@ class Viewport_CommandRouter extends Events {
 				}
 
 				this.viewport.document.removeOrphanNodes();
+
+				if ( destinationBlockElement.nodeName == 'li' ) {
+					destinationBlockElement.parentNode.parentNode.mergeAdjacentLists();
+				} else
+				if ( sourceBlockElement.nodeName == 'li' ) {
+					sourceBlockElement.parentNode.parentNode.mergeAdjacentLists();
+				}
 
 			}
 
@@ -893,6 +908,45 @@ class Viewport_CommandRouter extends Events {
 	// wraps into ul or ol the blocks.
 	public list( listType: string, on: boolean = true ) {
 		console.log( 'command: LIST[' + listType + ']');
+	}
+
+	// sets the affected block nodes to be "normal", or "h1".."h6"
+	public blockLevel( blockType: string ) {
+		if ( [ "normal", "h1", "h2", "h3", "h4", "h5", "h6", "h7" ].indexOf( blockType ) == -1 ) {
+			throw "Invalid block type!";
+		}
+
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    nodes: TNode_Element[] = rng.affectedBlockNodes(),
+		    i: number = 0,
+		    len: number = nodes.length;
+
+		rng.save();
+
+		for ( i=0; i<len; i++ ) {
+			switch ( blockType ) {
+				case 'normal':
+					if ( [ 'p', 'ol', 'ul', 'li', 'td', 'table', 'tr', 'body' ].indexOf( nodes[i].nodeName ) == -1 ) {
+						nodes[i].becomeElement( 'p' );
+					}
+					break;
+				case 'h1':
+				case 'h2':
+				case 'h3':
+				case 'h4':
+				case 'h5':
+				case 'h6':
+				case 'h7':
+					if ( nodes[i].nodeName != blockType ) {
+						nodes[i].becomeElement( blockType );
+					}
+					break;
+			}
+		}
+
+		rng.restore();
+
 	}
 
 }

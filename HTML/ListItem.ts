@@ -37,8 +37,7 @@ class HTML_ListItem extends TNode_Element {
 
 	public becomeElement( elementName: string ): TNode_Element {
 		var breakResult: TListBreakResult,
-		    element: TNode_Element,
-		    saveParent: TNode_Element = this.parentNode;
+		    element: TNode_Element;
 
 		if ( elementName == 'li' ) {
 			return this;
@@ -57,22 +56,40 @@ class HTML_ListItem extends TNode_Element {
 
 		if ( elementName == 'ul' || elementName == 'ol' ) {
 
-			throw "ERR_NOT_IMPLEMENTED_IN_LI_BECOME_OL_OR_UL";
+			switch ( this.siblingIndex ) {
+				case 0:
+					// append before current list
+					element = this.documentElement.createElement( elementName );
+					this.parentNode.parentNode.appendChild( element, this.parentNode.siblingIndex );
+					element.appendChild( this );
+					break;
+				case this.parentNode.childNodes.length - 1:
+					// append after
+					element = this.documentElement.createElement( elementName );
+					this.parentNode.parentNode.appendChild( element, this.parentNode.siblingIndex + 1 );
+					element.appendChild( this );
+					element.parentNode.mergeAdjacentLists();
+					break;
+				default:
+					// break current list and append after the first list
+					breakResult = (<HTML_OrderedList>this.parentNode).breakAfterOption( this );
+					element = this.documentElement.createElement( elementName );
+					this.parentNode.parentNode.appendChild( element, this.parentNode.siblingIndex + 1 );
+					element.appendChild( this );
+					break;
+			}
+
+			this.parentNode.parentNode.mergeAdjacentLists();
+			return this;
 
 		} else {
 			
-			if ( ['ul','ol'].indexOf( this.parentNode.nodeName ) == -1 ) {
-				return super.becomeElement( elementName );
-			} else {
-				breakResult = (<HTML_OrderedList>this.parentNode).breakAfterOption( this );
-				element = this.documentElement.createElement( elementName );
-				this.parentNode.parentNode.appendChild( element, this.parentNode.siblingIndex + 1 );
-				element.mergeWith( this );
-				if ( saveParent.childNodes.length == 0 ) {
-					saveParent.remove();
-				}
-				return element;
-			}
+			breakResult = (<HTML_OrderedList>this.parentNode).breakBeforeOption( this );
+			element = this.documentElement.createElement( elementName );
+			this.parentNode.parentNode.appendChild( element, this.parentNode.siblingIndex );
+			element.mergeWith( this );
+			element.parentNode.mergeAdjacentLists();
+			return element;
 
 		}
 

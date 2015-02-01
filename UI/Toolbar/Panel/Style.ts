@@ -1,6 +1,6 @@
 class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 	
-	public nodeName: HTMLInputElement   = null;
+	public blockLevel: HTMLInputElement   = null;
 	public fontFamily: HTMLInputElement = null;
 	public fontSize: HTMLInputElement   = null;
 
@@ -13,7 +13,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 		this.node.innerHTML = [
 			'<div class="item index-0">',
 				'<div class="text-dropdown">',
-					'<input class="nodeName" type="text" data-suggestions="p:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+					'<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
 					'<div class="expander"></div>',
 				'</div>',
 			'</div>',
@@ -31,14 +31,14 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 			'</div>'
 		].join( '' );
 
-		this.nodeName   = <HTMLInputElement>this.node.querySelector( 'input.nodeName' );
+		this.blockLevel   = <HTMLInputElement>this.node.querySelector( 'input.nodeName' );
 		this.fontFamily = <HTMLInputElement>this.node.querySelector( 'input.fontFamily' );
 		this.fontSize   = <HTMLInputElement>this.node.querySelector( 'input.fontSize' );
 
 		( function( me ) {
 
-			me.dropdownize( me.nodeName , function( v: string ) {
-				me.setNodeName( v );
+			me.dropdownize( me.blockLevel , function( v: string ) {
+				me.setBlockLevel( v );
 			}, true );
 			
 			me.dropdownize( me.fontFamily , function( v: string ) {
@@ -53,8 +53,8 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 
 	}
 
-	protected setNodeName( nodeName: string ) {
-		console.log( 'setnodename: ' + nodeName );
+	protected setBlockLevel( nodeName: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.BLOCK_LEVEL, [ nodeName ] )
 	}
 
 	private setFontFamily( fontFamily: string ) {
@@ -366,8 +366,18 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 
 	}
 
-	private updateNodeName() {
-		console.warn( "updateNodeName: NOT IMPLEMENTED!" );
+	private updateBlockLevel() {
+		var level: string = String( this.toolbar.state.state.blockLevel || '' ),
+		    strs = {
+		    	"normal": "Normal",
+		    	"h1": "Heading 1",
+		    	"h2": "Heading 2",
+		    	"h3": "Heading 3",
+		    	"h4": "Heading 4",
+		    	"h5": "Heading 5",
+		    	"h6": "Heading 6"
+		    };
+		this.blockLevel.value = strs[ level ] || '';
 	}
 
 	private updateFontFamily() {
@@ -383,8 +393,8 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 	public updateDocumentState( propertiesList: string[] ) {
 		for ( var i=0, len = propertiesList.length; i<len; i++ ) {
 			switch ( propertiesList[i] ) {
-				case 'nodeName':
-					this.updateNodeName();
+				case 'blockLevel':
+					this.updateBlockLevel();
 					break;
 				case 'fontFamily':
 					this.updateFontFamily();

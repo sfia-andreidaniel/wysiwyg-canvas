@@ -57,34 +57,35 @@ enum CaretPos {
 
 enum EditorCommand {
 	
-	INSERT_TEXT,
-	DELETE_TEXT,
+	INSERT_TEXT,	//writes plain text at cursor
+	DELETE_TEXT,	//deletes text (-1 || 1 chars)
 	
-	NEW_LINE,
+	NEW_LINE,		// creates a new line using BR or P, etc
 	
-	MOVE, // move cursor
+	MOVE, 			// move cursor
 
 	BOLD,
 	ITALIC,
 	UNDERLINE,
 
-	ALIGN,
+	ALIGN,			// set text align
 
 	COPY,
 	CUT,
 	PASTE,
 
-	INDENT,
+	INDENT,			
 	UNINDENT,
 
-	VALIGN, // vertical align
+	VALIGN, 		// vertical align (sup, sub, normal)
 
-	FONT,
-	COLOR,
-	BGCOLOR,
-	SIZE,
+	FONT,			// sets the font of the text
+	COLOR,			// sets the color of the text
+	BGCOLOR,		// sets the background color (to do: on the text) of the selected blocks
+	SIZE,			// sets the font size
 
-	LIST  // ol, ul
+	BLOCK_LEVEL,	// sets the block level of the elements ( normal, h1, h2, h3, h4, h5, and h6 )
+	LIST  			// sets the list level of the elements ( UL or LI )
 
 }
 
@@ -98,6 +99,8 @@ interface EditorState {
 	fontSize      : number;
 	fontColor     : string;
 	verticalAlign : string;
+
+	blockLevel    : string; // "normal" for "p", "li", "td", and "h1 ... h6" for headings.
 }
 
 interface TNameValuePair {

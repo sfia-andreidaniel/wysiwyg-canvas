@@ -1172,14 +1172,53 @@ class TNode_Element extends TNode {
 		return true;
 	}
 
+	/* Morphs this element into another element */
 	public becomeElement( elementName: string ): TNode_Element {
 		if ( !this.parentNode ) {
 			throw "ERR_NO_PARENT_NODE";
 		} else {
-			var result = this.documentElement.createElement( elementName );
-			this.parentNode.appendChild( result, this.siblingIndex );
-			this.parentNode.mergeWith( this );
-			return result;
+
+			if ( elementName != 'li' && elementName != 'ul' && elementName != 'ol' ) {
+
+				var result = this.documentElement.createElement( elementName );
+				this.parentNode.appendChild( result, this.siblingIndex );
+				result.mergeWith( this );
+				return result;
+
+			} else {
+
+				var result = this.documentElement.createElement( ['li', 'ul' ].indexOf( elementName ) >= 0 ? 'ul' : 'ol' );
+
+				this.parentNode.appendChild( result, this.siblingIndex );
+
+				var li = <TNode_Element>( result.appendChild( this.documentElement.createElement( 'li' ) ) );
+
+				li.mergeWith( this );
+
+				li.parentNode.parentNode.mergeAdjacentLists();
+
+				return li;
+
+			}
+		}
+	}
+
+	/* Merges <ul>...</ul><ul>...</ul> and <ol>...</ol><ol>...</ol> into single lists. */
+	public mergeAdjacentLists() {
+		for ( var i=this.childNodes.length - 1; i>0; i-- ) {
+			if ( ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) && 
+				 ( this.childNodes[i-1].nodeType == TNode_Type.ELEMENT ) &&
+				 ( (<TNode_Element>this.childNodes[i]).nodeName == (<TNode_Element>this.childNodes[i-1]).nodeName ) &&
+				 ['ul','ol'].indexOf((<TNode_Element>this.childNodes[i]).nodeName ) >= 0
+			) {
+				(<TNode_Element>this.childNodes[i-1]).mergeWith( <TNode_Element>this.childNodes[i] );
+			} else
+			if ( ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) && 
+				['ul','ol'].indexOf((<TNode_Element>this.childNodes[i]).nodeName ) >= 0 &&
+				(<TNode_Element>this.childNodes[i]).childNodes.length == 0
+			 ) {
+				this.childNodes[i].remove();
+			}
 		}
 	}
 

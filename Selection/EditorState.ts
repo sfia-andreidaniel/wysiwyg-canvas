@@ -30,7 +30,9 @@ class Selection_EditorState extends Events {
 			fontFamily    : undefined,
 			fontSize      : undefined,
 			fontColor     : undefined,
-			verticalAlign : undefined
+			verticalAlign : undefined,
+
+			blockLevel    : undefined
 		};
 	}
 
@@ -55,11 +57,14 @@ class Selection_EditorState extends Events {
 		    fFontSize  : number    = null,
 		    fFontColor : string    = null,
 		    fVerticalAlign: string = null,
+		    fBlockLevel: string    = null,
 
 		    nulls      : number = 0,
 
 		    changed    : string[] = [],
-		    k          : string   = '';
+		    k          : string   = '',
+
+		    blockElement: TNode_Element;
 
 		if ( focus && rng.length() ) {
 			frag = rng.createContextualFragment();
@@ -72,8 +77,30 @@ class Selection_EditorState extends Events {
 
 		for ( i=0, len = nodes.length; i<len; i++ ) {
 			if ( nodes[i].parentNode != element ) {
+
 				element = nodes[i].parentNode;
+				
 				if ( element ) {
+
+					blockElement = element.ownerBlockElement();
+
+					switch (blockElement.nodeName) {
+						case 'p':
+						case 'li':
+						case 'td':
+						case 'body':
+							fBlockLevel = 'normal';
+							break;
+						case 'h1':
+						case 'h2':
+						case 'h3':
+						case 'h4':
+						case 'h5':
+						case 'h6':
+						case 'h7':
+							fBlockLevel = blockElement.nodeName;
+							break;
+					}
 
 					fBold          = element.style.fontWeight() == 'bold';
 					fItalic        = element.style.fontStyle() == 'italic';
@@ -83,6 +110,15 @@ class Selection_EditorState extends Events {
 					fFontSize      = ~~element.style.fontSize() || 0;
 					fFontColor     = element.style.color() || '#000000';
 					fVerticalAlign = element.style.verticalAlign() || 'normal';
+
+					if ( state.blockLevel === undefined ) {
+						state.blockLevel = fBlockLevel;
+					} else {
+						if ( state.blockLevel !== null && state.blockLevel !== fBlockLevel ) {
+							state.blockLevel = null;
+							nulls++;
+						}
+					}
 
 					if ( state.bold === undefined ) {
 						state.bold = fBold;
@@ -159,7 +195,7 @@ class Selection_EditorState extends Events {
 				}
 			}
 
-			if ( nulls == 8 ) { // all properties are set to null
+			if ( nulls == 9 ) { // all properties are set to null
 				break;
 			}
 

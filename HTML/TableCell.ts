@@ -106,5 +106,9 @@ class HTML_TableCell extends TNode_Element {
 		return true;
 	}
 
+	// a table cell cannot become other element type.
+	public becomeElement( elementName: string ): TNode_Element {
+		return this;
+	}
 
 }

@@ -389,7 +389,7 @@ class TNode_Element extends TNode {
 	 */
 
 	public xmlBeginning(): string {
-		return '<' + this.nodeName + ( this.childNodes.length ? '' : '/' ) + '>';
+		return '<' + this.nodeName + ( this._tabStop ? " data-tabstop=\"" + this._tabStop + "\"" : "" ) + ( this.childNodes.length ? '' : '/' ) + '>';
 	}
 
 	/* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
@@ -1233,6 +1233,7 @@ class TNode_Element extends TNode {
 			this._tabStop = this._tabStop < 0 ? 0 : this._tabStop;
 			if ( this.documentElement ) {
 				this.documentElement.requestRelayout();
+				this.documentElement.changeThrottler.run();
 			}
 			return this._tabStop;
 		}

@@ -846,6 +846,23 @@ class Viewport_CommandRouter extends Events {
 	// "sup" stands for superscript
 	// "sub" stands for subscript
 	public valign( verticalAlignmentType: string = 'normal' ) {
+		if ( ['sup','sub','normal'].indexOf( verticalAlignmentType ) == -1 ) {
+			throw "ERR_UNKNOWN_VALIGN_TYPE";
+		}
+
+		var selection = this.viewport.selection,
+	        rng = selection.getRange(),
+	        len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		rng.affectedRanges().unwrapFromElement( 'sub' ).unwrapFromElement('sup').wrapInElement( verticalAlignmentType, null, null, function() {
+			return verticalAlignmentType == 'sup' || verticalAlignmentType == 'sub';
+		} ).end();
+
+		this.viewport.selection.editorState.compute();
 
 	}
 

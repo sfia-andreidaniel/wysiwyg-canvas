@@ -128,10 +128,6 @@ class Fragment_Contextual {
 					break;
 			}
 
-			if ( node.nodeName == 'body' ) {
-				Helper.warn( this.parts[i] );
-			}
-
 			if ( out.indexOf( node ) == -1 ) {
 				out.push( node );
 			}

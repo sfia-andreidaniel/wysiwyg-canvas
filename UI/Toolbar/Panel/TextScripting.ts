@@ -21,11 +21,23 @@ class UI_Toolbar_Panel_TextScripting extends UI_Toolbar_Panel {
 		( function( me ) {
 
 			me.btnSubscript.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sub' ] );
+				
+				if ( me.toolbar.state.state.verticalAlign == 'sub' ) {	
+					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'normal' ] );
+				} else {
+					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sub' ] );
+				}
+			
 			}, true );
 			
 			me.btnSuperscript.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sup' ] );
+			
+				if ( me.toolbar.state.state.verticalAlign == 'super' ) {
+					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'normal' ] );
+				} else {
+					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sup' ] );
+				}
+			
 			}, true );
 
 		} )( this );
@@ -41,7 +53,7 @@ class UI_Toolbar_Panel_TextScripting extends UI_Toolbar_Panel {
 
 		for ( i=0; i<2; i++ ) {
 			DOM.removeClass( btns[i], 'state-pressed' );
-			DOM.removeClass( btns[i], 'state-mixed' );
+			/* DOM.removeClass( btns[i], 'state-mixed' ); */
 		}
 
 
@@ -54,8 +66,10 @@ class UI_Toolbar_Panel_TextScripting extends UI_Toolbar_Panel {
 				DOM.addClass( this.btnSubscript, 'state-pressed' );
 				break;
 			case null:
+				/*
 				DOM.addClass( this.btnSubscript, 'state-mixed' );
 				DOM.addClass( this.btnSuperscript, 'state-mixed' );
+				*/
 				break;
 		}
 	}

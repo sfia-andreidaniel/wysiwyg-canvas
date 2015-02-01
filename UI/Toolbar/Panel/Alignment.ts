@@ -58,7 +58,7 @@ class UI_Toolbar_Panel_Alignment extends UI_Toolbar_Panel {
 		
 		for ( i=0; i<4; i++ ) {
 			DOM.removeClass( btns[i], 'state-pressed' );
-			DOM.removeClass( btns[i], 'state-mixed' );
+			/* DOM.removeClass( btns[i], 'state-mixed' ); */
 		}
 
 		switch ( state ) {
@@ -75,10 +75,12 @@ class UI_Toolbar_Panel_Alignment extends UI_Toolbar_Panel {
 				DOM.addClass( this.btnJustified, 'state-pressed' );
 				break;
 			case null:
+				/*
 				DOM.addClass( this.btnLeft, 'state-mixed' );
 				DOM.addClass( this.btnRight, 'state-mixed' );
 				DOM.addClass( this.btnCenter, 'state-mixed' );
 				DOM.addClass( this.btnJustified, 'state-mixed' );
+				*/
 				break;
 
 		}

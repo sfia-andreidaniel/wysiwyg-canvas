@@ -909,7 +909,7 @@ var TNode_Element = (function (_super) {
     /* Returns the element header as string ( for example for a "<p>asda</p>" it returns "<p>")
      */
     TNode_Element.prototype.xmlBeginning = function () {
-        return '<' + this.nodeName + (this.childNodes.length ? '' : '/') + '>';
+        return '<' + this.nodeName + (this._tabStop ? " data-tabstop=\"" + this._tabStop + "\"" : "") + (this.childNodes.length ? '' : '/') + '>';
     };
     /* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
      */
@@ -1547,6 +1547,7 @@ var TNode_Element = (function (_super) {
             this._tabStop = this._tabStop < 0 ? 0 : this._tabStop;
             if (this.documentElement) {
                 this.documentElement.requestRelayout();
+                this.documentElement.changeThrottler.run();
             }
             return this._tabStop;
         }
@@ -6477,6 +6478,17 @@ var Viewport_CommandRouter = (function (_super) {
     // "sub" stands for subscript
     Viewport_CommandRouter.prototype.valign = function (verticalAlignmentType) {
         if (verticalAlignmentType === void 0) { verticalAlignmentType = 'normal'; }
+        if (['sup', 'sub', 'normal'].indexOf(verticalAlignmentType) == -1) {
+            throw "ERR_UNKNOWN_VALIGN_TYPE";
+        }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        rng.affectedRanges().unwrapFromElement('sub').unwrapFromElement('sup').wrapInElement(verticalAlignmentType, null, null, function () {
+            return verticalAlignmentType == 'sup' || verticalAlignmentType == 'sub';
+        }).end();
+        this.viewport.selection.editorState.compute();
     };
     // sets the font of the text.
     Viewport_CommandRouter.prototype.font = function (fontFamily) {
@@ -6950,9 +6962,6 @@ var Fragment_Contextual = (function () {
                 case 2 /* TEXT */:
                     node = this.parts[i].node.ownerBlockElement();
                     break;
-            }
-            if (node.nodeName == 'body') {
-                Helper.warn(this.parts[i]);
             }
             if (out.indexOf(node) == -1) {
                 out.push(node);
@@ -8949,7 +8958,6 @@ var UI_Toolbar_Panel_Alignment = (function (_super) {
         ], i;
         for (i = 0; i < 4; i++) {
             DOM.removeClass(btns[i], 'state-pressed');
-            DOM.removeClass(btns[i], 'state-mixed');
         }
         switch (state) {
             case 'left':
@@ -8965,10 +8973,6 @@ var UI_Toolbar_Panel_Alignment = (function (_super) {
                 DOM.addClass(this.btnJustified, 'state-pressed');
                 break;
             case null:
-                DOM.addClass(this.btnLeft, 'state-mixed');
-                DOM.addClass(this.btnRight, 'state-mixed');
-                DOM.addClass(this.btnCenter, 'state-mixed');
-                DOM.addClass(this.btnJustified, 'state-mixed');
                 break;
         }
     };
@@ -9074,10 +9078,20 @@ var UI_Toolbar_Panel_TextScripting = (function (_super) {
         this.btnSuperscript = this.node.querySelector('.ui-button.superscript');
         (function (me) {
             me.btnSubscript.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sub']);
+                if (me.toolbar.state.state.verticalAlign == 'sub') {
+                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['normal']);
+                }
+                else {
+                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sub']);
+                }
             }, true);
             me.btnSuperscript.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sup']);
+                if (me.toolbar.state.state.verticalAlign == 'super') {
+                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['normal']);
+                }
+                else {
+                    me.toolbar.router.dispatchCommand(13 /* VALIGN */, ['sup']);
+                }
             }, true);
         })(this);
     }
@@ -9088,7 +9102,6 @@ var UI_Toolbar_Panel_TextScripting = (function (_super) {
         ], i;
         for (i = 0; i < 2; i++) {
             DOM.removeClass(btns[i], 'state-pressed');
-            DOM.removeClass(btns[i], 'state-mixed');
         }
         switch (state) {
             case 'super':
@@ -9098,8 +9111,6 @@ var UI_Toolbar_Panel_TextScripting = (function (_super) {
                 DOM.addClass(this.btnSubscript, 'state-pressed');
                 break;
             case null:
-                DOM.addClass(this.btnSubscript, 'state-mixed');
-                DOM.addClass(this.btnSuperscript, 'state-mixed');
                 break;
         }
     };

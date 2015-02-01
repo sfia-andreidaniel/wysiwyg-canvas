@@ -32,7 +32,8 @@ class Selection_EditorState extends Events {
 			fontColor     : undefined,
 			verticalAlign : undefined,
 
-			blockLevel    : undefined
+			blockLevel    : undefined,
+			listType      : undefined
 		};
 	}
 
@@ -58,13 +59,15 @@ class Selection_EditorState extends Events {
 		    fFontColor : string    = null,
 		    fVerticalAlign: string = null,
 		    fBlockLevel: string    = null,
+		    fListType  : string    = null,
 
 		    nulls      : number = 0,
 
 		    changed    : string[] = [],
 		    k          : string   = '',
 
-		    blockElement: TNode_Element;
+		    blockElement: TNode_Element,
+		    listType    : string;
 
 		if ( focus && rng.length() ) {
 			frag = rng.createContextualFragment();
@@ -102,6 +105,22 @@ class Selection_EditorState extends Events {
 							break;
 					}
 
+					if ( blockElement.nodeName == 'li' && blockElement.parentNode ) {
+
+						switch ( blockElement.parentNode.nodeName ) {
+							case 'ul':
+							case 'ol':
+								fListType = blockElement.parentNode.nodeName;
+								break;
+							default:
+								fListType = null;
+								break;
+						}
+
+					} else {
+						fListType = null;
+					}
+
 					fBold          = element.style.fontWeight() == 'bold';
 					fItalic        = element.style.fontStyle() == 'italic';
 					fUnderline     = element.style.textDecoration() == 'underline';
@@ -116,6 +135,18 @@ class Selection_EditorState extends Events {
 					} else {
 						if ( state.blockLevel !== null && state.blockLevel !== fBlockLevel ) {
 							state.blockLevel = null;
+							nulls++;
+						}
+					}
+
+					if ( state.listType === undefined ) {
+						state.listType = fListType;
+						if ( fListType === null ) {
+							nulls++;
+						}
+					} else {
+						if ( state.listType !== null && state.listType !== fListType ) {
+							state.listType = null;
 							nulls++;
 						}
 					}
@@ -195,7 +226,7 @@ class Selection_EditorState extends Events {
 				}
 			}
 
-			if ( nulls == 9 ) { // all properties are set to null
+			if ( nulls == 10 ) { // all properties are set to null
 				break;
 			}
 

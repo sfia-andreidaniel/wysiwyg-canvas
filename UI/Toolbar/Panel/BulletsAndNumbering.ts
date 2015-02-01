@@ -22,14 +22,41 @@ class UI_Toolbar_Panel_BulletsAndNumbering extends UI_Toolbar_Panel {
 		( function( me ) {
 
 			me.btnUL.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ul', true ] );
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ul' ] );
 			}, true );
 
 			me.btnOL.addEventListener( 'click', function( DOMEvent ) {
-				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ol', true ] );
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ol' ] );
 			}, true );
 
 		} )( this );
 
+	}
+
+	private update() {
+		var state = this.toolbar.state.state.listType;
+
+		DOM.removeClass( this.btnUL, 'state-pressed' );
+		DOM.removeClass( this.btnOL, 'state-pressed' );
+
+		switch ( state ) {
+			case 'ul':
+				DOM.addClass( this.btnUL, 'state-pressed' );
+				break;
+			case 'ol':
+				DOM.addClass( this.btnOL, 'state-pressed' );
+				break;
+			default:
+				break;
+		}
+	}
+
+	public updateDocumentState( propertiesList: string[] ) {
+		for ( var i=0, len = propertiesList.length; i<len; i++ ) {
+			if ( propertiesList[i] == 'listType' ) {
+				this.update();
+				break;
+			}
+		}
 	}
 }

@@ -101,6 +101,7 @@ interface EditorState {
 	verticalAlign : string;
 
 	blockLevel    : string; // "normal" for "p", "li", "td", and "h1 ... h6" for headings.
+	listType      : string; // eihter "ul", "ol", null, or undefined.
 }
 
 interface TNameValuePair {

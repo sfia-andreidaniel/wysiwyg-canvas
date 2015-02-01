@@ -200,10 +200,15 @@ class Viewport_CommandRouter extends Events {
 				}
 				break;
 			case EditorCommand.LIST:
-				if ( !this.ensureArgs( args, 2, 2 ) ) {
+				if ( !this.ensureArgs( args, 1, 2 ) ) {
 					throw "Command: " + commandName + " requires two arguments: string, boolean";
 				} else {
-					this.list( String( args[0] || 'ul' ), !!args[1] );
+					if ( args.length == 1 ) {
+						this.list( String( args[0] || 'ul' ), null );
+					} else {
+						this.list( String( args[0] || 'ul' ), !!args[1] );
+					}
+					
 				}
 				break;
 			default:
@@ -906,8 +911,33 @@ class Viewport_CommandRouter extends Events {
 	}
 
 	// wraps into ul or ol the blocks.
-	public list( listType: string, on: boolean = true ) {
-		console.log( 'command: LIST[' + listType + ']');
+	public list( listType: string, on: boolean = null ) {
+
+		var become: string = '',
+		    selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    nodes: TNode_Element[] = rng.affectedBlockNodes(),
+		    i: number = 0,
+		    len: number = nodes.length;
+
+		if ( on !== null ) {
+			become = on ? listType : 'p';
+		} else {
+			become = this.viewport.selection.editorState.state.listType == listType
+				? 'p'
+				: listType;
+		}
+
+		rng.save();
+
+		for ( i=0; i<len; i++ ) {
+			nodes[i].becomeElement( become );
+		}
+
+		rng.restore();
+
+		this.viewport.selection.editorState.compute();
+
 	}
 
 	// sets the affected block nodes to be "normal", or "h1".."h6"

@@ -2570,6 +2570,8 @@ var HTML_BulletedList = (function (_super) {
         this.nodeName = 'ul';
         this.style.display('block');
         this.style.paddingLeft('30');
+        this.style.marginTop('10');
+        this.style.marginBottom('10');
     }
     HTML_BulletedList.prototype.breakBeforeOption = function (option) {
         var i = 0, len = option.siblingIndex - 1, ol;
@@ -2604,6 +2606,8 @@ var HTML_OrderedList = (function (_super) {
         this.nodeName = 'ol';
         this.style.display('block');
         this.style.paddingLeft('30');
+        this.style.marginTop('10');
+        this.style.marginBottom('10');
     }
     HTML_OrderedList.prototype.breakBeforeOption = function (option) {
         var i = 0, len = option.siblingIndex - 1, ol;
@@ -5570,61 +5574,61 @@ var Viewport_KeyboardDriver = (function (_super) {
                 this.viewport.execCommand(DOMEvent.shiftKey ? 12 /* UNINDENT */ : 11 /* INDENT */);
                 break;
             case 66:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(4 /* BOLD */);
                     cancelEvent = true;
                 }
                 break;
             case 73:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(5 /* ITALIC */);
                     cancelEvent = true;
                 }
                 break;
             case 85:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(6 /* UNDERLINE */);
                     cancelEvent = true;
                 }
                 break;
             case 76:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(7 /* ALIGN */, 'left');
                     cancelEvent = true;
                 }
                 break;
             case 69:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(7 /* ALIGN */, 'center');
                     cancelEvent = true;
                 }
                 break;
             case 74:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(7 /* ALIGN */, 'justified');
                     cancelEvent = true;
                 }
                 break;
             case 82:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(7 /* ALIGN */, 'right');
                     cancelEvent = true;
                 }
                 break;
             case 67:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(8 /* COPY */);
                     cancelEvent = true;
                 }
                 break;
             case 88:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(9 /* CUT */);
                     cancelEvent = true;
                 }
                 break;
             case 86:
-                if (DOMEvent.ctrlKey) {
+                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(10 /* PASTE */);
                     cancelEvent = true;
                 }
@@ -5972,11 +5976,16 @@ var Viewport_CommandRouter = (function (_super) {
                 }
                 break;
             case 19 /* LIST */:
-                if (!this.ensureArgs(args, 2, 2)) {
+                if (!this.ensureArgs(args, 1, 2)) {
                     throw "Command: " + commandName + " requires two arguments: string, boolean";
                 }
                 else {
-                    this.list(String(args[0] || 'ul'), !!args[1]);
+                    if (args.length == 1) {
+                        this.list(String(args[0] || 'ul'), null);
+                    }
+                    else {
+                        this.list(String(args[0] || 'ul'), !!args[1]);
+                    }
                 }
                 break;
             default:
@@ -6456,8 +6465,20 @@ var Viewport_CommandRouter = (function (_super) {
     };
     // wraps into ul or ol the blocks.
     Viewport_CommandRouter.prototype.list = function (listType, on) {
-        if (on === void 0) { on = true; }
-        console.log('command: LIST[' + listType + ']');
+        if (on === void 0) { on = null; }
+        var become = '', selection = this.viewport.selection, rng = selection.getRange(), nodes = rng.affectedBlockNodes(), i = 0, len = nodes.length;
+        if (on !== null) {
+            become = on ? listType : 'p';
+        }
+        else {
+            become = this.viewport.selection.editorState.state.listType == listType ? 'p' : listType;
+        }
+        rng.save();
+        for (i = 0; i < len; i++) {
+            nodes[i].becomeElement(become);
+        }
+        rng.restore();
+        this.viewport.selection.editorState.compute();
     };
     // sets the affected block nodes to be "normal", or "h1".."h6"
     Viewport_CommandRouter.prototype.blockLevel = function (blockType) {
@@ -7964,11 +7985,12 @@ var Selection_EditorState = (function (_super) {
             fontSize: undefined,
             fontColor: undefined,
             verticalAlign: undefined,
-            blockLevel: undefined
+            blockLevel: undefined,
+            listType: undefined
         };
     };
     Selection_EditorState.prototype.compute = function () {
-        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, nulls = 0, changed = [], k = '', blockElement;
+        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, fListType = null, nulls = 0, changed = [], k = '', blockElement, listType;
         if (focus && rng.length()) {
             frag = rng.createContextualFragment();
             nodes = frag.affectedTextNodes();
@@ -8000,6 +8022,20 @@ var Selection_EditorState = (function (_super) {
                             fBlockLevel = blockElement.nodeName;
                             break;
                     }
+                    if (blockElement.nodeName == 'li' && blockElement.parentNode) {
+                        switch (blockElement.parentNode.nodeName) {
+                            case 'ul':
+                            case 'ol':
+                                fListType = blockElement.parentNode.nodeName;
+                                break;
+                            default:
+                                fListType = null;
+                                break;
+                        }
+                    }
+                    else {
+                        fListType = null;
+                    }
                     fBold = element.style.fontWeight() == 'bold';
                     fItalic = element.style.fontStyle() == 'italic';
                     fUnderline = element.style.textDecoration() == 'underline';
@@ -8014,6 +8050,18 @@ var Selection_EditorState = (function (_super) {
                     else {
                         if (state.blockLevel !== null && state.blockLevel !== fBlockLevel) {
                             state.blockLevel = null;
+                            nulls++;
+                        }
+                    }
+                    if (state.listType === undefined) {
+                        state.listType = fListType;
+                        if (fListType === null) {
+                            nulls++;
+                        }
+                    }
+                    else {
+                        if (state.listType !== null && state.listType !== fListType) {
+                            state.listType = null;
                             nulls++;
                         }
                     }
@@ -8091,7 +8139,7 @@ var Selection_EditorState = (function (_super) {
                     }
                 }
             }
-            if (nulls == 9) {
+            if (nulls == 10) {
                 break;
             }
         }
@@ -8834,13 +8882,36 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ul', true]);
+                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ul']);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ol', true]);
+                me.toolbar.router.dispatchCommand(19 /* LIST */, ['ol']);
             }, true);
         })(this);
     }
+    UI_Toolbar_Panel_BulletsAndNumbering.prototype.update = function () {
+        var state = this.toolbar.state.state.listType;
+        DOM.removeClass(this.btnUL, 'state-pressed');
+        DOM.removeClass(this.btnOL, 'state-pressed');
+        switch (state) {
+            case 'ul':
+                DOM.addClass(this.btnUL, 'state-pressed');
+                break;
+            case 'ol':
+                DOM.addClass(this.btnOL, 'state-pressed');
+                break;
+            default:
+                break;
+        }
+    };
+    UI_Toolbar_Panel_BulletsAndNumbering.prototype.updateDocumentState = function (propertiesList) {
+        for (var i = 0, len = propertiesList.length; i < len; i++) {
+            if (propertiesList[i] == 'listType') {
+                this.update();
+                break;
+            }
+        }
+    };
     return UI_Toolbar_Panel_BulletsAndNumbering;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Indentation = (function (_super) {

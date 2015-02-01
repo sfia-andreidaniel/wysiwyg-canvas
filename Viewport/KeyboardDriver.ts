@@ -92,49 +92,49 @@ class Viewport_KeyboardDriver extends Events {
 				break;
 
 			case 66: // b
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.BOLD );
 					cancelEvent = true;
 				}
 				break;
 
 			case 73: // i
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.ITALIC );
 					cancelEvent = true;
 				}
 				break;
 
 			case 85: // u
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.UNDERLINE );
 					cancelEvent = true;
 				}
 				break;
 
 			case 76: // l
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.ALIGN, 'left' );
 					cancelEvent = true;
 				}
 				break;
 
 			case 69: // e
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.ALIGN, 'center' );
 					cancelEvent = true;
 				}
 				break;
 
 			case 74: // j
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.ALIGN, 'justified' );
 					cancelEvent = true;
 				}
 				break;
 
 			case 82: // r
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.ALIGN, 'right' );
 					cancelEvent = true;
 				}
@@ -142,21 +142,21 @@ class Viewport_KeyboardDriver extends Events {
 
 
 			case 67: // c
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.COPY );
 					cancelEvent = true;
 				}
 				break;
 
 			case 88: // x
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.CUT );
 					cancelEvent = true;
 				}
 				break;
 
 			case 86: // v
-				if ( DOMEvent.ctrlKey ) {
+				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.PASTE );
 					cancelEvent = true;
 				}

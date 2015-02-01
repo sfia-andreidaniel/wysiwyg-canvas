@@ -5,6 +5,8 @@ class HTML_OrderedList extends TNode_Element {
 		this.nodeName = 'ol';
 		this.style.display('block');
 		this.style.paddingLeft( '30' );
+		this.style.marginTop( '10' );
+		this.style.marginBottom( '10' );
 	}
 
 	public breakBeforeOption( option: HTML_ListItem ): TListBreakResult {

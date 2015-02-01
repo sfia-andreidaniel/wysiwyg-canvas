@@ -12,7 +12,7 @@ div.html-editor > div.toolbar {
 	margin: 0 !important;
 	display: none;
 	background-color: #ddd;
-	height: 40px;
+	height: 41px;
 
 	-webkit-user-select: none;
 	-ms-user-select: none;
@@ -40,7 +40,6 @@ div.html-editor > div.body {
 	-moz-user-select: none;
 	-o-user-select: none;
 	user-select: none;
-
 
 }
 

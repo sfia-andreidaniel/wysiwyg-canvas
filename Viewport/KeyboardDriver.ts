@@ -63,6 +63,8 @@ class Viewport_KeyboardDriver extends Events {
 
 			this.viewport.execCommand( EditorCommand.INSERT_TEXT, chr );
 
+			DOMEvent.preventDefault();
+			DOMEvent.stopPropagation();
 		}
 
 

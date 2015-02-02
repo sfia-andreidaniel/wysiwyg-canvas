@@ -51,20 +51,21 @@ var EditorCommand;
     EditorCommand[EditorCommand["BOLD"] = 4] = "BOLD";
     EditorCommand[EditorCommand["ITALIC"] = 5] = "ITALIC";
     EditorCommand[EditorCommand["UNDERLINE"] = 6] = "UNDERLINE";
-    EditorCommand[EditorCommand["ALIGN"] = 7] = "ALIGN";
-    EditorCommand[EditorCommand["CLEAR_FORMATTING"] = 8] = "CLEAR_FORMATTING";
-    EditorCommand[EditorCommand["COPY"] = 9] = "COPY";
-    EditorCommand[EditorCommand["CUT"] = 10] = "CUT";
-    EditorCommand[EditorCommand["PASTE"] = 11] = "PASTE";
-    EditorCommand[EditorCommand["INDENT"] = 12] = "INDENT";
-    EditorCommand[EditorCommand["UNINDENT"] = 13] = "UNINDENT";
-    EditorCommand[EditorCommand["VALIGN"] = 14] = "VALIGN";
-    EditorCommand[EditorCommand["FONT"] = 15] = "FONT";
-    EditorCommand[EditorCommand["COLOR"] = 16] = "COLOR";
-    EditorCommand[EditorCommand["BGCOLOR"] = 17] = "BGCOLOR";
-    EditorCommand[EditorCommand["SIZE"] = 18] = "SIZE";
-    EditorCommand[EditorCommand["BLOCK_LEVEL"] = 19] = "BLOCK_LEVEL";
-    EditorCommand[EditorCommand["LIST"] = 20] = "LIST"; // sets the list level of the elements ( UL or LI )
+    EditorCommand[EditorCommand["STRIKE"] = 7] = "STRIKE";
+    EditorCommand[EditorCommand["ALIGN"] = 8] = "ALIGN";
+    EditorCommand[EditorCommand["CLEAR_FORMATTING"] = 9] = "CLEAR_FORMATTING";
+    EditorCommand[EditorCommand["COPY"] = 10] = "COPY";
+    EditorCommand[EditorCommand["CUT"] = 11] = "CUT";
+    EditorCommand[EditorCommand["PASTE"] = 12] = "PASTE";
+    EditorCommand[EditorCommand["INDENT"] = 13] = "INDENT";
+    EditorCommand[EditorCommand["UNINDENT"] = 14] = "UNINDENT";
+    EditorCommand[EditorCommand["VALIGN"] = 15] = "VALIGN";
+    EditorCommand[EditorCommand["FONT"] = 16] = "FONT";
+    EditorCommand[EditorCommand["COLOR"] = 17] = "COLOR";
+    EditorCommand[EditorCommand["BGCOLOR"] = 18] = "BGCOLOR";
+    EditorCommand[EditorCommand["SIZE"] = 19] = "SIZE";
+    EditorCommand[EditorCommand["BLOCK_LEVEL"] = 20] = "BLOCK_LEVEL";
+    EditorCommand[EditorCommand["LIST"] = 21] = "LIST"; // sets the list level of the elements ( UL or LI )
 })(EditorCommand || (EditorCommand = {}));
 var TNewLinePolicy;
 (function (TNewLinePolicy) {
@@ -646,6 +647,7 @@ var TNode_Element = (function (_super) {
         this.isMergeable = true; // weather the "mergeWith" method works with this or with another element.
         this.isDefragmentable = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
         this.isNegation = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
+        this.isSelectionPaintingDisabled = false; // The node is not painted as selected as a whole, if it is included inside a text range, by any circumstances,  by the paint method ( but it's text can be if it's selected )
         this._tabStop = 0;
         if (!postStyleInit)
             this.style = new TStyle(this);
@@ -954,7 +956,7 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
         var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
-        if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1))) {
+        if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1) && !this.isSelectionPaintingDisabled)) {
             isSelected = true;
             ctx.fillStyle = DocSelection.$Colors.focus;
             ctx.fillRect(~~(layout.innerLeft - scrollLeft), ~~(layout.innerTop - scrollTop), ~~layout.innerWidth, ~~layout.innerHeight);
@@ -1037,6 +1039,9 @@ var TNode_Element = (function (_super) {
                 break;
             case 'height':
                 this.style.height(String(attributeValue || ''));
+                break;
+            case 'margin':
+                this.style.margin(String(attributeValue || ''));
                 break;
             case 'bgcolor':
                 this.style.backgroundColor(String(attributeValue || ''));
@@ -2070,6 +2075,12 @@ var HTML_Body = (function (_super) {
             case '!sub':
                 node = new HTML_NegationNode('sub');
                 break;
+            case 'strike':
+                node = new HTML_Strike();
+                break;
+            case '!strike':
+                node = new HTML_NegationNode('strike');
+                break;
             case 'table':
                 node = new HTML_Table();
                 break;
@@ -2602,6 +2613,7 @@ var HTML_BulletedList = (function (_super) {
     __extends(HTML_BulletedList, _super);
     function HTML_BulletedList() {
         _super.call(this);
+        this.isSelectionPaintingDisabled = true;
         this.nodeName = 'ul';
         this.style.display('block');
         this.style.paddingLeft('30');
@@ -2642,6 +2654,7 @@ var HTML_OrderedList = (function (_super) {
     __extends(HTML_OrderedList, _super);
     function HTML_OrderedList() {
         _super.call(this);
+        this.isSelectionPaintingDisabled = true;
         this.nodeName = 'ol';
         this.style.display('block');
         this.style.paddingLeft('30');
@@ -2693,7 +2706,7 @@ var HTML_ListItem = (function (_super) {
         /* If the parent is a OL, paint my number,
            otherwise paint a disk.
          */
-        ctx.fillStyle = this.isPaintedSelected ? 'blue' : this.style.color();
+        ctx.fillStyle = this.style.color();
         ctx.textAlign = 'right';
         ctx.font = this.style.fontStyleText();
         ctx.textBaseline = 'alphabetic';
@@ -3352,6 +3365,7 @@ var HTML_NegationNode = (function (_super) {
                 this.style.fontStyle('normal');
                 break;
             case 'u':
+            case 'strike':
                 this.style.textDecoration('none');
                 break;
             case 'sup':
@@ -3509,6 +3523,17 @@ var HTML_Size = (function (_super) {
         return size.value() == this.value();
     };
     return HTML_Size;
+})(TNode_Element);
+var HTML_Strike = (function (_super) {
+    __extends(HTML_Strike, _super);
+    function HTML_Strike() {
+        _super.call(this);
+        this.isDefragmentable = true;
+        this.nodeName = 'strike';
+        this.style.display('inline');
+        this.style.textDecoration('line-through');
+    }
+    return HTML_Strike;
 })(TNode_Element);
 var TStyle = (function () {
     function TStyle(node) {
@@ -3801,6 +3826,11 @@ var TStyle = (function () {
         this._paddingLeft.isSet = this._paddingRight.isSet = this._paddingBottom.isSet = this._paddingTop.isSet = true;
         this.node.requestRelayout();
     };
+    TStyle.prototype.margin = function (value) {
+        this._marginLeft.value = this._marginRight.value = this._marginTop.value = this._marginBottom.value = (parseFloat(value || '0') || 0);
+        this._marginLeft.isSet = this._marginRight.isSet = this._marginBottom.isSet = this._marginTop.isSet = true;
+        this.node.requestRelayout();
+    };
     TStyle.prototype.textAlign = function (value) {
         if (value === void 0) { value = null; }
         if (value === null) {
@@ -3863,7 +3893,8 @@ var TStyle = (function () {
     ];
     TStyle.$TextDecoration = [
         "none",
-        "underline"
+        "underline",
+        "line-through"
     ];
     TStyle.$Display = [
         "block",
@@ -4724,12 +4755,13 @@ var Layout_Horizontal = (function (_super) {
                 // if the node has a width, we set it's width as the
                 // node width, otherwise we set it's width automatically
                 if (this.children[i].node.style._width.isSet) {
-                    this.children[i].offsetWidth = this.children[i].node.style.width() + (this.children[i].node.style.borderWidth() * 2) + this.children[i].node.style.paddingLeft() + (this.children[i].node.tabStop() * tabSize) + this.children[i].node.style.paddingRight();
+                    this.children[i].offsetWidth = this.children[i].node.style.width() + (this.children[i].node.style.borderWidth() * 2) + this.children[i].node.style.paddingLeft() + this.children[i].node.style.paddingRight() + (this.children[i].node.tabStop() * tabSize);
                     sumWidths += this.children[i].offsetWidth;
                 }
                 else {
                     computeAfter.push(this.children[i]);
                 }
+                sumWidths += (this.children[i].node.style.marginLeft() + this.children[i].node.style.marginRight());
             }
             else {
                 optimalWidth = this.getCellWidth(i);
@@ -4749,7 +4781,8 @@ var Layout_Horizontal = (function (_super) {
         leftPosition = this.innerLeft;
         for (i = 0, len = this.children.length; i < len; i++) {
             if (this.children[i].node) {
-                this.children[i].offsetLeft = leftPosition - this.children[i].node.style.marginLeft();
+                leftPosition += this.children[i].node.style.marginLeft();
+                this.children[i].offsetLeft = leftPosition;
                 this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + (this.children[i].node.tabStop() * tabSize) + this.children[i].node.style.borderWidth();
                 this.children[i].innerWidth = this.children[i].offsetWidth - (this.children[i].node.style.borderWidth() * 2) - this.children[i].node.style.paddingLeft() - (this.children[i].node.tabStop() * tabSize) - this.children[i].node.style.paddingRight();
                 leftPosition += this.children[i].node.style.marginRight();
@@ -4784,7 +4817,7 @@ var Layout_Horizontal = (function (_super) {
         topPlacementMax = topPlacement;
         if (this.children && (len = this.children.length)) {
             for (i = 0; i < len; i++) {
-                topPlacementMax = Math.max(topPlacementMax, this.children[i].computeHeights(topPlacement, indent + 1));
+                topPlacementMax = Math.max(topPlacementMax, this.children[i].computeHeights(topPlacement - (this.children[i].node ? this.children[i].node.style.marginTop() : 0), indent + 1) - (this.children[i].node ? this.children[i].node.style.marginBottom() : 0));
             }
             contentHeight = topPlacementMax - topPlacement;
         }
@@ -5078,7 +5111,7 @@ var Layout_BlockChar = (function (_super) {
         ctx.fillStyle = '#ddd';
         ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
         */
-        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '', isPaintedSelected = node.isPaintedSelected;
+        var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, isStrike = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '', isPaintedSelected = node.isPaintedSelected, textDecoration;
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -5109,9 +5142,11 @@ var Layout_BlockChar = (function (_super) {
                         currentNode = this.lines[i].words[j].characters[k].node.parentNode;
                         ctx.font = currentNode.style.fontStyleText();
                         ctx.fillStyle = isPaintedSelected ? 'white' : (saveColor = currentNode.style.color());
-                        isUnderline = currentNode.style.textDecoration() == 'underline';
+                        textDecoration = currentNode.style.textDecoration();
+                        isUnderline = textDecoration == 'underline';
+                        isStrike = textDecoration == 'line-through';
                         valign = currentNode.style.verticalAlign();
-                        if (isUnderline) {
+                        if (isUnderline || isStrike) {
                             underlineWidth = ~~(currentNode.style.fontSize() * .15);
                             if (underlineWidth < 1) {
                                 underlineWidth = 1;
@@ -5138,12 +5173,18 @@ var Layout_BlockChar = (function (_super) {
                         if (isUnderline) {
                             ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
                         }
+                        else if (isStrike) {
+                            ctx.fillRect(startX, ~~((startY + (lineDiff / 1.3)) + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
+                        }
                         ctx.fillStyle = saveColor;
                     }
                     else {
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                         if (isUnderline) {
                             ctx.fillRect(startX, ~~((startY + lineDiff) + 2 + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
+                        }
+                        else if (isStrike) {
+                            ctx.fillRect(startX, ~~((startY + (lineDiff / 1.3)) + valignShift), size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0), underlineWidth);
                         }
                     }
                     if (caret && caret.fragPos == fragPos) {
@@ -5500,8 +5541,8 @@ var Viewport_MouseDriver = (function (_super) {
     }
     Viewport_MouseDriver.prototype.translateMouseEventXY = function (DOMEvent) {
         return {
-            "x": DOMEvent.offsetX + this.viewport.scrollLeft(),
-            "y": DOMEvent.offsetY + this.viewport.scrollTop()
+            "x": (DOMEvent.offsetX || DOMEvent.layerX) + this.viewport.scrollLeft(),
+            "y": (DOMEvent.offsetY || DOMEvent.layerY) + this.viewport.scrollTop()
         };
     };
     Viewport_MouseDriver.prototype.onmousedown = function (DOMEvent) {
@@ -5612,6 +5653,8 @@ var Viewport_KeyboardDriver = (function (_super) {
         var chr = String.fromCharCode(DOMEvent.charCode), key = DOMEvent.keyCode;
         if (!DOMEvent.ctrlKey && chr && chr != '\n') {
             this.viewport.execCommand(0 /* INSERT_TEXT */, chr);
+            DOMEvent.preventDefault();
+            DOMEvent.stopPropagation();
         }
     };
     Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent, eventSource) {
@@ -5629,7 +5672,7 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 9:
                 cancelEvent = true;
-                this.viewport.execCommand(DOMEvent.shiftKey ? 13 /* UNINDENT */ : 12 /* INDENT */);
+                this.viewport.execCommand(DOMEvent.shiftKey ? 14 /* UNINDENT */ : 13 /* INDENT */);
                 break;
             case 66:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
@@ -5651,56 +5694,56 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 76:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(7 /* ALIGN */, 'left');
+                    this.viewport.execCommand(8 /* ALIGN */, 'left');
                     cancelEvent = true;
                 }
                 break;
             case 69:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(7 /* ALIGN */, 'center');
+                    this.viewport.execCommand(8 /* ALIGN */, 'center');
                     cancelEvent = true;
                 }
                 break;
             case 74:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(7 /* ALIGN */, 'justified');
+                    this.viewport.execCommand(8 /* ALIGN */, 'justified');
                     cancelEvent = true;
                 }
                 break;
             case 82:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(7 /* ALIGN */, 'right');
+                    this.viewport.execCommand(8 /* ALIGN */, 'right');
                     cancelEvent = true;
                 }
                 break;
             case 67:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(9 /* COPY */);
+                    this.viewport.execCommand(10 /* COPY */);
                     cancelEvent = true;
                 }
                 break;
             case 88:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(10 /* CUT */);
+                    this.viewport.execCommand(11 /* CUT */);
                     cancelEvent = true;
                 }
                 break;
             case 86:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(11 /* PASTE */);
+                    this.viewport.execCommand(12 /* PASTE */);
                     cancelEvent = true;
                 }
                 break;
             case 189:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(18 /* SIZE */, '-1');
+                    this.viewport.execCommand(19 /* SIZE */, '-1');
                     cancelEvent = true;
                 }
                 break;
             case 107:
             case 187:
                 if (DOMEvent.ctrlKey) {
-                    this.viewport.execCommand(18 /* SIZE */, '+1');
+                    this.viewport.execCommand(19 /* SIZE */, '+1');
                     cancelEvent = true;
                 }
                 break;
@@ -5816,52 +5859,55 @@ var Viewport_CommandRouter = (function (_super) {
             case 4 /* BOLD */:
                 return 'bold';
                 break;
+            case 7 /* STRIKE */:
+                return 'strike';
+                break;
             case 5 /* ITALIC */:
                 return 'italic';
                 break;
             case 6 /* UNDERLINE */:
                 return 'underline';
                 break;
-            case 7 /* ALIGN */:
+            case 8 /* ALIGN */:
                 return 'align';
                 break;
-            case 9 /* COPY */:
+            case 10 /* COPY */:
                 return 'copy';
                 break;
-            case 10 /* CUT */:
+            case 11 /* CUT */:
                 return 'cut';
                 break;
-            case 11 /* PASTE */:
+            case 12 /* PASTE */:
                 return 'paste';
                 break;
-            case 12 /* INDENT */:
+            case 13 /* INDENT */:
                 return 'indent';
                 break;
-            case 13 /* UNINDENT */:
+            case 14 /* UNINDENT */:
                 return 'unindent';
                 break;
-            case 14 /* VALIGN */:
+            case 15 /* VALIGN */:
                 return 'verticalAlign';
                 break;
-            case 15 /* FONT */:
+            case 16 /* FONT */:
                 return 'setFont';
                 break;
-            case 16 /* COLOR */:
+            case 17 /* COLOR */:
                 return 'setColor';
                 break;
-            case 17 /* BGCOLOR */:
+            case 18 /* BGCOLOR */:
                 return 'setBgColor';
                 break;
-            case 18 /* SIZE */:
+            case 19 /* SIZE */:
                 return 'setSize';
                 break;
-            case 19 /* BLOCK_LEVEL */:
+            case 20 /* BLOCK_LEVEL */:
                 return 'setBlockLevel';
                 break;
-            case 20 /* LIST */:
+            case 21 /* LIST */:
                 return 'list';
                 break;
-            case 8 /* CLEAR_FORMATTING */:
+            case 9 /* CLEAR_FORMATTING */:
                 return 'clearFormatting';
                 break;
             default:
@@ -5924,6 +5970,14 @@ var Viewport_CommandRouter = (function (_super) {
                     this.bold(args.length ? !!args[0] : null);
                 }
                 break;
+            case 7 /* STRIKE */:
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " require one optional argument of type boolean.";
+                }
+                else {
+                    this.strike(args.length ? !!args[0] : null);
+                }
+                break;
             case 5 /* ITALIC */:
                 if (!this.ensureArgs(args, 0, 1)) {
                     throw "Command: " + commandName + " require one optional argument of type boolean.";
@@ -5940,7 +5994,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.underline(args.length ? !!args[0] : null);
                 }
                 break;
-            case 7 /* ALIGN */:
+            case 8 /* ALIGN */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " require a single string argument.";
                 }
@@ -5948,7 +6002,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.align(String(args[0]));
                 }
                 break;
-            case 9 /* COPY */:
+            case 10 /* COPY */:
                 if (!this.ensureArgs(args, 0, 0)) {
                     throw "Command: " + commandName + " doesn't require any arguments!";
                 }
@@ -5956,7 +6010,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.copy();
                 }
                 break;
-            case 10 /* CUT */:
+            case 11 /* CUT */:
                 if (!this.ensureArgs(args, 0, 0)) {
                     throw "Command: " + commandName + " doesn't require any arguments!";
                 }
@@ -5964,7 +6018,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.cut();
                 }
                 break;
-            case 11 /* PASTE */:
+            case 12 /* PASTE */:
                 if (!this.ensureArgs(args, 0, 2)) {
                     throw "Command: " + commandName + " require 2 optional args of type string!";
                 }
@@ -5972,7 +6026,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.paste(args.length == 0 ? null : String(args[0]), args.length == 2 ? args[1] : null);
                 }
                 break;
-            case 12 /* INDENT */:
+            case 13 /* INDENT */:
                 if (!this.ensureArgs(args, 0, 1)) {
                     throw "Command: " + commandName + " requires a single optional number argument!";
                 }
@@ -5980,7 +6034,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.indent(args.length ? ~~args[0] : null);
                 }
                 break;
-            case 13 /* UNINDENT */:
+            case 14 /* UNINDENT */:
                 if (!this.ensureArgs(args, 0, 1)) {
                     throw "Command: " + commandName + " requires a single optional number argument!";
                 }
@@ -5988,7 +6042,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.unindent(args.length ? ~~args[0] : null);
                 }
                 break;
-            case 14 /* VALIGN */:
+            case 15 /* VALIGN */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -5996,7 +6050,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.valign(String(args[0] || 'normal'));
                 }
                 break;
-            case 15 /* FONT */:
+            case 16 /* FONT */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single string argument!";
                 }
@@ -6004,7 +6058,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.font(String(args[0] || "Arial"));
                 }
                 break;
-            case 16 /* COLOR */:
+            case 17 /* COLOR */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument!";
                 }
@@ -6012,7 +6066,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.color(String(args[0] || ''));
                 }
                 break;
-            case 17 /* BGCOLOR */:
+            case 18 /* BGCOLOR */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument!";
                 }
@@ -6020,7 +6074,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.bgColor(String(args[0] || ''));
                 }
                 break;
-            case 18 /* SIZE */:
+            case 19 /* SIZE */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -6028,7 +6082,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.size(String(args[0] || ''));
                 }
                 break;
-            case 19 /* BLOCK_LEVEL */:
+            case 20 /* BLOCK_LEVEL */:
                 if (!this.ensureArgs(args, 1, 1)) {
                     throw "Command: " + commandName + " requires a single argument of type string!";
                 }
@@ -6036,7 +6090,7 @@ var Viewport_CommandRouter = (function (_super) {
                     this.blockLevel(String(args[0] || ''));
                 }
                 break;
-            case 20 /* LIST */:
+            case 21 /* LIST */:
                 if (!this.ensureArgs(args, 1, 2)) {
                     throw "Command: " + commandName + " requires two arguments: string, boolean";
                 }
@@ -6049,7 +6103,7 @@ var Viewport_CommandRouter = (function (_super) {
                     }
                 }
                 break;
-            case 8 /* CLEAR_FORMATTING */:
+            case 9 /* CLEAR_FORMATTING */:
                 if (!this.ensureArgs(args, 0, 0)) {
                     throw "Command: " + commandName + " don't have any arguments.";
                 }
@@ -6095,6 +6149,7 @@ var Viewport_CommandRouter = (function (_super) {
         }
         //console.log( 'after: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos ), 20, focus.fragPos ) ) + ', jump = ' + jump );
         range.collapse(true);
+        this.viewport.scrollToCaret();
     };
     // negative values delete characters in the left of the caret,
     // positive values delete characters in the right of the caret
@@ -6105,6 +6160,7 @@ var Viewport_CommandRouter = (function (_super) {
         var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
         if (rng.length()) {
             this.viewport.selection.removeContents();
+            this.viewport.scrollToCaret();
             return;
         }
         else {
@@ -6117,6 +6173,7 @@ var Viewport_CommandRouter = (function (_super) {
                         document.removeOrphanNodes();
                         selection.anchorTo(lock.getTarget());
                         selection.fire('changed');
+                        this.viewport.scrollToCaret();
                         return;
                     }
                 }
@@ -6243,6 +6300,7 @@ var Viewport_CommandRouter = (function (_super) {
         this.viewport.document.relayout(true);
         // finally, move the cursor.
         selection.anchorTo(lock.getTarget());
+        this.viewport.scrollToCaret();
     };
     // inserts a new line in document. if forceBRTag is set (not null)
     // a <br> tag will be inserted instead of creating a new paragraph.
@@ -6287,6 +6345,7 @@ var Viewport_CommandRouter = (function (_super) {
         target.target = this.viewport.document.findNodeAtIndex(jumpPosition);
         target.fragPos = jumpPosition;
         rng.collapse(true);
+        this.viewport.scrollToCaret();
     };
     // moves the caret, and optionally extends the selection to the
     // new caret position.
@@ -6397,6 +6456,28 @@ var Viewport_CommandRouter = (function (_super) {
         }
         this.viewport.selection.editorState.compute();
     };
+    // sets the strikeness of the text. if state is null, then the strikeness is toggled.
+    Viewport_CommandRouter.prototype.strike = function (state) {
+        if (state === void 0) { state = null; }
+        var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
+        if (!len) {
+            return;
+        }
+        if (state === null) {
+            state = !(this.viewport.selection.editorState.state.strike);
+        }
+        if (state) {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').unwrapFromElement('!strike').unwrapFromElement('strike').wrapInElement('strike', null, null, function () {
+                return this.style.textDecoration() != 'line-through';
+            }).end();
+        }
+        else {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').unwrapFromElement('!strike').unwrapFromElement('strike').wrapInElement('!strike', null, null, function () {
+                return this.style.textDecoration() == 'line-through';
+            }).end();
+        }
+        this.viewport.selection.editorState.compute();
+    };
     // makes text italic or not. if state is null, the state is toggled.
     Viewport_CommandRouter.prototype.italic = function (state) {
         if (state === void 0) { state = null; }
@@ -6430,12 +6511,12 @@ var Viewport_CommandRouter = (function (_super) {
             state = !(this.viewport.selection.editorState.state.underline);
         }
         if (state) {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('u', null, null, function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').unwrapFromElement('strike').unwrapFromElement('!strike').wrapInElement('u', null, null, function () {
                 return this.style.textDecoration() != 'underline';
             }).end();
         }
         else {
-            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').wrapInElement('!u', null, null, function () {
+            this.viewport.selection.getRange().affectedRanges().unwrapFromElement('!u').unwrapFromElement('u').unwrapFromElement('strike').unwrapFromElement('!strike').wrapInElement('!u', null, null, function () {
                 return this.style.textDecoration() == 'underline';
             }).end();
         }
@@ -6602,7 +6683,7 @@ var Viewport_CommandRouter = (function (_super) {
         if (!len) {
             return;
         }
-        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('color').end();
+        this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('strike').unwrapFromElement('!strike').unwrapFromElement('color').end();
         this.viewport.selection.editorState.compute();
     };
     return Viewport_CommandRouter;
@@ -6845,7 +6926,7 @@ var Fragment_CaretLock = (function () {
                     }
                 }
             }
-            return this.fragment.createTargetAt(1 /* DOC_END */);
+            return this.chars == 0 ? this.fragment.createTargetAt(0 /* DOC_BEGIN */) : this.fragment.createTargetAt(1 /* DOC_END */);
         }
         else {
             for (i = this.fragment.length() - 1; i >= 0; i--) {
@@ -6873,7 +6954,7 @@ var Fragment_CaretLock = (function () {
                     }
                 }
             }
-            return this.fragment.createTargetAt(0 /* DOC_BEGIN */);
+            return this.chars == 0 ? this.fragment.createTargetAt(1 /* DOC_END */) : this.fragment.createTargetAt(0 /* DOC_BEGIN */);
         }
     };
     return Fragment_CaretLock;
@@ -8100,6 +8181,7 @@ var Selection_EditorState = (function (_super) {
             bold: undefined,
             italic: undefined,
             underline: undefined,
+            strike: undefined,
             textAlign: undefined,
             fontFamily: undefined,
             fontSize: undefined,
@@ -8110,7 +8192,7 @@ var Selection_EditorState = (function (_super) {
         };
     };
     Selection_EditorState.prototype.compute = function () {
-        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, fListType = null, nulls = 0, changed = [], k = '', blockElement, listType;
+        var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fStrike = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, fListType = null, textDecoration = null, nulls = 0, changed = [], k = '', blockElement, listType;
         if (focus && rng.length()) {
             frag = rng.createContextualFragment();
             nodes = frag.affectedTextNodes();
@@ -8158,7 +8240,9 @@ var Selection_EditorState = (function (_super) {
                     }
                     fBold = element.style.fontWeight() == 'bold';
                     fItalic = element.style.fontStyle() == 'italic';
-                    fUnderline = element.style.textDecoration() == 'underline';
+                    textDecoration = element.style.textDecoration();
+                    fUnderline = (textDecoration == 'underline');
+                    fStrike = (textDecoration == 'line-through');
                     fTextAlign = element.style.textAlign() || 'left';
                     fFontFamily = element.style.fontFamily() || 'Arial';
                     fFontSize = ~~element.style.fontSize() || 0;
@@ -8212,6 +8296,15 @@ var Selection_EditorState = (function (_super) {
                             nulls++;
                         }
                     }
+                    if (state.strike === undefined) {
+                        state.strike = fStrike;
+                    }
+                    else {
+                        if (state.strike !== null && state.strike !== fStrike) {
+                            state.strike = null;
+                            nulls++;
+                        }
+                    }
                     if (state.textAlign === undefined) {
                         state.textAlign = fTextAlign;
                     }
@@ -8259,7 +8352,7 @@ var Selection_EditorState = (function (_super) {
                     }
                 }
             }
-            if (nulls == 10) {
+            if (nulls == 11) {
                 break;
             }
         }
@@ -8505,7 +8598,6 @@ var UI_Toolbar = (function (_super) {
         this.panels.push(new UI_Toolbar_Panel_Alignment(this));
         this.panels.push(new UI_Toolbar_Panel_BulletsAndNumbering(this));
         this.panels.push(new UI_Toolbar_Panel_Indentation(this));
-        this.panels.push(new UI_Toolbar_Panel_TextScripting(this));
         this.panels.push(new UI_Toolbar_Panel_BordersAndColors(this));
         this.panels.push(new UI_Toolbar_Panel_Multimedia(this));
     }
@@ -8582,7 +8674,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         this.btnClearFormatting = this.node.querySelector('div.ui-button.remove-formatting');
         (function (me) {
             me.btnClearFormatting.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(8 /* CLEAR_FORMATTING */, []);
+                me.toolbar.router.dispatchCommand(9 /* CLEAR_FORMATTING */, []);
             }, true);
         })(this);
         (function (me) {
@@ -8598,13 +8690,13 @@ var UI_Toolbar_Panel_Style = (function (_super) {
         })(this);
     }
     UI_Toolbar_Panel_Style.prototype.setBlockLevel = function (nodeName) {
-        this.toolbar.router.dispatchCommand(19 /* BLOCK_LEVEL */, [nodeName]);
+        this.toolbar.router.dispatchCommand(20 /* BLOCK_LEVEL */, [nodeName]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontFamily = function (fontFamily) {
-        this.toolbar.router.dispatchCommand(15 /* FONT */, [fontFamily]);
+        this.toolbar.router.dispatchCommand(16 /* FONT */, [fontFamily]);
     };
     UI_Toolbar_Panel_Style.prototype.setFontSize = function (fontSize) {
-        this.toolbar.router.dispatchCommand(18 /* SIZE */, [fontSize]);
+        this.toolbar.router.dispatchCommand(19 /* SIZE */, [fontSize]);
     };
     UI_Toolbar_Panel_Style.prototype.dropdownize = function (input, submit, allowSuggestionsOnly) {
         /* indeed.com corby nn18 nn95nb */
@@ -8862,17 +8954,28 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
         this.btnBold = null;
         this.btnItalic = null;
         this.btnUnderline = null;
+        this.btnStrike = null;
+        this.btnSubscript = null;
+        this.btnSuperscript = null;
         DOM.addClass(this.node, 'ui-panel-formatting');
         this.node.innerHTML = [
             '<div class="item index-0">',
             '<div class="ui-button bold state" title="Bold (Ctrl+B)"></div>',
             '<div class="ui-button italic" title="Italic (Ctrl+I)"></div>',
             '<div class="ui-button underline" title="Underline (Ctrl+U)"></div>',
+            '<div class="ui-button strike" title="Strike"></div>',
+            '</div>',
+            '<div class="item index-1">',
+            '<div class="ui-button subscript"   title="Subscript"></div>',
+            '<div class="ui-button superscript" title="Superscript"></div>',
             '</div>',
         ].join('');
         this.btnBold = this.node.querySelector('.ui-button.bold');
         this.btnItalic = this.node.querySelector('.ui-button.italic');
         this.btnUnderline = this.node.querySelector('.ui-button.underline');
+        this.btnStrike = this.node.querySelector('.ui-button.strike');
+        this.btnSubscript = this.node.querySelector('.ui-button.subscript');
+        this.btnSuperscript = this.node.querySelector('.ui-button.superscript');
         (function (me) {
             me.btnBold.addEventListener('click', function () {
                 me.toolbar.router.dispatchCommand(4 /* BOLD */, []);
@@ -8883,8 +8986,41 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
             me.btnUnderline.addEventListener('click', function () {
                 me.toolbar.router.dispatchCommand(6 /* UNDERLINE */, []);
             }, true);
+            me.btnStrike.addEventListener('click', function () {
+                me.toolbar.router.dispatchCommand(7 /* STRIKE */, []);
+            }, true);
+            me.btnSubscript.addEventListener('click', function (DOMEvent) {
+                if (me.toolbar.state.state.verticalAlign == 'sub') {
+                    me.toolbar.router.dispatchCommand(15 /* VALIGN */, ['normal']);
+                }
+                else {
+                    me.toolbar.router.dispatchCommand(15 /* VALIGN */, ['sub']);
+                }
+            }, true);
+            me.btnSuperscript.addEventListener('click', function (DOMEvent) {
+                if (me.toolbar.state.state.verticalAlign == 'super') {
+                    me.toolbar.router.dispatchCommand(15 /* VALIGN */, ['normal']);
+                }
+                else {
+                    me.toolbar.router.dispatchCommand(15 /* VALIGN */, ['sup']);
+                }
+            }, true);
         })(this);
     }
+    UI_Toolbar_Panel_Formatting.prototype.updateScriptState = function () {
+        var state = this.toolbar.state.state.verticalAlign, btns = [this.btnSuperscript, this.btnSubscript], i;
+        for (i = 0; i < 2; i++) {
+            DOM.removeClass(btns[i], 'state-pressed');
+        }
+        switch (state) {
+            case 'super':
+                DOM.addClass(this.btnSuperscript, 'state-pressed');
+                break;
+            case 'sub':
+                DOM.addClass(this.btnSubscript, 'state-pressed');
+                break;
+        }
+    };
     UI_Toolbar_Panel_Formatting.prototype.updateBoldState = function () {
         var state = this.toolbar.state.state.bold;
         DOM.removeClass(this.btnBold, 'state-pressed');
@@ -8911,6 +9047,19 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
             }
         }
     };
+    UI_Toolbar_Panel_Formatting.prototype.updateStrikeState = function () {
+        var state = this.toolbar.state.state.strike;
+        DOM.removeClass(this.btnStrike, 'state-pressed');
+        DOM.removeClass(this.btnStrike, 'state-mixed');
+        if (state) {
+            DOM.addClass(this.btnStrike, 'state-pressed');
+        }
+        else {
+            if (state === null) {
+                DOM.addClass(this.btnStrike, 'state-mixed');
+            }
+        }
+    };
     UI_Toolbar_Panel_Formatting.prototype.updateUnderlineState = function () {
         var state = this.toolbar.state.state.underline;
         DOM.removeClass(this.btnUnderline, 'state-pressed');
@@ -8927,6 +9076,9 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
     UI_Toolbar_Panel_Formatting.prototype.updateDocumentState = function (propertiesList) {
         for (var i = 0, len = propertiesList.length; i < len; i++) {
             switch (propertiesList[i]) {
+                case 'verticalAlign':
+                    this.updateScriptState();
+                    break;
                 case 'bold':
                     this.updateBoldState();
                     break;
@@ -8935,6 +9087,9 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
                     break;
                 case 'underline':
                     this.updateUnderlineState();
+                    break;
+                case 'strike':
+                    this.updateStrikeState();
                     break;
             }
         }
@@ -8965,16 +9120,16 @@ var UI_Toolbar_Panel_Alignment = (function (_super) {
         this.btnJustified = this.node.querySelector('.ui-button.justified');
         (function (me) {
             me.btnLeft.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['left']);
+                me.toolbar.router.dispatchCommand(8 /* ALIGN */, ['left']);
             }, true);
             me.btnRight.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['right']);
+                me.toolbar.router.dispatchCommand(8 /* ALIGN */, ['right']);
             }, true);
             me.btnCenter.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['center']);
+                me.toolbar.router.dispatchCommand(8 /* ALIGN */, ['center']);
             }, true);
             me.btnJustified.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(7 /* ALIGN */, ['justified']);
+                me.toolbar.router.dispatchCommand(8 /* ALIGN */, ['justified']);
             }, true);
         })(this);
     }
@@ -9030,10 +9185,10 @@ var UI_Toolbar_Panel_BulletsAndNumbering = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         (function (me) {
             me.btnUL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(20 /* LIST */, ['ul']);
+                me.toolbar.router.dispatchCommand(21 /* LIST */, ['ul']);
             }, true);
             me.btnOL.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(20 /* LIST */, ['ol']);
+                me.toolbar.router.dispatchCommand(21 /* LIST */, ['ol']);
             }, true);
         })(this);
     }
@@ -9080,75 +9235,14 @@ var UI_Toolbar_Panel_Indentation = (function (_super) {
         this.btnUnindent = this.node.querySelector('.ui-button.decrease');
         (function (me) {
             me.btnIndent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(12 /* INDENT */, []);
+                me.toolbar.router.dispatchCommand(13 /* INDENT */, []);
             }, true);
             me.btnUnindent.addEventListener('click', function (DOMEvent) {
-                me.toolbar.router.dispatchCommand(13 /* UNINDENT */, []);
+                me.toolbar.router.dispatchCommand(14 /* UNINDENT */, []);
             }, true);
         })(this);
     }
     return UI_Toolbar_Panel_Indentation;
-})(UI_Toolbar_Panel);
-var UI_Toolbar_Panel_TextScripting = (function (_super) {
-    __extends(UI_Toolbar_Panel_TextScripting, _super);
-    function UI_Toolbar_Panel_TextScripting(toolbar) {
-        _super.call(this, toolbar, 'Indentation');
-        this.toolbar = toolbar;
-        this.btnSubscript = null;
-        this.btnSuperscript = null;
-        DOM.addClass(this.node, 'ui-panel-text-scripting');
-        this.node.innerHTML = [
-            '<div class="item index-0">',
-            '<div class="ui-button subscript"   title="Subscript"></div>',
-            '<div class="ui-button superscript" title="Superscript"></div>',
-            '</div>',
-        ].join('');
-        this.btnSubscript = this.node.querySelector('.ui-button.subscript');
-        this.btnSuperscript = this.node.querySelector('.ui-button.superscript');
-        (function (me) {
-            me.btnSubscript.addEventListener('click', function (DOMEvent) {
-                if (me.toolbar.state.state.verticalAlign == 'sub') {
-                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['normal']);
-                }
-                else {
-                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['sub']);
-                }
-            }, true);
-            me.btnSuperscript.addEventListener('click', function (DOMEvent) {
-                if (me.toolbar.state.state.verticalAlign == 'super') {
-                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['normal']);
-                }
-                else {
-                    me.toolbar.router.dispatchCommand(14 /* VALIGN */, ['sup']);
-                }
-            }, true);
-        })(this);
-    }
-    UI_Toolbar_Panel_TextScripting.prototype.update = function () {
-        var state = this.toolbar.state.state.verticalAlign, btns = [
-            this.btnSuperscript,
-            this.btnSubscript
-        ], i;
-        for (i = 0; i < 2; i++) {
-            DOM.removeClass(btns[i], 'state-pressed');
-        }
-        switch (state) {
-            case 'super':
-                DOM.addClass(this.btnSuperscript, 'state-pressed');
-                break;
-            case 'sub':
-                DOM.addClass(this.btnSubscript, 'state-pressed');
-                break;
-            case null:
-                break;
-        }
-    };
-    UI_Toolbar_Panel_TextScripting.prototype.updateDocumentState = function (propertiesList) {
-        if (propertiesList.indexOf('verticalAlign') >= 0) {
-            this.update();
-        }
-    };
-    return UI_Toolbar_Panel_TextScripting;
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
     __extends(UI_Toolbar_Panel_BordersAndColors, _super);
@@ -9253,10 +9347,10 @@ var UI_Toolbar_Panel_BordersAndColors = (function (_super) {
         console.info('setBorderColor: ' + color);
     };
     UI_Toolbar_Panel_BordersAndColors.prototype.setBackgroundColor = function (color) {
-        this.toolbar.router.dispatchCommand(17 /* BGCOLOR */, [color]);
+        this.toolbar.router.dispatchCommand(18 /* BGCOLOR */, [color]);
     };
     UI_Toolbar_Panel_BordersAndColors.prototype.setColor = function (color) {
-        this.toolbar.router.dispatchCommand(16 /* COLOR */, [color]);
+        this.toolbar.router.dispatchCommand(17 /* COLOR */, [color]);
     };
     return UI_Toolbar_Panel_BordersAndColors;
 })(UI_Toolbar_Panel);

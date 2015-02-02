@@ -188,6 +188,7 @@ class Layout_BlockChar extends Layout {
 		    startX: number = this.offsetLeft,
 		    currentNode: TNode_Element = null,
 		    isUnderline: boolean = false,
+		    isStrike: boolean = false,
 		    underlineWidth: number = 0.00,
 		    size: number[],
 		    valign: string = 'normal',
@@ -197,7 +198,8 @@ class Layout_BlockChar extends Layout {
 		    range: TRange = node.documentElement.viewport.selection.getRange(),
 		    caret: TRange_Target = range.focusNode(),
 		    saveColor: string = '',
-		    isPaintedSelected: boolean = node.isPaintedSelected;
+		    isPaintedSelected: boolean = node.isPaintedSelected,
+		    textDecoration: string;
 
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'alphabetic';
@@ -241,11 +243,14 @@ class Layout_BlockChar extends Layout {
 
 						ctx.font = currentNode.style.fontStyleText();
 						ctx.fillStyle = isPaintedSelected ? 'white' : ( saveColor = currentNode.style.color() );
-						isUnderline = currentNode.style.textDecoration() == 'underline';
+						textDecoration = currentNode.style.textDecoration();
+						
+						isUnderline = textDecoration == 'underline';
+						isStrike    = textDecoration == 'line-through';
 						
 						valign = currentNode.style.verticalAlign();
 
-						if ( isUnderline ) {
+						if ( isUnderline || isStrike ) {
 							
 							underlineWidth = ~~( currentNode.style.fontSize() * .15 );
 							
@@ -286,6 +291,13 @@ class Layout_BlockChar extends Layout {
 								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
 								underlineWidth 
 							);
+						} else if ( isStrike ) {
+							ctx.fillRect( 
+								startX, 
+								~~( ( startY + ( lineDiff / 1.3 ) ) + valignShift ), 
+								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
+								underlineWidth 
+							);
 						}
 
 						ctx.fillStyle = saveColor;
@@ -298,6 +310,13 @@ class Layout_BlockChar extends Layout {
 							ctx.fillRect( 
 								startX, 
 								~~( ( startY + lineDiff ) + 2 + valignShift ), 
+								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
+								underlineWidth 
+							);
+						} else if ( isStrike ) {
+							ctx.fillRect( 
+								startX, 
+								~~( ( startY + ( lineDiff / 1.3 ) ) + valignShift ), 
 								size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ), 
 								underlineWidth 
 							);

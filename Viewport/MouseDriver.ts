@@ -53,8 +53,8 @@ class Viewport_MouseDriver extends Events {
 
 	private translateMouseEventXY( DOMEvent ): TPoint {
 		return {
-			"x": DOMEvent.offsetX + this.viewport.scrollLeft(),
-			"y": DOMEvent.offsetY + this.viewport.scrollTop()
+			"x": ( DOMEvent.offsetX || DOMEvent.layerX ) + this.viewport.scrollLeft(),
+			"y": ( DOMEvent.offsetY || DOMEvent.layerY ) + this.viewport.scrollTop()
 		}
 	}
 	public onmousedown( DOMEvent ) {

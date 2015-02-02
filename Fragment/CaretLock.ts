@@ -15,7 +15,7 @@ class Fragment_CaretLock {
 		direction: CaretLockDirection = CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 
 		public lockName = 'Lock'
 	) {
-			
+		
 		var at  : FragmentItem,
 		    i   : number = 0,
 		    len : number = 0,
@@ -162,11 +162,11 @@ class Fragment_CaretLock {
 				}
 			}
 
-			return this.fragment.createTargetAt( FragmentPos.DOC_END );
+			return this.chars == 0
+				? this.fragment.createTargetAt( FragmentPos.DOC_BEGIN )
+				: this.fragment.createTargetAt( FragmentPos.DOC_END );
 
 		} else {
-
-			//console.warn( 'Info: ' + this.lockName + ' ' + this.startedEOL );
 
 			for ( i = this.fragment.length() - 1; i >= 0; i-- ) {
 
@@ -211,7 +211,9 @@ class Fragment_CaretLock {
 
 			}
 
-			return this.fragment.createTargetAt( FragmentPos.DOC_BEGIN );
+			return this.chars == 0
+				? this.fragment.createTargetAt( FragmentPos.DOC_END )
+				: this.fragment.createTargetAt( FragmentPos.DOC_BEGIN );
 
 		}
 	}

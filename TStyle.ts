@@ -69,7 +69,8 @@ class TStyle {
 
 	static $TextDecoration: string[] = [
 		"none",
-		"underline"
+		"underline",
+		"line-through"
 	];
 
 	static $Display: string[] = [
@@ -361,11 +362,14 @@ class TStyle {
 	}
 
 	public float( v: string = null ): string {
+		
 		if ( v === null ) {
 			return this._float.get();
 		} else {
+
 			this._float.set( v );
 			this.node.requestRelayout();
+
 			return v;
 		}
 	}
@@ -380,6 +384,20 @@ class TStyle {
 		this._paddingRight.isSet =
 		this._paddingBottom.isSet =
 		this._paddingTop.isSet = true;
+
+		this.node.requestRelayout();
+	}
+
+	public margin( value: string ) {
+		this._marginLeft.value =
+		this._marginRight.value =
+		this._marginTop.value =
+		this._marginBottom.value = ( parseFloat( value || '0' ) || 0 );
+
+		this._marginLeft.isSet =
+		this._marginRight.isSet =
+		this._marginBottom.isSet =
+		this._marginTop.isSet = true;
 
 		this.node.requestRelayout();
 	}

@@ -20,6 +20,7 @@ class TNode_Element extends TNode {
 	public isMergeable               : boolean        = true;  // weather the "mergeWith" method works with this or with another element.
 	public isDefragmentable          : boolean        = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
 	public isNegation                : boolean        = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
+	public isSelectionPaintingDisabled: boolean       = false; // The node is not painted as selected as a whole, if it is included inside a text range, by any circumstances,  by the paint method ( but it's text can be if it's selected )
 
 	private _tabStop                 : number         = 0;
 
@@ -446,7 +447,7 @@ class TNode_Element extends TNode {
 		    range = this.documentElement.viewport.selection.getRange(),
 		    isSelected: boolean = false;
 
-		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) ) ) {
+		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) && !this.isSelectionPaintingDisabled ) ) {
 			isSelected = true;
 			ctx.fillStyle = DocSelection.$Colors.focus;
 			ctx.fillRect( ~~( layout.innerLeft - scrollLeft) , ~~( layout.innerTop - scrollTop ), ~~layout.innerWidth, ~~layout.innerHeight );
@@ -570,6 +571,9 @@ class TNode_Element extends TNode {
 				break;
 			case 'height':
 				this.style.height( String( attributeValue || '' ) );
+				break;
+			case 'margin':
+				this.style.margin( String( attributeValue || '' ) );
 				break;
 			case 'bgcolor':
 				this.style.backgroundColor( String( attributeValue || '' ) );

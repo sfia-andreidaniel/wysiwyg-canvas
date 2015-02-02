@@ -67,6 +67,7 @@ enum EditorCommand {
 	BOLD,
 	ITALIC,
 	UNDERLINE,
+	STRIKE,
 
 	ALIGN,			// set text align
 	CLEAR_FORMATTING, // obvious :)
@@ -94,6 +95,7 @@ interface EditorState {
 	bold          : boolean;
 	italic        : boolean;
 	underline     : boolean;
+	strike        : boolean;
 
 	textAlign     : string;
 	fontFamily    : string;

@@ -168,6 +168,12 @@ class HTML_Body extends TNode_Element {
 			case '!sub':
 				node = new HTML_NegationNode('sub');
 				break;
+			case 'strike':
+				node = new HTML_Strike();
+				break;
+			case '!strike':
+				node = new HTML_NegationNode('strike');
+				break;
 			case 'table':
 				node = new HTML_Table();
 				break;

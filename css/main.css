@@ -24,6 +24,7 @@ div.html-editor > div.toolbar {
 div.html-editor.has-toolbar > div.toolbar {
 	display: block;
 	z-index: 2;
+	position: relative;
 }
 
 div.html-editor > div.body {
@@ -41,6 +42,13 @@ div.html-editor > div.body {
 	-o-user-select: none;
 	user-select: none;
 
+}
+
+div.html-editor > div.body > canvas {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	display: block;
 }
 
 div.html-editor > div.statusbar {
@@ -318,6 +326,19 @@ div.html-editor .ui-panel-formatting .ui-button.underline {
 	background-position: -41px -81px !important;
 }
 
+div.html-editor .ui-panel-formatting .ui-button.strike {
+	background-position: -21px -121px !important;
+}
+
+div.html-editor .ui-panel-formatting .ui-button.subscript {
+	background-position: -21px -101px !important;
+}
+
+div.html-editor .ui-panel-formatting .ui-button.superscript {
+	background-position: -41px -101px !important;
+}
+
+
 div.html-editor .ui-panel-alignment .ui-button.left {
 	background-position: -1px -61px !important;
 }
@@ -348,14 +369,6 @@ div.html-editor .ui-panel-indentation .ui-button.increase {
 
 div.html-editor .ui-panel-indentation .ui-button.decrease {
 	background-position: -41px -41px !important;
-}
-
-div.html-editor .ui-panel-text-scripting .ui-button.subscript {
-	background-position: -21px -101px !important;
-}
-
-div.html-editor .ui-panel-text-scripting .ui-button.superscript {
-	background-position: -41px -101px !important;
 }
 
 div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor > .icon {

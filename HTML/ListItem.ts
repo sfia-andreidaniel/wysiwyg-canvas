@@ -18,7 +18,7 @@ class HTML_ListItem extends TNode_Element {
 		   otherwise paint a disk.
 		 */
 
-		ctx.fillStyle = this.isPaintedSelected ? 'blue' : this.style.color();
+		ctx.fillStyle = this.style.color();
 		ctx.textAlign = 'right';
 		ctx.font = this.style.fontStyleText();
 		ctx.textBaseline = 'alphabetic';

@@ -25,6 +25,7 @@ class Selection_EditorState extends Events {
 			bold          : undefined,
 			italic        : undefined,
 			underline     : undefined,
+			strike        : undefined,
 
 			textAlign     : undefined,
 			fontFamily    : undefined,
@@ -52,6 +53,7 @@ class Selection_EditorState extends Events {
 		    fBold      : boolean   = false,
 		    fItalic    : boolean   = false,
 		    fUnderline : boolean   = false,
+		    fStrike    : boolean    = false,
 
 		    fTextAlign : string    = null,
 		    fFontFamily: string    = null,
@@ -60,6 +62,8 @@ class Selection_EditorState extends Events {
 		    fVerticalAlign: string = null,
 		    fBlockLevel: string    = null,
 		    fListType  : string    = null,
+
+		    textDecoration: string = null,
 
 		    nulls      : number = 0,
 
@@ -123,7 +127,12 @@ class Selection_EditorState extends Events {
 
 					fBold          = element.style.fontWeight() == 'bold';
 					fItalic        = element.style.fontStyle() == 'italic';
-					fUnderline     = element.style.textDecoration() == 'underline';
+					
+					textDecoration = element.style.textDecoration();
+
+					fUnderline     = ( textDecoration == 'underline' );
+					fStrike        = ( textDecoration == 'line-through' );
+					
 					fTextAlign     = element.style.textAlign() || 'left';
 					fFontFamily    = element.style.fontFamily() || 'Arial';
 					fFontSize      = ~~element.style.fontSize() || 0;
@@ -178,6 +187,16 @@ class Selection_EditorState extends Events {
 						}
 					}
 
+					if ( state.strike === undefined ) {
+						state.strike = fStrike;
+					} else {
+						if ( state.strike !== null && state.strike !== fStrike ) {
+							state.strike = null;
+							nulls++;
+						}
+					}
+
+
 					if ( state.textAlign === undefined ) {
 						state.textAlign = fTextAlign;
 					} else {
@@ -226,7 +245,7 @@ class Selection_EditorState extends Events {
 				}
 			}
 
-			if ( nulls == 10 ) { // all properties are set to null
+			if ( nulls == 11 ) { // all properties are set to null
 				break;
 			}
 

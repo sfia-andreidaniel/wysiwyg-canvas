@@ -41,6 +41,7 @@
 /// <reference path="./HTML/Font.ts" />
 /// <reference path="./HTML/Color.ts" />
 /// <reference path="./HTML/Size.ts" /> 
+/// <reference path="./HTML/Strike.ts" /> 
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/TableCell.ts" />
@@ -91,7 +92,6 @@
 /// <reference path="./UI/Toolbar/Panel/Alignment.ts" />
 /// <reference path="./UI/Toolbar/Panel/BulletsAndNumbering.ts" />
 /// <reference path="./UI/Toolbar/Panel/Indentation.ts" />
-/// <reference path="./UI/Toolbar/Panel/TextScripting.ts" />
 /// <reference path="./UI/Toolbar/Panel/BordersAndColors.ts" />
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 

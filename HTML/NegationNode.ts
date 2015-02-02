@@ -15,6 +15,7 @@ class HTML_NegationNode extends TNode_Element {
 				this.style.fontStyle( 'normal' );
 				break;
 			case 'u':
+			case 'strike':
 				this.style.textDecoration('none');
 				break;
 			case 'sup':

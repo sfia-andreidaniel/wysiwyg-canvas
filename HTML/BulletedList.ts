@@ -1,4 +1,7 @@
 class HTML_BulletedList extends TNode_Element {
+
+	public isSelectionPaintingDisabled: boolean = true;
+
 	constructor() {
 		super();
 		this.nodeName = 'ul';

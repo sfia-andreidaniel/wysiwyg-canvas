@@ -74,7 +74,13 @@ class Layout_Horizontal extends Layout {
 
 				if ( this.children[i].node.style._width.isSet ) {
 
-					this.children[i].offsetWidth = this.children[i].node.style.width() + ( this.children[i].node.style.borderWidth() * 2 ) + this.children[i].node.style.paddingLeft() + ( this.children[i].node.tabStop() * tabSize ) + this.children[i].node.style.paddingRight();
+					this.children[i].offsetWidth = 
+						  this.children[i].node.style.width() + 
+						( this.children[i].node.style.borderWidth() * 2 ) + 
+						  this.children[i].node.style.paddingLeft() + 
+						  this.children[i].node.style.paddingRight() + 
+						( this.children[i].node.tabStop() * tabSize );
+					
 					sumWidths += this.children[i].offsetWidth;
 
 				} else {
@@ -82,6 +88,10 @@ class Layout_Horizontal extends Layout {
 					computeAfter.push( this.children[i] );
 
 				}
+
+				sumWidths += ( this.children[i].node.style.marginLeft() +
+				               this.children[i].node.style.marginRight()
+				             );
 
 			} else {
 
@@ -115,7 +125,10 @@ class Layout_Horizontal extends Layout {
 		for ( i=0, len = this.children.length; i<len; i++ ) {
 			
 			if ( this.children[i].node ) {
-				this.children[i].offsetLeft = leftPosition - this.children[i].node.style.marginLeft();
+
+				leftPosition += this.children[i].node.style.marginLeft();
+
+				this.children[i].offsetLeft = leftPosition;
 				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + ( this.children[i].node.tabStop() * tabSize ) + this.children[i].node.style.borderWidth();
 				this.children[i].innerWidth = this.children[i].offsetWidth - ( this.children[i].node.style.borderWidth() * 2 ) - this.children[i].node.style.paddingLeft() - ( this.children[i].node.tabStop() * tabSize ) - this.children[i].node.style.paddingRight();
 
@@ -154,6 +167,7 @@ class Layout_Horizontal extends Layout {
 		if ( this.node ) {
 
 			topPlacement += this.node.style.marginTop();
+
 			this.offsetHeight += ( this.node.style.borderWidth() + this.node.style.paddingTop() );
 			this.offsetTop = topPlacement;
 			this.innerTop = topPlacement + this.offsetHeight;
@@ -172,7 +186,25 @@ class Layout_Horizontal extends Layout {
 
 			for ( i=0; i<len; i++ ) {
 
-				topPlacementMax = Math.max( topPlacementMax, this.children[i].computeHeights( topPlacement, indent + 1 ) );
+				topPlacementMax = Math.max( 
+					topPlacementMax, 
+					
+					this.children[i].computeHeights( 
+						topPlacement - 
+					
+						// the margin-top is ignored on the children of the horizontal layout
+						( this.children[i].node ? this.children[i].node.style.marginTop() : 0 )
+
+						, indent + 1 
+					) 
+
+					// the margin bottom is ignored on the children of the horizontal layout
+					- (
+						this.children[i].node
+							? this.children[i].node.style.marginBottom()
+							: 0
+					)
+				);
 
 			}
 

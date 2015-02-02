@@ -1,5 +1,7 @@
 class HTML_OrderedList extends TNode_Element {	
 
+	public isSelectionPaintingDisabled: boolean = true;
+
 	constructor() {
 		super();
 		this.nodeName = 'ol';

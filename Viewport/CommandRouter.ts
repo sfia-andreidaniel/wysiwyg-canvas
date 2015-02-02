@@ -23,6 +23,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.NEW_LINE: 	return 'newLine'; 	 break;
 			case EditorCommand.MOVE: 		return 'moveCaret';  break;
 			case EditorCommand.BOLD:		return 'bold';		 break;
+			case EditorCommand.STRIKE:      return 'strike';     break;
 			case EditorCommand.ITALIC:		return 'italic';	 break;
 			case EditorCommand.UNDERLINE:	return 'underline';  break;
 			case EditorCommand.ALIGN:		return 'align';		 break;
@@ -98,6 +99,13 @@ class Viewport_CommandRouter extends Events {
 					throw "Command: " + commandName + " require one optional argument of type boolean.";
 				} else {
 					this.bold( args.length ? !!args[0] : null );
+				}
+				break;
+			case EditorCommand.STRIKE:
+				if ( !this.ensureArgs( args, 0, 1 ) ) {
+					throw "Command: " + commandName + " require one optional argument of type boolean.";
+				} else {
+					this.strike( args.length ? !!args[0] : null );
 				}
 				break;
 			case EditorCommand.ITALIC:
@@ -276,6 +284,7 @@ class Viewport_CommandRouter extends Events {
 		
 		range.collapse( true );
 
+		this.viewport.scrollToCaret();
 		
 	}
 
@@ -315,6 +324,7 @@ class Viewport_CommandRouter extends Events {
 
 		if ( rng.length() ) {
 			this.viewport.selection.removeContents();
+			this.viewport.scrollToCaret();
 			return;
 		} else {
 			if ( rng.length() === null ) {
@@ -328,6 +338,7 @@ class Viewport_CommandRouter extends Events {
 						document.removeOrphanNodes();
 						selection.anchorTo( lock.getTarget() );
 						selection.fire( 'changed' );
+						this.viewport.scrollToCaret();
 						return;
 					}
 				}
@@ -496,6 +507,8 @@ class Viewport_CommandRouter extends Events {
 		// finally, move the cursor.
 		selection.anchorTo( lock.getTarget() );
 
+		this.viewport.scrollToCaret();
+
 	}
 
 	// inserts a new line in document. if forceBRTag is set (not null)
@@ -577,6 +590,8 @@ class Viewport_CommandRouter extends Events {
 		target.fragPos = jumpPosition;
 
 		rng.collapse( true );
+
+		this.viewport.scrollToCaret();
 
 	}
 
@@ -728,6 +743,38 @@ class Viewport_CommandRouter extends Events {
 		this.viewport.selection.editorState.compute();
 	}
 
+	// sets the strikeness of the text. if state is null, then the strikeness is toggled.
+	public strike( state: boolean = null ) {
+
+		var selection = this.viewport.selection,
+		          rng = selection.getRange(),
+		          len = rng.length();
+
+		if ( !len ) {
+			return;
+		}
+
+		if ( state === null ) { //toggle state
+			state = !( this.viewport.selection.editorState.state.strike );
+		}
+
+		if ( state ) {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).unwrapFromElement('!strike').unwrapFromElement('strike').wrapInElement( 'strike', null, null, function() {
+				return this.style.textDecoration() != 'line-through';
+			} ).end();
+
+		} else {
+
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).unwrapFromElement('!strike').unwrapFromElement('strike').wrapInElement( '!strike', null, null, function() {
+				return this.style.textDecoration() == 'line-through';
+			} ).end();
+
+		}
+
+		this.viewport.selection.editorState.compute();
+	}
+
 	// makes text italic or not. if state is null, the state is toggled.
 	public italic( state: boolean = null ) {
 
@@ -777,13 +824,13 @@ class Viewport_CommandRouter extends Events {
 
 		if ( state ) {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( 'u', null, null, function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).unwrapFromElement('strike').unwrapFromElement('!strike').wrapInElement( 'u', null, null, function() {
 				return this.style.textDecoration() != 'underline';
 			} ).end();
 
 		} else {
 
-			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).wrapInElement( '!u', null, null, function() {
+			this.viewport.selection.getRange().affectedRanges().unwrapFromElement( '!u' ).unwrapFromElement( 'u' ).unwrapFromElement('strike').unwrapFromElement('!strike').wrapInElement( '!u', null, null, function() {
 				return this.style.textDecoration() == 'underline';
 			} ).end();
 
@@ -1038,6 +1085,8 @@ class Viewport_CommandRouter extends Events {
 			.unwrapFromElement( '!i' )
 			.unwrapFromElement( 'u' )
 			.unwrapFromElement( '!u' )
+			.unwrapFromElement( 'strike' )
+			.unwrapFromElement( '!strike' )
 			.unwrapFromElement( 'color' )
 			.end();
 

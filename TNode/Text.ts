@@ -10,6 +10,7 @@ class TNode_Text extends TNode {
 	public nodeType  : TNode_Type = TNode_Type.TEXT;
 	public isBR      : boolean;
 	
+	
 	// on building layout, the EOL_POS will be computed. this is needed on bakeIntoFragment method
 	public EOL_POS   : any = null;
 

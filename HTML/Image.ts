@@ -1,10 +1,11 @@
 class HTML_Image extends TNode_Element {
 
-	private node = document.createElement( 'img' );
-	private loaded: boolean = false; // is the image loaded successfully
-	private error: boolean = false; // an error occured after loading
+	private node                        = document.createElement( 'img' );
+	private loaded        : boolean     = false; // is the image loaded successfully
+	private error         : boolean     = false; // an error occured after loading
 
-	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
+	public  isSelectable  : boolean     = true; // when the user clicks on this element, it is selectable
+	public  nodeClass     : TNode_Class = TNode_Class.BLOCK_NONEDITABLE;
 
 	constructor( src: string = null ) {
 		super();

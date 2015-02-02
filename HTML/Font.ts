@@ -1,6 +1,8 @@
 class HTML_Font extends TNode_Element {
 	
 	public isDefragmentable : boolean = true;
+	public nodeClass        : TNode_Class = TNode_Class.INLINE;
+
 
 	private _name: string = null;
 

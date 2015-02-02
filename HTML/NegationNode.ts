@@ -2,6 +2,8 @@ class HTML_NegationNode extends TNode_Element {
 	
 	public isDefragmentable : boolean = true;
 	public isNegation       : boolean = true;
+	public nodeClass        : TNode_Class = TNode_Class.INLINE;
+
 
 	constructor( nodeName: string ) {
 		super();

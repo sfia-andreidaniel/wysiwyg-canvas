@@ -1243,4 +1243,25 @@ class TNode_Element extends TNode {
 		}
 	}
 
+
+	// used
+	public splitUptoFirstHost( after: boolean = true, hintNodeName: string = null ): TNode_Element {
+		throw "NOT_IMPLEMENTED!";
+	}
+
+	// used
+	public splitUptoFirstBlock( after: boolean = true, hintNodeName: string = null ): TNode_Element {
+		throw "NOT_IMPLEMENTED";
+	}
+
+	// ABSTRACT, TO BE IMPLEMENTED ON NODES WITH nodeClass = TNode_Class.BLOCK_SELECTIVE
+	public canAppendNode( node: TNode ): boolean {
+		return false;
+	}
+
+	public getParentWhichCanAppendNode( node: TNode ): TNode_Element {
+		return null;
+	}
+
+
 }

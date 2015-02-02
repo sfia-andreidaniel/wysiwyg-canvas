@@ -1,7 +1,8 @@
 class HTML_TableRow extends TNode_Element {
 	
-	public ownerTable: HTML_Table = null;
-	public isMergeable : boolean = false;
+	public nodeClass   : TNode_Class = TNode_Class.BLOCK_SELECTIVE;
+	public ownerTable  : HTML_Table  = null;
+	public isMergeable : boolean     = false;
 
 	constructor() {
 		super();

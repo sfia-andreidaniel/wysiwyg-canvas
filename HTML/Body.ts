@@ -3,6 +3,7 @@ class HTML_Body extends TNode_Element {
 	private _needRelayout	 : boolean = true;
 	private _needRepaint 	 : boolean = true;
 	public  _layout 		 : Layout = null;
+	public  nodeClass        : TNode_Class = TNode_Class.HOST;
 	public  viewport 		 : Viewport = null;
 	public  fragment 		 : Fragment;
 	public  lines            : Character_LinesCollection;

@@ -1,13 +1,13 @@
 class HTML_Table extends TNode_Element {
 	
-	public needCompile : boolean = true;
-	public matrix      : HTML_Table_Matrix = null;
+	public    needCompile  : boolean           = true;
+	public    matrix       : HTML_Table_Matrix = null;
+	public    nodeClass    : TNode_Class       = TNode_Class.BLOCK_SELECTIVE;
+	public    isMergeable  : boolean           = false;
 
-	public isMergeable : boolean = false;
-
-	protected _cellPadding = 0;
-	protected _cellSpacing = 0;
-	protected _border      = 0;
+	protected _cellPadding : number            = 0;
+	protected _cellSpacing : number            = 0;
+	protected _border      : number            = 0;
 
 	constructor() {
 		super();

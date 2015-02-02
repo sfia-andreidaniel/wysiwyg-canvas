@@ -79,6 +79,7 @@
 /// <reference path="./Fragment/Batch.ts" />
 
 /// <reference path="TRange.ts" />
+/// <reference path="PasteStack.ts" />
 /// <reference path="./TRange/Target.ts" />
 
 /// <reference path="DocSelection.ts" />

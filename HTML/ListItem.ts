@@ -2,6 +2,8 @@ class HTML_ListItem extends TNode_Element {
 	
 	public isSelectable    : boolean = true;
 	public isBlockTextNode : boolean = true;
+	public nodeClass        : TNode_Class = TNode_Class.BLOCK_EDITABLE;
+
 
 	constructor() {
 		super();

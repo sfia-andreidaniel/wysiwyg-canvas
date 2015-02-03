@@ -1,12 +1,11 @@
 class TNode extends Events {
 	
-	public parentNode      : TNode_Element  = null;
-	public siblingIndex    : number         = 0;
-	public nodeType        : TNode_Type     = TNode_Type.UNKNOWN;
-	public nodeClass       : TNode_Class    = TNode_Class.NONE;
-	public documentElement : HTML_Body      = null;
-	public FRAGMENT_START  : number         = 0;
-	public FRAGMENT_END    : number         = 0;
+	public parentNode      : TNode_Element = null;
+	public siblingIndex    : number = 0;
+	public nodeType        : TNode_Type = TNode_Type.UNKNOWN;
+	public documentElement : HTML_Body = null;
+	public FRAGMENT_START  : number = 0;
+	public FRAGMENT_END    : number = 0;
 	
 	// dettach the node from it's parent
 	public remove(): TNode {

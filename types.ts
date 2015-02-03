@@ -147,28 +147,3 @@ interface TargetDetails {
 	lineIndex: number;
 	charIndex: number;
 }
-
-/* TNode_Class, TPastePolicy, TPastePosition are used by the PasteStack class,
-   which is used to paste HTML @ cursor position
- */
-enum TNode_Class {
-	NONE,
-	HOST,
-	BLOCK_EDITABLE,
-	BLOCK_NONEDITABLE,
-	BLOCK_SELECTIVE,
-	INLINE
-}
-
-enum TPastePolicy {
-	APPEND_INSERT,   // insert
-	APPEND_IGNORE,   // abort insertion
-	APPEND_TRAVERSE  // insert child nodes of the node, but not the node
-}
-
-enum TPastePosition {
-	FIRST,
-	AFTER,
-	BEFORE,
-	LAST
-}

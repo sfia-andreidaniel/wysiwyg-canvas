@@ -1,8 +1,6 @@
 class HTML_OrderedList extends TNode_Element {	
 
 	public isSelectionPaintingDisabled: boolean = true;
-	public  nodeClass                 : TNode_Class = TNode_Class.BLOCK_SELECTIVE;
-
 
 	constructor() {
 		super();

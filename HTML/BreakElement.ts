@@ -1,7 +1,5 @@
 class HTML_BreakElement extends TNode_Element {
 	
-	public  nodeClass : TNode_Class = TNode_Class.BLOCK_NONEDITABLE;
-
 	constructor() {
 		super();
 		this.nodeName = 'br';

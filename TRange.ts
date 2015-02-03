@@ -354,12 +354,5 @@ class TRange extends Events {
 		}
 	}
 
-	public createPasteStack(): PasteStack {
-		if ( this._focusNode !== null ) {
-			return new PasteStack( this._focusNode.target.documentElement.fragment, this._focusNode.fragPos );
-		} else {
-			return new PasteStack( this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos );
-		}
-	}
 
 }

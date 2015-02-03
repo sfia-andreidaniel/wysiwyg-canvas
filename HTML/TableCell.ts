@@ -1,7 +1,5 @@
 class HTML_TableCell extends TNode_Element {
 	
-	public nodeClass                 : TNode_Class = TNode_Class.HOST;
-
 	public ownerTable                : HTML_Table      = null;
 	
 	public tableIndex                : number          = 0; // the index of the cell in it's table

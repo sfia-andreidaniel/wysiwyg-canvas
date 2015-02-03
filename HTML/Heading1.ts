@@ -1,8 +1,6 @@
 class HTML_Heading1 extends TNode_Element {
 	
-	public isBlockTextNode  : boolean = true;
-	public nodeClass        : TNode_Class = TNode_Class.BLOCK_EDITABLE;
-
+	public isBlockTextNode   : boolean = true;
 
 	constructor() {
 		super();

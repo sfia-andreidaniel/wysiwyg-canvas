@@ -91,31 +91,6 @@ var CaretLockDirection;
     CaretLockDirection[CaretLockDirection["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
     CaretLockDirection[CaretLockDirection["FROM_ENDING_OF_DOCUMENT"] = 1] = "FROM_ENDING_OF_DOCUMENT";
 })(CaretLockDirection || (CaretLockDirection = {}));
-/* TNode_Class, TPastePolicy, TPastePosition are used by the PasteStack class,
-   which is used to paste HTML @ cursor position
- */
-var TNode_Class;
-(function (TNode_Class) {
-    TNode_Class[TNode_Class["NONE"] = 0] = "NONE";
-    TNode_Class[TNode_Class["HOST"] = 1] = "HOST";
-    TNode_Class[TNode_Class["BLOCK_EDITABLE"] = 2] = "BLOCK_EDITABLE";
-    TNode_Class[TNode_Class["BLOCK_NONEDITABLE"] = 3] = "BLOCK_NONEDITABLE";
-    TNode_Class[TNode_Class["BLOCK_SELECTIVE"] = 4] = "BLOCK_SELECTIVE";
-    TNode_Class[TNode_Class["INLINE"] = 5] = "INLINE";
-})(TNode_Class || (TNode_Class = {}));
-var TPastePolicy;
-(function (TPastePolicy) {
-    TPastePolicy[TPastePolicy["APPEND_INSERT"] = 0] = "APPEND_INSERT";
-    TPastePolicy[TPastePolicy["APPEND_IGNORE"] = 1] = "APPEND_IGNORE";
-    TPastePolicy[TPastePolicy["APPEND_TRAVERSE"] = 2] = "APPEND_TRAVERSE"; // insert child nodes of the node, but not the node
-})(TPastePolicy || (TPastePolicy = {}));
-var TPastePosition;
-(function (TPastePosition) {
-    TPastePosition[TPastePosition["FIRST"] = 0] = "FIRST";
-    TPastePosition[TPastePosition["AFTER"] = 1] = "AFTER";
-    TPastePosition[TPastePosition["BEFORE"] = 2] = "BEFORE";
-    TPastePosition[TPastePosition["LAST"] = 3] = "LAST";
-})(TPastePosition || (TPastePosition = {}));
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -329,7 +304,6 @@ var TNode = (function (_super) {
         this.parentNode = null;
         this.siblingIndex = 0;
         this.nodeType = 0 /* UNKNOWN */;
-        this.nodeClass = 0 /* NONE */;
         this.documentElement = null;
         this.FRAGMENT_START = 0;
         this.FRAGMENT_END = 0;
@@ -1584,25 +1558,6 @@ var TNode_Element = (function (_super) {
             return this._tabStop;
         }
     };
-    // used
-    TNode_Element.prototype.splitUptoFirstHost = function (after, hintNodeName) {
-        if (after === void 0) { after = true; }
-        if (hintNodeName === void 0) { hintNodeName = null; }
-        throw "NOT_IMPLEMENTED!";
-    };
-    // used
-    TNode_Element.prototype.splitUptoFirstBlock = function (after, hintNodeName) {
-        if (after === void 0) { after = true; }
-        if (hintNodeName === void 0) { hintNodeName = null; }
-        throw "NOT_IMPLEMENTED";
-    };
-    // ABSTRACT, TO BE IMPLEMENTED ON NODES WITH nodeClass = TNode_Class.BLOCK_SELECTIVE
-    TNode_Element.prototype.canAppendNode = function (node) {
-        return false;
-    };
-    TNode_Element.prototype.getParentWhichCanAppendNode = function (node) {
-        return null;
-    };
     return TNode_Element;
 })(TNode);
 var TNode_Collection = (function () {
@@ -1997,7 +1952,6 @@ var HTML_Body = (function (_super) {
         this._needRelayout = true;
         this._needRepaint = true;
         this._layout = null;
-        this.nodeClass = 1 /* HOST */;
         this.viewport = null;
         this.isBlockTextNode = true; //user can write inside this element ( or sub-elements );
         this.canRelayout = true; //we can disable relayouting of the document by setting this flag to false.
@@ -2306,7 +2260,6 @@ var HTML_Paragraph = (function (_super) {
     function HTML_Paragraph() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'p';
         this.style.display('block');
         this.style.marginTop('5');
@@ -2318,7 +2271,6 @@ var HTML_BreakElement = (function (_super) {
     __extends(HTML_BreakElement, _super);
     function HTML_BreakElement() {
         _super.call(this);
-        this.nodeClass = 3 /* BLOCK_NONEDITABLE */;
         this.nodeName = 'br';
         this.style.display('inline');
         this.childNodes.push(new TNode_TextBreak(this));
@@ -2414,7 +2366,6 @@ var HTML_Image = (function (_super) {
         this.loaded = false; // is the image loaded successfully
         this.error = false; // an error occured after loading
         this.isSelectable = true; // when the user clicks on this element, it is selectable
-        this.nodeClass = 3 /* BLOCK_NONEDITABLE */;
         this.nodeName = 'img';
         this.style.display('block');
         (function (me) {
@@ -2558,7 +2509,6 @@ var HTML_Heading1 = (function (_super) {
     function HTML_Heading1() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'h1';
         this.style.display('block');
         this.style.fontSize('18');
@@ -2571,7 +2521,6 @@ var HTML_Heading2 = (function (_super) {
     function HTML_Heading2() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'h2';
         this.style.display('block');
         this.style.fontSize('17');
@@ -2584,7 +2533,6 @@ var HTML_Heading3 = (function (_super) {
     function HTML_Heading3() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'h3';
         this.style.display('block');
         this.style.fontSize('17');
@@ -2598,7 +2546,6 @@ var HTML_Heading4 = (function (_super) {
     function HTML_Heading4() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'h4';
         this.style.display('block');
         this.style.fontSize('16');
@@ -2611,7 +2558,6 @@ var HTML_Heading5 = (function (_super) {
     function HTML_Heading5() {
         _super.call(this);
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'h5';
         this.style.display('block');
         this.style.fontSize('15');
@@ -2624,7 +2570,6 @@ var HTML_Bold = (function (_super) {
     function HTML_Bold() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'b';
         this.style.display('inline');
         this.style.fontWeight('bold');
@@ -2636,7 +2581,6 @@ var HTML_Italic = (function (_super) {
     function HTML_Italic() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'i';
         this.style.display('inline');
         this.style.fontStyle('italic');
@@ -2648,7 +2592,6 @@ var HTML_Underline = (function (_super) {
     function HTML_Underline() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'u';
         this.style.display('inline');
         this.style.textDecoration('underline');
@@ -2659,7 +2602,6 @@ var HTML_Anchor = (function (_super) {
     __extends(HTML_Anchor, _super);
     function HTML_Anchor() {
         _super.call(this);
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'a';
         this.style.display('inline');
         this.style.color('blue');
@@ -2672,7 +2614,6 @@ var HTML_BulletedList = (function (_super) {
     function HTML_BulletedList() {
         _super.call(this);
         this.isSelectionPaintingDisabled = true;
-        this.nodeClass = 4 /* BLOCK_SELECTIVE */;
         this.nodeName = 'ul';
         this.style.display('block');
         this.style.paddingLeft('30');
@@ -2714,7 +2655,6 @@ var HTML_OrderedList = (function (_super) {
     function HTML_OrderedList() {
         _super.call(this);
         this.isSelectionPaintingDisabled = true;
-        this.nodeClass = 4 /* BLOCK_SELECTIVE */;
         this.nodeName = 'ol';
         this.style.display('block');
         this.style.paddingLeft('30');
@@ -2757,7 +2697,6 @@ var HTML_ListItem = (function (_super) {
         _super.call(this);
         this.isSelectable = true;
         this.isBlockTextNode = true;
-        this.nodeClass = 2 /* BLOCK_EDITABLE */;
         this.nodeName = 'li';
         this.style.display('block');
         this.style.paddingLeft('15');
@@ -2852,7 +2791,6 @@ var HTML_Superscript = (function (_super) {
     function HTML_Superscript() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'sup';
         this.style.display('inline');
         this.style.verticalAlign('super');
@@ -2865,7 +2803,6 @@ var HTML_Subscript = (function (_super) {
     function HTML_Subscript() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'sub';
         this.style.display('inline');
         this.style.verticalAlign('sub');
@@ -2879,7 +2816,6 @@ var HTML_Table = (function (_super) {
         _super.call(this);
         this.needCompile = true;
         this.matrix = null;
-        this.nodeClass = 4 /* BLOCK_SELECTIVE */;
         this.isMergeable = false;
         this._cellPadding = 0;
         this._cellSpacing = 0;
@@ -3288,7 +3224,6 @@ var HTML_TableRow = (function (_super) {
     __extends(HTML_TableRow, _super);
     function HTML_TableRow() {
         _super.call(this);
-        this.nodeClass = 4 /* BLOCK_SELECTIVE */;
         this.ownerTable = null;
         this.isMergeable = false;
         this.nodeName = 'tr';
@@ -3325,7 +3260,6 @@ var HTML_TableCell = (function (_super) {
     __extends(HTML_TableCell, _super);
     function HTML_TableCell() {
         _super.call(this, true);
-        this.nodeClass = 1 /* HOST */;
         this.ownerTable = null;
         this.tableIndex = 0; // the index of the cell in it's table
         this.rowIndex = 0; // the index of the cell in it's row
@@ -3421,7 +3355,6 @@ var HTML_NegationNode = (function (_super) {
         _super.call(this);
         this.isDefragmentable = true;
         this.isNegation = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = '!' + nodeName;
         this.style.display('inline');
         switch (nodeName) {
@@ -3448,7 +3381,6 @@ var HTML_Font = (function (_super) {
     function HTML_Font() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this._name = null;
         this.nodeName = 'font';
         this.style.display('inline');
@@ -3500,7 +3432,6 @@ var HTML_Color = (function (_super) {
     function HTML_Color() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this._name = null;
         this.nodeName = 'color';
         this.style.display('inline');
@@ -3552,7 +3483,6 @@ var HTML_Size = (function (_super) {
     function HTML_Size() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this._value = '';
         this.nodeName = 'size';
         this.style.display('inline');
@@ -3599,7 +3529,6 @@ var HTML_Strike = (function (_super) {
     function HTML_Strike() {
         _super.call(this);
         this.isDefragmentable = true;
-        this.nodeClass = 5 /* INLINE */;
         this.nodeName = 'strike';
         this.style.display('inline');
         this.style.textDecoration('line-through');
@@ -7762,231 +7691,8 @@ var TRange = (function (_super) {
             this._anchorNode.target = this._focusNode.target;
         }
     };
-    TRange.prototype.createPasteStack = function () {
-        if (this._focusNode !== null) {
-            return new PasteStack(this._focusNode.target.documentElement.fragment, this._focusNode.fragPos);
-        }
-        else {
-            return new PasteStack(this._anchorNode.target.documentElement.fragment, this._anchorNode.fragPos);
-        }
-    };
     return TRange;
 })(Events);
-var PasteStack = (function () {
-    function PasteStack(fragment, position) {
-        this.ptr = null; //pointer where next insertion will be made
-        this.pos = 1 /* AFTER */; //position relative to pointer where next insertion will be made
-        var node = fragment.getNodeAtIndex(position), s = '', s1 = '';
-        switch (node.nodeType) {
-            case 1 /* TEXT */:
-                s = node.textContentsFragment(node.FRAGMENT_START, position - 1);
-                s1 = node.textContentsFragment(position, node.FRAGMENT_END);
-                console.warn(JSON.stringify(s), JSON.stringify(s1));
-                switch (true) {
-                    case s == '':
-                        this.pos = 2 /* BEFORE */;
-                        this.ptr = node;
-                        break;
-                    case s1 == '':
-                        this.pos = 1 /* AFTER */;
-                        this.ptr = node;
-                        break;
-                    default:
-                        // fragmentate the node
-                        node.textContents(s);
-                        node.parentNode.appendChild(node.documentElement.createTextNode(s1), node.siblingIndex + 1);
-                        this.pos = 1 /* AFTER */;
-                        this.ptr = node;
-                        break;
-                }
-                break;
-            case 2 /* ELEMENT */:
-                switch (position) {
-                    case node.FRAGMENT_START:
-                        this.pos = 0 /* FIRST */;
-                        this.ptr = node;
-                        break;
-                    case node.FRAGMENT_END:
-                        this.pos = 3 /* LAST */;
-                        this.ptr = node;
-                        break;
-                    default:
-                        throw "ERR_UNHANDLED_EXCEPTION";
-                        break;
-                }
-                break;
-        }
-    }
-    PasteStack.prototype.debug = function () {
-        var posStr = '';
-        switch (this.pos) {
-            case 0 /* FIRST */:
-                posStr = 'First Child';
-                break;
-            case 3 /* LAST */:
-                posStr = 'Last Child';
-                break;
-            case 1 /* AFTER */:
-                posStr = 'After Sibling';
-                break;
-            case 2 /* BEFORE */:
-                posStr = 'Before Sibling';
-                break;
-        }
-        console.log(posStr, this.ptr);
-        return this;
-    };
-    PasteStack.prototype.resolveInsertionPoint = function (target, index, node) {
-        var resolved = {
-            node: target,
-            index: index,
-            policy: 0 /* APPEND_INSERT */
-        }, paragraph, block, host;
-        switch (true) {
-            case node.nodeType == 1 /* TEXT */:
-                switch (resolved.node.nodeClass) {
-                    case 5 /* INLINE */:
-                    case 2 /* BLOCK_EDITABLE */:
-                        return resolved;
-                        break;
-                    case 3 /* BLOCK_NONEDITABLE */:
-                        return this.resolveInsertionPoint(resolved.node.parentNode, resolved.node.siblingIndex + 1, node);
-                        break;
-                    case 4 /* BLOCK_SELECTIVE */:
-                        if (resolved.node.canAppendNode(node)) {
-                            return resolved;
-                        }
-                        else {
-                            return this.resolveInsertionPoint(resolved.node.parentNode, resolved.node.siblingIndex + 1, node);
-                        }
-                        break;
-                    case 1 /* HOST */:
-                        // td's are the single block of type host which can append direct text nodes.
-                        if (resolved.node.nodeName == 'td') {
-                            return resolved;
-                        }
-                        else {
-                            // create a paragraph, and return the first position in the paragraph where to insert the node.
-                            paragraph = resolved.node.documentElement.createElement('p');
-                            resolved.node.appendChild(paragraph, resolved.index);
-                            resolved.node = paragraph;
-                            resolved.index = 0;
-                            return resolved;
-                        }
-                        break;
-                    case 0 /* NONE */:
-                        resolved.policy = 1 /* APPEND_IGNORE */;
-                        return resolved;
-                        break;
-                }
-                break;
-            case node.nodeType == 2 /* ELEMENT */:
-                switch (node.nodeClass) {
-                    case 1 /* HOST */:
-                        // there should be one exception in TR, which can append TD.
-                        if (resolved.node.canAppendNode(node)) {
-                            return resolved;
-                        }
-                        else {
-                            // insert a HOST element inside of a host element? Niet. Traverse.
-                            resolved.policy = 2 /* APPEND_TRAVERSE */;
-                            return resolved;
-                        }
-                        break;
-                    case 2 /* BLOCK_EDITABLE */:
-                        switch (resolved.node.nodeClass) {
-                            case 1 /* HOST */:
-                                // append block in host? OK
-                                return resolved;
-                                break;
-                            case 3 /* BLOCK_NONEDITABLE */:
-                            case 2 /* BLOCK_EDITABLE */:
-                            case 5 /* INLINE */:
-                                // append block inside a non-editable?
-                                // append bloc in inline?
-                                block = resolved.node.splitUptoFirstHost(true, node.nodeName);
-                                resolved.node = block.parentNode;
-                                resolved.index = block.siblingIndex + 1;
-                                return resolved;
-                                break;
-                            case 4 /* BLOCK_SELECTIVE */:
-                                if (resolved.node.canAppendNode(node)) {
-                                    return resolved;
-                                }
-                                else {
-                                    block = resolved.node.splitUptoFirstHost(true, node.nodeName);
-                                    resolved.node = block.parentNode;
-                                    resolved.index = block.siblingIndex + 1;
-                                    return resolved;
-                                }
-                                break;
-                            case 0 /* NONE */:
-                                resolved.policy = 1 /* APPEND_IGNORE */;
-                                break;
-                        }
-                        break;
-                    case 3 /* BLOCK_NONEDITABLE */:
-                        switch (resolved.node.nodeClass) {
-                            case 1 /* HOST */:
-                            case 2 /* BLOCK_EDITABLE */:
-                                return resolved;
-                                break;
-                            case 5 /* INLINE */:
-                                block = resolved.node.splitUptoFirstBlock(true, node.nodeName);
-                                resolved.node = block.parentNode;
-                                resolved.index = block.siblingIndex + 1;
-                                return resolved;
-                                break;
-                            case 3 /* BLOCK_NONEDITABLE */:
-                                return this.resolveInsertionPoint(resolved.node.parentNode, resolved.node.siblingIndex + 1, node);
-                                break;
-                            case 4 /* BLOCK_SELECTIVE */:
-                                if (resolved.node.canAppendNode(node)) {
-                                    return resolved;
-                                }
-                                else {
-                                    block = resolved.node.splitUptoFirstHost(true, node.nodeName);
-                                    resolved.node = block.parentNode;
-                                    resolved.index = block.siblingIndex + 1;
-                                    return resolved;
-                                }
-                                break;
-                            case 0 /* NONE */:
-                                resolved.policy = 1 /* APPEND_IGNORE */;
-                                break;
-                        }
-                        break;
-                    case 4 /* BLOCK_SELECTIVE */:
-                    case 2 /* BLOCK_EDITABLE */:
-                        break;
-                }
-                break;
-        }
-        return resolved;
-    };
-    PasteStack.prototype.appendNext = function (node) {
-        var targetNode = null, index = null;
-        switch (this.pos) {
-            case 3 /* LAST */:
-                targetNode = this.ptr;
-                index = null;
-                break;
-            case 0 /* FIRST */:
-                targetNode = this.ptr;
-                index = 0;
-                break;
-            case 1 /* AFTER */:
-                targetNode = this.ptr.parentNode;
-                index = this.ptr.siblingIndex + 1;
-                break;
-            case 2 /* BEFORE */:
-                targetNode = this.ptr.parentNode;
-                index = this.ptr.siblingIndex;
-                break;
-        }
-    };
-    return PasteStack;
-})();
 var TRange_Target = (function (_super) {
     __extends(TRange_Target, _super);
     /* Public Methods:

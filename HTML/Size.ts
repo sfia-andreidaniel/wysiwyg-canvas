@@ -1,8 +1,6 @@
 class HTML_Size extends TNode_Element {
 	
 	public isDefragmentable : boolean = true;
-	public  nodeClass       : TNode_Class = TNode_Class.INLINE;
-
 
 	public _value: string = '';
 

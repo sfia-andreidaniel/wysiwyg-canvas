@@ -359,4 +359,8 @@ class HTML_Body extends TNode_Element {
 		return this;
 	}
 
+	public createCollectionFromHTMLText( s: string ): TNode_Collection {
+		return Helper.createCollectionFromHTMLText( s, this );
+	}
+
 }

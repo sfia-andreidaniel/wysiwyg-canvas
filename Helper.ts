@@ -66,4 +66,78 @@ class Helper {
 		return thisArray;
 	}
 
+	static createCollectionFromHTMLText( s: string, documentElement: HTML_Body ): TNode_Collection {
+
+		try {
+
+			var parser = new HTMLParser( documentElement, s || '' ),
+			    nodes: TNode[] = [],
+			    i: number = 0,
+			    len: number = parser.NODES.length,
+			    element: TNode_Element,
+			    n: number = 0,
+			    j: number = 0,
+			    traverser: TNode_Element = null;
+
+			for ( i=0; i<len; i++ ) {
+				
+				switch ( parser.NODES[i].type ) {
+					case '#text':
+						nodes.push( documentElement.createTextNode( parser.NODES[i].value ) );
+						break;
+					case 'node':
+
+						if ( HTML_Body.IGNORE_ELEMENTS.indexOf( parser.NODES[i].nodeName ) == -1 ) {
+							
+							if ( HTML_Body.TRAVERSE_ELEMENTS.indexOf( parser.NODES[i].nodeName ) == -1 ) {
+
+								element = documentElement.createElement( parser.NODES[i].nodeName );
+								
+								if ( parser.NODES[i].attributes && ( n = parser.NODES[i].attributes.length ) ) {
+
+									for ( j = 0; j<n; j++ ) {
+										element.setAttribute( parser.NODES[i].attributes[j].name, parser.NODES[i].attributes[j].value );
+									}
+
+								}
+
+								if ( parser.NODES[i].children && parser.NODES[i].children.length ) {
+									element.setInnerNodes( parser.NODES[i].children, element );
+								}
+
+								nodes.push( element );
+
+							} else {
+
+								if ( parser.NODES[i].children && parser.NODES[i].children.length ) {
+
+									// TRAVERSE NODE CONTENTS
+									traverser = traverser || documentElement.createElement( 'traverse' );
+									traverser.childNodes.splice( 0, traverser.childNodes.length );
+									traverser.setInnerNodes( parser.NODES[i].children, traverser );
+
+									for ( j=0, n = traverser.childNodes.length; j<n; j++ ) {
+										nodes.push( traverser.childNodes[j] );
+									}
+
+								}
+
+							}
+						}
+						break;
+
+					default:
+						break;
+				}
+
+			}
+
+			return new TNode_Collection( nodes );
+
+		} catch ( parserError ) {
+			return null;
+		}
+
+	}
+
 }

@@ -147,3 +147,8 @@ interface TargetDetails {
 	lineIndex: number;
 	charIndex: number;
 }
+
+interface TInsertionPoint {
+	element: TNode_Element;
+	index: number;
+}

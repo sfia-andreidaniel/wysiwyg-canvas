@@ -161,4 +161,156 @@ class DocSelection extends Events {
 		}
 	}
 
+	public insertHTML( html: string ) {
+		
+		if ( this.getRange().length() ) {
+			this.removeContents();
+		}
+
+		var rng = this.getRange(),
+		    fragPos: number = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos,
+		    targetElement: TNode = this.viewport.document.findNodeAtIndex( fragPos ),
+		    s: string,
+		    s1: string,
+		    afterNode      : TNode,
+		    normalized     : TNode_Collection,
+		    hostElement    : TNode_Element = targetElement.hostElement(),
+		    insertionPoint : TInsertionPoint,
+		    cursor         : TNode_Element,
+		    
+		    leftSibling    : TNode_Element,
+		    rightSibling   : TNode_Element,
+		    i              : number,
+		    len            : number,
+		    j              : number;
+
+
+		normalized = this.viewport.document.createCollectionFromHTMLText( html ).normalizeForHost( hostElement.nodeName );
+
+		// no html or failed to parse HTML
+		if ( !normalized.length ) {
+			return;
+		}
+
+
+		if ( targetElement.nodeType == TNode_Type.TEXT ) {
+			
+			s = (<TNode_Text>targetElement).textContentsFragment( targetElement.FRAGMENT_START, fragPos - 1 );
+			s1 = (<TNode_Text>targetElement).textContentsFragment( fragPos, targetElement.FRAGMENT_END );
+
+			switch ( true ) {
+				case s == '':
+					if ( targetElement.previousSibling() ) {
+						afterNode = targetElement.previousSibling();
+					} else {
+						afterNode = this.viewport.document.createTextNode( '' );
+						targetElement.parentNode.appendChild( afterNode, targetElement.siblingIndex );
+					}
+					break;
+				case s1 == '':
+					afterNode = targetElement;
+					break;
+				default:
+					(<TNode_Text>targetElement).textContents( s );
+					targetElement.parentNode.appendChild( this.viewport.document.createTextNode( s1 ), targetElement.siblingIndex + 1 );
+					afterNode = targetElement;
+					break;
+			}
+
+			hostElement = afterNode.hostElement();
+
+		} else {
+
+			afterNode = targetElement;
+
+			hostElement = afterNode.hostElement();
+
+		}
+
+		if ( normalized.normalizedInlineStartNodes + normalized.normalizedInlineEndNodes < normalized.length ) {
+
+			if ( afterNode.parentNode != hostElement ) {
+					
+				// make a surgery upto the host.
+				insertionPoint = afterNode.cutDown( [ ( afterNode.hostElement().parentNode || afterNode.documentElement ).is() ] );
+
+			} else {
+
+				insertionPoint = {
+					"element": hostElement,
+					"index": afterNode.siblingIndex + 1
+				}
+
+			}
+
+
+		} else {
+			
+			// make a surgery inside the host
+			// insert all nodes in a raw after the afterNode.
+
+			insertionPoint = {
+				"element": afterNode.parentNode,
+				"index": afterNode.siblingIndex + 1
+			}
+
+			console.warn( 'insertion point is: ' + insertionPoint.element.xmlBeginning(), "index:" + insertionPoint.index );
+
+		}
+
+		leftSibling = ( <TNode_Element>insertionPoint.element.childNodes[ insertionPoint.index - 1 ] ) || null;
+		rightSibling= ( <TNode_Element>insertionPoint.element.childNodes[ insertionPoint.index ] ) || null;
+
+		// insert normalizedinlinestartnodes
+		for ( i=0; i<normalized.normalizedInlineStartNodes; i++ ) {
+			if ( leftSibling ) {
+				if ( leftSibling.nodeType == TNode_Type.TEXT ) {
+					insertionPoint.element.appendChild( normalized.at( i ), insertionPoint.index );
+					insertionPoint.index++;
+				} else {
+					leftSibling.appendChild( normalized.at( i ) );
+				}
+			} else {
+				insertionPoint.element.appendChild( normalized.at( i ) );
+				insertionPoint.index++;
+			}
+		}
+
+
+		// insert normalizedmiddlenodes
+
+		len = normalized.length - normalized.normalizedInlineStartNodes - normalized.normalizedInlineEndNodes;
+
+		//console.warn( len, normalized.normalizedInlineStartNodes, normalized.normalizedInlineEndNodes, normalized.length, insertionPoint.element );
+
+		for ( i = normalized.normalizedInlineStartNodes; i < normalized.normalizedInlineStartNodes + len; i++ ) {
+			//console.warn( 'append: ', normalized.at( i ) );
+			insertionPoint.element.appendChild( normalized.at( i ), insertionPoint.index );
+			insertionPoint.index++;
+		}
+
+		j = 0;
+
+		for ( i = normalized.length - normalized.normalizedInlineEndNodes; i<normalized.length; i++ ) {
+			if ( !rightSibling || rightSibling.nodeType == TNode_Type.TEXT ) {
+				insertionPoint.element.appendChild( normalized.at( i ) );
+			} else {
+				rightSibling.appendChild( normalized.at( i ), j );
+				j++;
+			}
+		}
+
+		this.viewport.document.relayout( true );
+
+		rng.focusNode().fragPos = ( normalized.at(  normalized.length - 1 ) ).FRAGMENT_END + 1;
+		rng.focusNode().target  = this.viewport.document.findNodeAtIndex( rng.focusNode().fragPos );
+
+		rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+
+		rng.fire( 'changed' );
+
+		//console.log( "LAND ON: ", rng.focusNode().fragPos );
+
+	}
+
 }

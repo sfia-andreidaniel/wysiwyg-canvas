@@ -293,6 +293,51 @@ var Helper = (function () {
         Array.prototype.splice.apply(thisArray, apply);
         return thisArray;
     };
+    Helper.createCollectionFromHTMLText = function (s, documentElement) {
+        try {
+            var parser = new HTMLParser(documentElement, s || ''), nodes = [], i = 0, len = parser.NODES.length, element, n = 0, j = 0, traverser = null;
+            for (i = 0; i < len; i++) {
+                switch (parser.NODES[i].type) {
+                    case '#text':
+                        nodes.push(documentElement.createTextNode(parser.NODES[i].value));
+                        break;
+                    case 'node':
+                        if (HTML_Body.IGNORE_ELEMENTS.indexOf(parser.NODES[i].nodeName) == -1) {
+                            if (HTML_Body.TRAVERSE_ELEMENTS.indexOf(parser.NODES[i].nodeName) == -1) {
+                                element = documentElement.createElement(parser.NODES[i].nodeName);
+                                if (parser.NODES[i].attributes && (n = parser.NODES[i].attributes.length)) {
+                                    for (j = 0; j < n; j++) {
+                                        element.setAttribute(parser.NODES[i].attributes[j].name, parser.NODES[i].attributes[j].value);
+                                    }
+                                }
+                                if (parser.NODES[i].children && parser.NODES[i].children.length) {
+                                    element.setInnerNodes(parser.NODES[i].children, element);
+                                }
+                                nodes.push(element);
+                            }
+                            else {
+                                if (parser.NODES[i].children && parser.NODES[i].children.length) {
+                                    // TRAVERSE NODE CONTENTS
+                                    traverser = traverser || documentElement.createElement('traverse');
+                                    traverser.childNodes.splice(0, traverser.childNodes.length);
+                                    traverser.setInnerNodes(parser.NODES[i].children, traverser);
+                                    for (j = 0, n = traverser.childNodes.length; j < n; j++) {
+                                        nodes.push(traverser.childNodes[j]);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+            return new TNode_Collection(nodes);
+        }
+        catch (parserError) {
+            return null;
+        }
+    };
     /* Logging */
     Helper.dev = false;
     return Helper;
@@ -353,6 +398,56 @@ var TNode = (function (_super) {
         else {
             return this.parentNode.childNodes.slice(includingMe ? this.siblingIndex : this.siblingIndex + 1);
         }
+    };
+    TNode.prototype.is = function () {
+        if (this.nodeType == 1 /* TEXT */) {
+            return '#text';
+        }
+        else {
+            return this.nodeName;
+        }
+    };
+    TNode.prototype.hostElement = function () {
+        var cursor = this, hosts = ['body', 'td', 'li'];
+        while (hosts.indexOf(cursor.is()) == -1) {
+            if (!cursor.parentNode) {
+                return null;
+            }
+            cursor = cursor.parentNode;
+        }
+        return cursor;
+    };
+    /* Cuts the dom in deepness until the root node name is in the untilNodes list */
+    TNode.prototype.cutDown = function (untilNodes) {
+        if (!untilNodes.length) {
+            return {
+                "element": this.parentNode,
+                "index": this.siblingIndex + 1
+            };
+        }
+        var nodesLeft, nodesRight, lParent = this.parentNode, rParent = null;
+        nodesLeft = new TNode_Collection(this.elementsBeforeMyself(true));
+        nodesRight = new TNode_Collection(this.elementsAfterMyself(false));
+        while (lParent.parentNode && (lParent.parentNode != lParent.documentElement) && untilNodes.indexOf(lParent.parentNode.is()) == -1) {
+            rParent = lParent.clone();
+            nodesRight.wrapIn(rParent);
+            lParent.parentNode.appendChild(rParent, lParent.siblingIndex + 1);
+            nodesLeft = new TNode_Collection(lParent.elementsBeforeMyself(true));
+            nodesRight = new TNode_Collection(rParent.elementsAfterMyself(true));
+            lParent = lParent.parentNode;
+        }
+        if (lParent.parentNode) {
+            rParent = lParent.clone();
+            nodesRight.wrapIn(rParent);
+            lParent.parentNode.appendChild(rParent, lParent.siblingIndex + 1);
+        }
+        else {
+            throw "ERR_BAD_CUTDOWN";
+        }
+        return {
+            "element": lParent.parentNode,
+            "index": lParent.siblingIndex + 1
+        };
     };
     return TNode;
 })(Events);
@@ -1614,6 +1709,163 @@ var TNode_Collection = (function () {
     TNode_Collection.prototype.at = function (index) {
         return this.nodes[index];
     };
+    /* Finds a succession of nodes whose names are @nodeNameIs, remove it from this collection and
+       returns them into a new subcollection. Original index for the first removed item is returned
+       in the @index.
+     */
+    TNode_Collection.prototype.spliceByNodeName = function (nodeNameIs) {
+        var i = 0, j = 0, len = 0, nodes = [], m = 0;
+        for (i = 0, len = this.nodes.length; i < len; i++) {
+            if (this.nodes[i].is() == nodeNameIs) {
+                m = 1;
+                for (j = i + 1; j < len; j++) {
+                    if (this.nodes[j].is() == nodeNameIs) {
+                        m++;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                nodes = this.nodes.splice(i, m);
+                return { "collection": new TNode_Collection(nodes), index: i };
+            }
+        }
+        return null;
+    };
+    /* Finds a succession of inline nodes, remove them from this collection and
+       returns them into a new subcollection. Original index for the first removed item is returned
+       in the @index.
+     */
+    TNode_Collection.prototype.spliceByInlineNodes = function (minAfterLength, maxBeforeLength) {
+        if (minAfterLength === void 0) { minAfterLength = 0; }
+        if (maxBeforeLength === void 0) { maxBeforeLength = 0; }
+        var i = 0, j = 0, len = this.nodes.length - maxBeforeLength, nodes = [], m = 0;
+        for (i = minAfterLength; i < len; i++) {
+            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                m = 1;
+                for (j = i + 1; j < len; j++) {
+                    if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[j].is()) > -1) {
+                        m++;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                nodes = this.nodes.splice(i, m);
+                return { "collection": new TNode_Collection(nodes), index: i };
+            }
+        }
+        return null;
+    };
+    /* Finds a succession of inline nodes, remove them from this collection and
+       returns them into a new subcollection. Original index for the first removed item is returned
+       in the @index.
+     */
+    TNode_Collection.prototype.spliceByBlockNodes = function (minAfterLength, maxBeforeLength) {
+        if (minAfterLength === void 0) { minAfterLength = 0; }
+        if (maxBeforeLength === void 0) { maxBeforeLength = 0; }
+        var i = 0, j = 0, len = this.nodes.length - maxBeforeLength, nodes = [], m = 0;
+        for (i = minAfterLength; i < len; i++) {
+            if (TNode_Collection.BLOCK_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                m = 1;
+                for (j = i + 1; j < len; j++) {
+                    if (TNode_Collection.BLOCK_NODES_LIST.indexOf(this.nodes[j].is()) > -1) {
+                        m++;
+                    }
+                    else {
+                        break;
+                    }
+                }
+                nodes = this.nodes.splice(i, m);
+                return { "collection": new TNode_Collection(nodes), index: i };
+            }
+        }
+        return null;
+    };
+    /* Normalize the collection for being able to be inserted inside of a host element */
+    TNode_Collection.prototype.normalizeForHost = function (hostNodeName) {
+        var doc = this.nodes.length ? this.nodes[0].documentElement : null, seq = null, wrap, inlineStartNodes = 0, inlineEndNodes = 0, len = 0, i = 0;
+        if (doc === null) {
+            return this;
+        }
+        while (seq = this.spliceByNodeName('td')) {
+            wrap = doc.createElement('tr');
+            Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+        }
+        while (seq = this.spliceByNodeName('tr')) {
+            wrap = doc.createElement('table');
+            wrap.setAttribute('border', '1');
+            wrap.setAttribute('bordercolor', 'black');
+            Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+        }
+        while (seq = this.spliceByNodeName('li')) {
+            wrap = doc.createElement('ul');
+            Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+        }
+        for (i = 0, len = this.nodes.length; i < len; i++) {
+            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                inlineStartNodes++;
+            }
+            else {
+                break;
+            }
+        }
+        if (inlineStartNodes < len) {
+            for (i = len - 1; i >= 0; i--) {
+                if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                    inlineEndNodes++;
+                }
+                else {
+                    break;
+                }
+            }
+        }
+        while (seq = this.spliceByInlineNodes(inlineStartNodes, inlineEndNodes)) {
+            wrap = doc.createElement('p');
+            Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+        }
+        this.normalizedInlineStartNodes = inlineStartNodes;
+        this.normalizedInlineEndNodes = inlineEndNodes;
+        return this;
+    };
+    TNode_Collection.INLINE_NODES_LIST = [
+        "#text",
+        "a",
+        "b",
+        "!b",
+        "i",
+        "!i",
+        "u",
+        "!u",
+        "strike",
+        "!strike",
+        "sup",
+        "!sup",
+        "sub",
+        "!sub",
+        "span",
+        "color",
+        "font",
+        "size"
+    ];
+    TNode_Collection.BLOCK_NODES_LIST = [
+        "body",
+        "ul",
+        "li",
+        "ol",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "h7",
+        "p",
+        "img",
+        "table",
+        "tr",
+        "td"
+    ];
     return TNode_Collection;
 })();
 var TNode_Collection_Dettached = (function (_super) {
@@ -2227,6 +2479,9 @@ var HTML_Body = (function (_super) {
     // the body cannot become other thing excepting itself.
     HTML_Body.prototype.becomeElement = function (elementName) {
         return this;
+    };
+    HTML_Body.prototype.createCollectionFromHTMLText = function (s) {
+        return Helper.createCollectionFromHTMLText(s, this);
     };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
@@ -8162,6 +8417,106 @@ var DocSelection = (function (_super) {
                 this.anchorTo(new TRange_Target(nStart, start));
                 break;
         }
+    };
+    DocSelection.prototype.insertHTML = function (html) {
+        if (this.getRange().length()) {
+            this.removeContents();
+        }
+        var rng = this.getRange(), fragPos = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos, targetElement = this.viewport.document.findNodeAtIndex(fragPos), s, s1, afterNode, normalized, hostElement = targetElement.hostElement(), insertionPoint, cursor, leftSibling, rightSibling, i, len, j;
+        normalized = this.viewport.document.createCollectionFromHTMLText(html).normalizeForHost(hostElement.nodeName);
+        // no html or failed to parse HTML
+        if (!normalized.length) {
+            return;
+        }
+        if (targetElement.nodeType == 1 /* TEXT */) {
+            s = targetElement.textContentsFragment(targetElement.FRAGMENT_START, fragPos - 1);
+            s1 = targetElement.textContentsFragment(fragPos, targetElement.FRAGMENT_END);
+            switch (true) {
+                case s == '':
+                    if (targetElement.previousSibling()) {
+                        afterNode = targetElement.previousSibling();
+                    }
+                    else {
+                        afterNode = this.viewport.document.createTextNode('');
+                        targetElement.parentNode.appendChild(afterNode, targetElement.siblingIndex);
+                    }
+                    break;
+                case s1 == '':
+                    afterNode = targetElement;
+                    break;
+                default:
+                    targetElement.textContents(s);
+                    targetElement.parentNode.appendChild(this.viewport.document.createTextNode(s1), targetElement.siblingIndex + 1);
+                    afterNode = targetElement;
+                    break;
+            }
+            hostElement = afterNode.hostElement();
+        }
+        else {
+            afterNode = targetElement;
+            hostElement = afterNode.hostElement();
+        }
+        if (normalized.normalizedInlineStartNodes + normalized.normalizedInlineEndNodes < normalized.length) {
+            if (afterNode.parentNode != hostElement) {
+                // make a surgery upto the host.
+                insertionPoint = afterNode.cutDown([(afterNode.hostElement().parentNode || afterNode.documentElement).is()]);
+            }
+            else {
+                insertionPoint = {
+                    "element": hostElement,
+                    "index": afterNode.siblingIndex + 1
+                };
+            }
+        }
+        else {
+            // make a surgery inside the host
+            // insert all nodes in a raw after the afterNode.
+            insertionPoint = {
+                "element": afterNode.parentNode,
+                "index": afterNode.siblingIndex + 1
+            };
+            console.warn('insertion point is: ' + insertionPoint.element.xmlBeginning(), "index:" + insertionPoint.index);
+        }
+        leftSibling = insertionPoint.element.childNodes[insertionPoint.index - 1] || null;
+        rightSibling = insertionPoint.element.childNodes[insertionPoint.index] || null;
+        for (i = 0; i < normalized.normalizedInlineStartNodes; i++) {
+            if (leftSibling) {
+                if (leftSibling.nodeType == 1 /* TEXT */) {
+                    insertionPoint.element.appendChild(normalized.at(i), insertionPoint.index);
+                    insertionPoint.index++;
+                }
+                else {
+                    leftSibling.appendChild(normalized.at(i));
+                }
+            }
+            else {
+                insertionPoint.element.appendChild(normalized.at(i));
+                insertionPoint.index++;
+            }
+        }
+        // insert normalizedmiddlenodes
+        len = normalized.length - normalized.normalizedInlineStartNodes - normalized.normalizedInlineEndNodes;
+        for (i = normalized.normalizedInlineStartNodes; i < normalized.normalizedInlineStartNodes + len; i++) {
+            //console.warn( 'append: ', normalized.at( i ) );
+            insertionPoint.element.appendChild(normalized.at(i), insertionPoint.index);
+            insertionPoint.index++;
+        }
+        j = 0;
+        for (i = normalized.length - normalized.normalizedInlineEndNodes; i < normalized.length; i++) {
+            if (!rightSibling || rightSibling.nodeType == 1 /* TEXT */) {
+                insertionPoint.element.appendChild(normalized.at(i));
+            }
+            else {
+                rightSibling.appendChild(normalized.at(i), j);
+                j++;
+            }
+        }
+        this.viewport.document.relayout(true);
+        rng.focusNode().fragPos = (normalized.at(normalized.length - 1)).FRAGMENT_END + 1;
+        rng.focusNode().target = this.viewport.document.findNodeAtIndex(rng.focusNode().fragPos);
+        rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+        rng.fire('changed');
+        //console.log( "LAND ON: ", rng.focusNode().fragPos );
     };
     // selection is painted with two colors, depending on
     // the focus state of the viewport

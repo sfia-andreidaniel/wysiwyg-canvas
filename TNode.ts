@@ -56,4 +56,74 @@ class TNode extends Events {
 		}
 	}
 
+	public is(): string {
+		if ( this.nodeType == TNode_Type.TEXT ) {
+			return '#text';
+		} else {
+			return (<TNode_Element>this).nodeName;
+		}
+	}
+
+	public hostElement(): TNode_Element {
+		
+		var cursor: TNode = this,
+		    hosts: string[] = [ 'body', 'td', 'li' ];
+		
+		while ( hosts.indexOf( cursor.is() ) == -1 ) {
+			if ( !cursor.parentNode ) {
+				return null;
+			}
+			cursor = cursor.parentNode;
+		}
+
+		return <TNode_Element>cursor;
+	}
+
+	/* Cuts the dom in deepness until the root node name is in the untilNodes list */
+	public cutDown( untilNodes: string[] ): TInsertionPoint {
+		
+		if ( !untilNodes.length ) {
+			return {
+				"element": this.parentNode,
+				"index": this.siblingIndex + 1
+			};
+		}
+
+		var nodesLeft: TNode_Collection,
+		    nodesRight: TNode_Collection,
+		    
+		    lParent: TNode_Element = this.parentNode,
+		    rParent: TNode_Element = null;
+		
+		nodesLeft = new TNode_Collection( this.elementsBeforeMyself( true ) );
+		nodesRight= new TNode_Collection( this.elementsAfterMyself( false ) );
+
+		while ( lParent.parentNode && ( lParent.parentNode != lParent.documentElement ) && untilNodes.indexOf( lParent.parentNode.is() ) == -1 ) {
+			rParent = lParent.clone();
+			
+			nodesRight.wrapIn( rParent );
+
+			lParent.parentNode.appendChild( rParent, lParent.siblingIndex + 1 );
+			
+			nodesLeft = new TNode_Collection( lParent.elementsBeforeMyself( true ) );
+			nodesRight= new TNode_Collection( rParent.elementsAfterMyself( true ) );
+
+			lParent = lParent.parentNode;
+		}
+
+		if ( lParent.parentNode ) {
+			rParent = lParent.clone();
+			nodesRight.wrapIn( rParent );
+			lParent.parentNode.appendChild( rParent, lParent.siblingIndex + 1 );
+		} else {
+			throw "ERR_BAD_CUTDOWN";
+		}
+
+		return {
+			"element": lParent.parentNode,
+			"index": lParent.siblingIndex + 1
+		};
+
+	}
+
 }

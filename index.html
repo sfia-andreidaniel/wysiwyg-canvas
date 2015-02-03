@@ -36,7 +36,13 @@
 			    		'<li>item 1</li>',
 			    		'<li>item 2</li>',
 			    		'<li>item 3</li>',
-			    	'</ul>'
+			    	'</ul>',
+			    	'<table border="1" bordercolor="black">',
+			    		'<tr><td>cell 1.1</td><td>cell 1.2</td></tr>',
+			    		'<tr><td>cell 2.1</td><td>cell 2.2</td></tr>',
+			    		'<tr><td>cell 3.1</td><td>cell 3.2</td></tr>',
+			    		'<tr><td>cell 4.1</td><td>cell 4.2</td></tr>',
+			    	'</table>'
 			    ].join( '\n' );
 
 				document.body.appendChild( window.htmlEditor = new HTMLEditor( niceHTML, true, true, 500, 500 ) );

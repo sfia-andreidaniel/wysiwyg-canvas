@@ -30,6 +30,14 @@ class HTML_TableRow extends TNode_Element {
 		}
 	}
 
+	public removeChild( node: TNode ): TNode {
+		var returnValue: TNode = super.removeChild( node );
+
+		this.ownerTable.requestCompile();
+
+		return returnValue;
+	}
+
 	public removeFromDOMAtUserCommand(): boolean {
 		return false; // table rows cannot be removed even if they are selected when the user press a removal key
 	}

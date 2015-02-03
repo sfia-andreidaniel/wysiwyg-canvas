@@ -47,6 +47,12 @@ class HTML_Table extends TNode_Element {
 		}
 	}
 
+	public removeChild( node: TNode ): TNode {
+		var returnValue: TNode = super.removeChild( node );
+		this.requestCompile();
+		return returnValue;
+	}
+
 	public setAttribute( attributeName: string, attributeValue: string ) {
 		switch ( attributeName ) {
 			case 'border':

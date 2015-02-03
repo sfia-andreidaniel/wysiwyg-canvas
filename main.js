@@ -2846,6 +2846,11 @@ var HTML_Table = (function (_super) {
             return node;
         }
     };
+    HTML_Table.prototype.removeChild = function (node) {
+        var returnValue = _super.prototype.removeChild.call(this, node);
+        this.requestCompile();
+        return returnValue;
+    };
     HTML_Table.prototype.setAttribute = function (attributeName, attributeValue) {
         switch (attributeName) {
             case 'border':
@@ -3245,6 +3250,11 @@ var HTML_TableRow = (function (_super) {
             //silently discard errors
             return node;
         }
+    };
+    HTML_TableRow.prototype.removeChild = function (node) {
+        var returnValue = _super.prototype.removeChild.call(this, node);
+        this.ownerTable.requestCompile();
+        return returnValue;
     };
     HTML_TableRow.prototype.removeFromDOMAtUserCommand = function () {
         return false; // table rows cannot be removed even if they are selected when the user press a removal key

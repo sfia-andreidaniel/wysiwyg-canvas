@@ -37,7 +37,8 @@ class HTML_ListItem extends TNode_Element {
 
 	public becomeElement( elementName: string ): TNode_Element {
 		var breakResult: TListBreakResult,
-		    element: TNode_Element;
+		    element: TNode_Element,
+		    parent: TNode_Element = this.parentNode;
 
 		if ( elementName == 'li' ) {
 			return this;
@@ -79,6 +80,10 @@ class HTML_ListItem extends TNode_Element {
 					break;
 			}
 
+			if ( parent.childNodes.length == 0 ) {
+				parent.remove();
+			}
+
 			this.parentNode.parentNode.mergeAdjacentLists();
 			return this;
 
@@ -115,6 +120,30 @@ class HTML_ListItem extends TNode_Element {
 			
 		} else {
 			return super.createSurgery( atFragmentIndex, createNodeAfter, nodeNameAfter, hint );
+		}
+	}
+
+	public tabStop( value: number = null ): number {
+		var parentNode: HTML_OrderedList = null,
+		    siblingIndex: number = 0;
+
+		if ( value == -1 ) {
+
+			if ( this.parentNode.parentNode.is() == 'li' ) {
+				parentNode = <HTML_OrderedList>this.parentNode;
+				siblingIndex = parentNode.siblingIndex;
+				parentNode.breakBeforeOption( this );
+				parentNode.parentNode.createSurgery( parentNode.FRAGMENT_END );
+				parentNode.parentNode.parentNode.appendChild( this, parentNode.parentNode.siblingIndex + 1 );
+				if ( parentNode.childNodes.length == 0 ) {
+					parentNode.remove();
+				}
+			}
+
+			return 0;
+
+		} else {
+			return super.tabStop( value );
 		}
 	}
 }

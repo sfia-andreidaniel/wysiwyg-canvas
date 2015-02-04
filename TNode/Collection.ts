@@ -1,9 +1,13 @@
 class TNode_Collection {
 	
-	public nodes: TNode[] = [];
+	public nodes                     : TNode[] = [];
 
 	public normalizedInlineStartNodes: number;
-	public normalizedInlineEndNodes: number;
+	public normalizedInlineEndNodes  : number;
+
+	public    parentNode             : TNode_Element = null; // will be used in TNode_Collection_Dettached later, but is declared here for wrapInElement/unwrapInElement
+	protected leftSibling            : TNode = null;		 // will be used in TNode_Collection_Dettached later, but is declared here for wrapInElement/unwrapInElement
+
 
 
 	public static INLINE_NODES_LIST: string[] = [
@@ -174,9 +178,34 @@ class TNode_Collection {
 		return null;
 	}
 
+	/* Needed for normalizeForHost function only */
 
-	/* Normalize the collection for being able to be inserted inside of a host element */
-	public normalizeForHost( hostNodeName: string ): TNode_Collection {
+	private computeInlineStartNodes( ): number {
+
+		var i: number = 0,
+		    len: number = 0,
+		    inlineStartNodes: number = 0;
+
+		for ( i=0, len = this.nodes.length; i < len; i++ ) {
+			if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
+				inlineStartNodes++;
+			} else {
+				break;
+			}
+		}
+
+		return inlineStartNodes;
+
+	}
+
+
+
+	/* Normalize (prepares)the collection for being able to be inserted inside of a host element.
+     * This method is used by Selection.insertHTML.
+	 */
+	public normalizeForHost( hostNodeName: string, unwrapNodes: string[] ): TNode_Collection {
+
+		console.warn( unwrapNodes );
 
 		var doc: HTML_Body = this.nodes.length ? this.nodes[0].documentElement : null,
 			seq: { collection: TNode_Collection; index: number } = null,
@@ -185,7 +214,9 @@ class TNode_Collection {
 		    inlineStartNodes: number = 0,
 		    inlineEndNodes  : number = 0,
 		 	len: number = 0,
-		 	i: number = 0;
+		 	i: number = 0,
+		 	j: number = 0,
+		 	n: number = 0;
 
 		if ( doc === null ) {
 			return this;
@@ -208,12 +239,14 @@ class TNode_Collection {
 			Helper.spliceApply( this.nodes, seq.index, 0, [ seq.collection.wrapIn( wrap ).at( 0 ) ] );
 		}
 
-		for ( i=0, len = this.nodes.length; i < len; i++ ) {
-			if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
-				inlineStartNodes++;
-			} else {
-				break;
-			}
+		inlineStartNodes = this.computeInlineStartNodes();
+
+		for ( j=0, n = unwrapNodes.length; j<n; j++ ) {
+
+			this.unwrapFromElement( unwrapNodes[ j ], null, 0, inlineStartNodes - 1 );
+
+			inlineStartNodes = this.computeInlineStartNodes();
+
 		}
 
 		if ( inlineStartNodes < len ) {
@@ -226,10 +259,27 @@ class TNode_Collection {
 			}
 		}
 
-		while ( seq = this.spliceByInlineNodes( inlineStartNodes, inlineEndNodes ) ) {
-			wrap = doc.createElement( 'p' );
-			Helper.spliceApply( this.nodes, seq.index, 0, [ seq.collection.wrapIn( wrap ).at( 0 ) ] );
+		if ( hostNodeName == 'td' ) {
+			
+			this.unwrapFromElement( 'p', null, inlineStartNodes, this.nodes.length - inlineEndNodes, 'br', 'br' );
+
+			this.unwrapFromElement( 'table', null, inlineStartNodes, this.nodes.length - inlineEndNodes );
+			this.unwrapFromElement( 'tr', null, inlineStartNodes, this.nodes.length - inlineEndNodes );
+			this.unwrapFromElement( 'td', null, inlineStartNodes, this.nodes.length - inlineEndNodes, 'br', 'br' );
+
+		} else {
+
+			while ( seq = this.spliceByInlineNodes( inlineStartNodes, inlineEndNodes ) ) {
+				wrap = doc.createElement( 'p' );
+				Helper.spliceApply( this.nodes, seq.index, 0, [ seq.collection.wrapIn( wrap ).at( 0 ) ] );
+			}
+
+
+
 		}
+		
+		inlineStartNodes = this.computeInlineStartNodes();
+
 
 		this.normalizedInlineStartNodes = inlineStartNodes;
 		this.normalizedInlineEndNodes = inlineEndNodes;
@@ -237,4 +287,123 @@ class TNode_Collection {
 		return this;
 
 	}
+
+	/* @nodeName: THe element name which is search for unwrapping process.
+
+	   @iFunc: A function which is evaluated on the parentNode context (this=parentNode), which if returns false,
+	           aborts the unwrap process.
+
+	   @indexStart, @indexEnd: Unwrap in the root only between @indexStart and @indexEnd.
+
+	   @addNodeAfterUnwrap: After unwrapping a node *in the root*, insert a element with node name addNodeAfterUnwrap.
+	   This is needed for example if we want to unwrap the p's, but add a <br/> after each p.
+	 */
+
+	public unwrapFromElement( 
+		nodeName: string,
+		ifFunc: ( ) => boolean = null,
+		indexStart: number = null,
+		indexEnd: number = null,
+		addNodeBeforeUnwrap: string = null,
+		addNodeAfterUnwrap: string = null
+	) {
+		
+		if ( this.parentNode !== null && ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
+			return;
+		}
+
+		var subWraps  	: TNode_Element[] = [],
+		    i 			: number 		  = 0,
+		    len 		: number 		  = this.nodes.length,
+		    addLen		: number 		  = 0,
+		 	subChildren : TNode[]         = [],
+		 	unwrapped   : TNode_Collection,
+		 	doc         : HTML_Body;
+
+		if ( indexStart === null ) {
+			indexStart = 0;
+		}
+
+		if ( indexEnd === null ) {
+			indexEnd = len;
+		}
+
+		if ( len == 0 ) {
+			return;
+		}
+
+		doc = this.nodes[0].documentElement;
+
+		// unwraps the direct children of collection.
+
+		for ( i=indexStart; i<indexEnd; i++ ) {
+
+			switch ( this.nodes[i].nodeType ) {
+				case TNode_Type.TEXT:
+					break;
+				case TNode_Type.ELEMENT:
+					if ( ( <TNode_Element>this.nodes[i] ).nodeName == nodeName ) {
+						
+						if ( addNodeBeforeUnwrap ) {
+							this.nodes.splice( i, 0, doc.createElement( addNodeBeforeUnwrap ) );
+							i++;
+						}
+
+						unwrapped = ( <TNode_Element>this.nodes[i] ).unwrap();
+
+						Helper.spliceApply( this.nodes, i, 1, unwrapped.nodes );
+
+						if ( addNodeAfterUnwrap ) {
+							this.nodes.splice( i + unwrapped.nodes.length, 0, doc.createElement( addNodeAfterUnwrap ) );
+						}
+
+
+						indexEnd = this.nodes.length;
+
+						i += unwrapped.nodes.length + ( addNodeAfterUnwrap ? 0 : -1 ) ;
+					}
+					break;
+			}
+
+		}
+
+		/* finds all the nodes in direct children subtrees. */
+		for ( i=indexStart; i<indexEnd; i++ ) {
+			if ( this.nodes[i].nodeType == TNode_Type.ELEMENT ) {
+				
+				( <TNode_Element>this.nodes[i] ).queryAll( { "nodeName": nodeName } ).each( function() {
+					this.unwrap();
+				} );
+
+			}
+		}
+
+	}
+
+	public wrapInElement( nodeName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ) {
+
+		if ( this.parentNode && ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
+			return;
+		}
+
+		var node: TNode_Element = this.parentNode.documentElement.createElement( nodeName ),
+		       i: number = 0,
+		     len: number = this.nodes.length;
+
+		if ( elAttributeName !== null ) {
+			node.setAttribute( elAttributeName, elAttributeValue || '' );
+		}
+
+		for ( i=0; i<len; i++ ) {
+			node.appendChild( this.nodes[i] );
+		}
+
+		this.nodes = [ node ];
+
+		if ( this.parentNode )
+			this.parentNode.appendChild( node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1 );
+	}
+
+
+
 }

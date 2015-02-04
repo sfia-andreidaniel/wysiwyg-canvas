@@ -45,7 +45,7 @@
 			    	'</table>'
 			    ].join( '\n' );
 
-				document.body.appendChild( window.htmlEditor = new HTMLEditor( niceHTML, true, true, 500, 500 ) );
+				document.getElementById('placeholder').appendChild( window.htmlEditor = new HTMLEditor( niceHTML, true, true, 500, 300 ) );
 
 			    htmlEditor.on('change', function() {
 			        document.getElementById( 'html-value' ).value = this.value;
@@ -55,5 +55,10 @@
 	</head>
 	<body>
 		<textarea id="html-value" style="width: 500px; height: 500px; float: right"></textarea>
+		<div id="placeholder">
+			
+		</div>
+		<textarea id="paste" placeholder="Write here some html code and click on PASTE button to insert it at caret position" style="width: 495px; height: 50px; margin-top: 20px"></textarea>
+		<button onclick="htmlEditor.selection.insertHTML( document.getElementById( 'paste' ).value )">PASTE</button>
 	</body>
 </html>

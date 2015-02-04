@@ -425,9 +425,12 @@ var TNode = (function (_super) {
                 "index": this.siblingIndex + 1
             };
         }
-        var nodesLeft, nodesRight, lParent = this.parentNode, rParent = null;
-        nodesLeft = new TNode_Collection(this.elementsBeforeMyself(true));
-        nodesRight = new TNode_Collection(this.elementsAfterMyself(false));
+        var nodesLeft, nodesRight, self = this;
+        if (self.nodeType == 1 /* TEXT */ && self.isBR) {
+            self = this.parentNode;
+        }
+        var lParent = self.parentNode, rParent = null, nodesLeft = new TNode_Collection(self.elementsBeforeMyself(true));
+        nodesRight = new TNode_Collection(self.elementsAfterMyself(false));
         while (lParent.parentNode && (lParent.parentNode != lParent.documentElement) && untilNodes.indexOf(lParent.parentNode.is()) == -1) {
             rParent = lParent.clone();
             nodesRight.wrapIn(rParent);
@@ -1504,8 +1507,13 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.unwrap = function () {
         var collection = new TNode_Collection([]);
         //append my child nodes after me...
-        this.parentNode.appendCollection(collection = new TNode_Collection(this.childNodes), this.siblingIndex + 1);
-        this.remove();
+        if (this.parentNode) {
+            this.parentNode.appendCollection(collection = new TNode_Collection(this.childNodes), this.siblingIndex + 1);
+            this.remove();
+        }
+        else {
+            collection = new TNode_Collection(this.childNodes);
+        }
         return collection;
     };
     /* Returns the node name minus the "!" sign at is's beginning, if it's the case */
@@ -1659,6 +1667,8 @@ var TNode_Collection = (function () {
     function TNode_Collection(addNodes) {
         if (addNodes === void 0) { addNodes = null; }
         this.nodes = [];
+        this.parentNode = null; // will be used in TNode_Collection_Dettached later, but is declared here for wrapInElement/unwrapInElement
+        this.leftSibling = null; // will be used in TNode_Collection_Dettached later, but is declared here for wrapInElement/unwrapInElement
         if (addNodes !== null) {
             for (var i = 0, len = addNodes.length; i < len; i++) {
                 this.nodes.push(addNodes[i]);
@@ -1782,9 +1792,25 @@ var TNode_Collection = (function () {
         }
         return null;
     };
-    /* Normalize the collection for being able to be inserted inside of a host element */
-    TNode_Collection.prototype.normalizeForHost = function (hostNodeName) {
-        var doc = this.nodes.length ? this.nodes[0].documentElement : null, seq = null, wrap, inlineStartNodes = 0, inlineEndNodes = 0, len = 0, i = 0;
+    /* Needed for normalizeForHost function only */
+    TNode_Collection.prototype.computeInlineStartNodes = function () {
+        var i = 0, len = 0, inlineStartNodes = 0;
+        for (i = 0, len = this.nodes.length; i < len; i++) {
+            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                inlineStartNodes++;
+            }
+            else {
+                break;
+            }
+        }
+        return inlineStartNodes;
+    };
+    /* Normalize (prepares)the collection for being able to be inserted inside of a host element.
+     * This method is used by Selection.insertHTML.
+     */
+    TNode_Collection.prototype.normalizeForHost = function (hostNodeName, unwrapNodes) {
+        console.warn(unwrapNodes);
+        var doc = this.nodes.length ? this.nodes[0].documentElement : null, seq = null, wrap, inlineStartNodes = 0, inlineEndNodes = 0, len = 0, i = 0, j = 0, n = 0;
         if (doc === null) {
             return this;
         }
@@ -1802,13 +1828,10 @@ var TNode_Collection = (function () {
             wrap = doc.createElement('ul');
             Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
         }
-        for (i = 0, len = this.nodes.length; i < len; i++) {
-            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
-                inlineStartNodes++;
-            }
-            else {
-                break;
-            }
+        inlineStartNodes = this.computeInlineStartNodes();
+        for (j = 0, n = unwrapNodes.length; j < n; j++) {
+            this.unwrapFromElement(unwrapNodes[j], null, 0, inlineStartNodes - 1);
+            inlineStartNodes = this.computeInlineStartNodes();
         }
         if (inlineStartNodes < len) {
             for (i = len - 1; i >= 0; i--) {
@@ -1820,13 +1843,99 @@ var TNode_Collection = (function () {
                 }
             }
         }
-        while (seq = this.spliceByInlineNodes(inlineStartNodes, inlineEndNodes)) {
-            wrap = doc.createElement('p');
-            Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+        if (hostNodeName == 'td') {
+            this.unwrapFromElement('p', null, inlineStartNodes, this.nodes.length - inlineEndNodes, 'br', 'br');
+            this.unwrapFromElement('table', null, inlineStartNodes, this.nodes.length - inlineEndNodes);
+            this.unwrapFromElement('tr', null, inlineStartNodes, this.nodes.length - inlineEndNodes);
+            this.unwrapFromElement('td', null, inlineStartNodes, this.nodes.length - inlineEndNodes, 'br', 'br');
         }
+        else {
+            while (seq = this.spliceByInlineNodes(inlineStartNodes, inlineEndNodes)) {
+                wrap = doc.createElement('p');
+                Helper.spliceApply(this.nodes, seq.index, 0, [seq.collection.wrapIn(wrap).at(0)]);
+            }
+        }
+        inlineStartNodes = this.computeInlineStartNodes();
         this.normalizedInlineStartNodes = inlineStartNodes;
         this.normalizedInlineEndNodes = inlineEndNodes;
         return this;
+    };
+    /* @nodeName: THe element name which is search for unwrapping process.
+
+       @iFunc: A function which is evaluated on the parentNode context (this=parentNode), which if returns false,
+               aborts the unwrap process.
+
+       @indexStart, @indexEnd: Unwrap in the root only between @indexStart and @indexEnd.
+
+       @addNodeAfterUnwrap: After unwrapping a node *in the root*, insert a element with node name addNodeAfterUnwrap.
+       This is needed for example if we want to unwrap the p's, but add a <br/> after each p.
+     */
+    TNode_Collection.prototype.unwrapFromElement = function (nodeName, ifFunc, indexStart, indexEnd, addNodeBeforeUnwrap, addNodeAfterUnwrap) {
+        if (ifFunc === void 0) { ifFunc = null; }
+        if (indexStart === void 0) { indexStart = null; }
+        if (indexEnd === void 0) { indexEnd = null; }
+        if (addNodeBeforeUnwrap === void 0) { addNodeBeforeUnwrap = null; }
+        if (addNodeAfterUnwrap === void 0) { addNodeAfterUnwrap = null; }
+        if (this.parentNode !== null && ifFunc !== null && !(ifFunc.call(this.parentNode))) {
+            return;
+        }
+        var subWraps = [], i = 0, len = this.nodes.length, addLen = 0, subChildren = [], unwrapped, doc;
+        if (indexStart === null) {
+            indexStart = 0;
+        }
+        if (indexEnd === null) {
+            indexEnd = len;
+        }
+        if (len == 0) {
+            return;
+        }
+        doc = this.nodes[0].documentElement;
+        for (i = indexStart; i < indexEnd; i++) {
+            switch (this.nodes[i].nodeType) {
+                case 1 /* TEXT */:
+                    break;
+                case 2 /* ELEMENT */:
+                    if (this.nodes[i].nodeName == nodeName) {
+                        if (addNodeBeforeUnwrap) {
+                            this.nodes.splice(i, 0, doc.createElement(addNodeBeforeUnwrap));
+                            i++;
+                        }
+                        unwrapped = this.nodes[i].unwrap();
+                        Helper.spliceApply(this.nodes, i, 1, unwrapped.nodes);
+                        if (addNodeAfterUnwrap) {
+                            this.nodes.splice(i + unwrapped.nodes.length, 0, doc.createElement(addNodeAfterUnwrap));
+                        }
+                        indexEnd = this.nodes.length;
+                        i += unwrapped.nodes.length + (addNodeAfterUnwrap ? 0 : -1);
+                    }
+                    break;
+            }
+        }
+        for (i = indexStart; i < indexEnd; i++) {
+            if (this.nodes[i].nodeType == 2 /* ELEMENT */) {
+                this.nodes[i].queryAll({ "nodeName": nodeName }).each(function () {
+                    this.unwrap();
+                });
+            }
+        }
+    };
+    TNode_Collection.prototype.wrapInElement = function (nodeName, elAttributeName, elAttributeValue, ifFunc) {
+        if (elAttributeName === void 0) { elAttributeName = null; }
+        if (elAttributeValue === void 0) { elAttributeValue = null; }
+        if (ifFunc === void 0) { ifFunc = null; }
+        if (this.parentNode && ifFunc !== null && !(ifFunc.call(this.parentNode))) {
+            return;
+        }
+        var node = this.parentNode.documentElement.createElement(nodeName), i = 0, len = this.nodes.length;
+        if (elAttributeName !== null) {
+            node.setAttribute(elAttributeName, elAttributeValue || '');
+        }
+        for (i = 0; i < len; i++) {
+            node.appendChild(this.nodes[i]);
+        }
+        this.nodes = [node];
+        if (this.parentNode)
+            this.parentNode.appendChild(node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1);
     };
     TNode_Collection.INLINE_NODES_LIST = [
         "#text",
@@ -1874,12 +1983,10 @@ var TNode_Collection_Dettached = (function (_super) {
         if (surgeryStart === void 0) { surgeryStart = 0; }
         if (surgeryEnd === void 0) { surgeryEnd = 0; }
         _super.call(this, []);
-        this.parentNode = null;
         this.surgeryStart = 0;
         this.surgeryEnd = 0;
         this.fragLTR = 0;
         this.fragRTL = 0;
-        this.leftSibling = null;
         this.parentNode = parentNode;
         this.surgeryStart = Math.max(this.parentNode.FRAGMENT_START + 1, surgeryStart);
         this.surgeryEnd = Math.min(this.parentNode.FRAGMENT_END - 1, surgeryEnd) + 1;
@@ -1946,53 +2053,6 @@ var TNode_Collection_Dettached = (function (_super) {
             }
         }
         //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
-    };
-    TNode_Collection_Dettached.prototype.wrapInElement = function (nodeName, elAttributeName, elAttributeValue, ifFunc) {
-        if (elAttributeName === void 0) { elAttributeName = null; }
-        if (elAttributeValue === void 0) { elAttributeValue = null; }
-        if (ifFunc === void 0) { ifFunc = null; }
-        if (ifFunc !== null && !(ifFunc.call(this.parentNode))) {
-            return;
-        }
-        var node = this.parentNode.documentElement.createElement(nodeName), i = 0, len = this.nodes.length;
-        if (elAttributeName !== null) {
-            node.setAttribute(elAttributeName, elAttributeValue || '');
-        }
-        for (i = 0; i < len; i++) {
-            node.appendChild(this.nodes[i]);
-        }
-        this.nodes = [node];
-        this.parentNode.appendChild(node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1);
-    };
-    TNode_Collection_Dettached.prototype.unwrapFromElement = function (nodeName, ifFunc) {
-        if (ifFunc === void 0) { ifFunc = null; }
-        if (ifFunc !== null && !(ifFunc.call(this.parentNode))) {
-            return;
-        }
-        var subWraps = [], i = 0, len = this.nodes.length, addLen = 0, subChildren = [], unwrapped;
-        for (i = 0; i < len; i++) {
-            switch (this.nodes[i].nodeType) {
-                case 1 /* TEXT */:
-                    break;
-                case 2 /* ELEMENT */:
-                    if (this.nodes[i].nodeName == nodeName) {
-                        //console.error( 'unwrap ' + nodeName );
-                        unwrapped = this.nodes[i].unwrap();
-                        Helper.spliceApply(this.nodes, i, 1, unwrapped.nodes);
-                        len = this.nodes.length;
-                        //console.error( 'after unwrap: ' + this.toString() );
-                        i += unwrapped.nodes.length - 1;
-                    }
-                    break;
-            }
-        }
-        for (i = 0; i < len; i++) {
-            if (this.nodes[i].nodeType == 2 /* ELEMENT */) {
-                this.nodes[i].queryAll({ "nodeName": nodeName }).each(function () {
-                    this.unwrap();
-                });
-            }
-        }
     };
     TNode_Collection_Dettached.prototype.reInsert = function () {
         this.parentNode.appendCollection(this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0);
@@ -2973,7 +3033,7 @@ var HTML_ListItem = (function (_super) {
         }
     };
     HTML_ListItem.prototype.becomeElement = function (elementName) {
-        var breakResult, element;
+        var breakResult, element, parent = this.parentNode;
         if (elementName == 'li') {
             return this;
         }
@@ -3008,6 +3068,9 @@ var HTML_ListItem = (function (_super) {
                     element.appendChild(this);
                     break;
             }
+            if (parent.childNodes.length == 0) {
+                parent.remove();
+            }
             this.parentNode.parentNode.mergeAdjacentLists();
             return this;
         }
@@ -3037,6 +3100,26 @@ var HTML_ListItem = (function (_super) {
         }
         else {
             return _super.prototype.createSurgery.call(this, atFragmentIndex, createNodeAfter, nodeNameAfter, hint);
+        }
+    };
+    HTML_ListItem.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        var parentNode = null, siblingIndex = 0;
+        if (value == -1) {
+            if (this.parentNode.parentNode.is() == 'li') {
+                parentNode = this.parentNode;
+                siblingIndex = parentNode.siblingIndex;
+                parentNode.breakBeforeOption(this);
+                parentNode.parentNode.createSurgery(parentNode.FRAGMENT_END);
+                parentNode.parentNode.parentNode.appendChild(this, parentNode.parentNode.siblingIndex + 1);
+                if (parentNode.childNodes.length == 0) {
+                    parentNode.remove();
+                }
+            }
+            return 0;
+        }
+        else {
+            return _super.prototype.tabStop.call(this, value);
         }
     };
     return HTML_ListItem;
@@ -6924,7 +7007,7 @@ var Viewport_CommandRouter = (function (_super) {
         for (i = 0; i < len; i++) {
             switch (blockType) {
                 case 'normal':
-                    if (['p', 'ol', 'ul', 'li', 'td', 'table', 'tr', 'body'].indexOf(nodes[i].nodeName) == -1) {
+                    if (['p', 'td', 'table', 'tr', 'body'].indexOf(nodes[i].nodeName) == -1) {
                         nodes[i].becomeElement('p');
                     }
                     break;
@@ -8422,11 +8505,12 @@ var DocSelection = (function (_super) {
         if (this.getRange().length()) {
             this.removeContents();
         }
-        var rng = this.getRange(), fragPos = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos, targetElement = this.viewport.document.findNodeAtIndex(fragPos), s, s1, afterNode, normalized, hostElement = targetElement.hostElement(), insertionPoint, cursor, leftSibling, rightSibling, i, len, j;
-        normalized = this.viewport.document.createCollectionFromHTMLText(html).normalizeForHost(hostElement.nodeName);
-        // no html or failed to parse HTML
-        if (!normalized.length) {
+        if (!html) {
             return;
+        }
+        var rng = this.getRange(), fragPos = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos, targetElement = this.viewport.document.findNodeAtIndex(fragPos), s, s1, afterNode, normalized, hostElement = targetElement.hostElement(), insertionPoint, cursor, leftSibling, rightSibling, i, len, j, unwrapAtNormalization = [];
+        if (targetElement.nodeType == 1 /* TEXT */ && targetElement.isBR) {
+            targetElement = targetElement.parentNode;
         }
         if (targetElement.nodeType == 1 /* TEXT */) {
             s = targetElement.textContentsFragment(targetElement.FRAGMENT_START, fragPos - 1);
@@ -8455,6 +8539,17 @@ var DocSelection = (function (_super) {
         else {
             afterNode = targetElement;
             hostElement = afterNode.hostElement();
+        }
+        cursor = afterNode.parentNode;
+        while (cursor != hostElement) {
+            if (cursor.style.display() == 'inline')
+                unwrapAtNormalization.push(cursor.is());
+            cursor = cursor.parentNode;
+        }
+        normalized = this.viewport.document.createCollectionFromHTMLText(html).normalizeForHost(hostElement.nodeName, unwrapAtNormalization);
+        // no html or failed to parse HTML
+        if (!normalized.length) {
+            return;
         }
         if (normalized.normalizedInlineStartNodes + normalized.normalizedInlineEndNodes < normalized.length) {
             if (afterNode.parentNode != hostElement) {
@@ -8511,12 +8606,26 @@ var DocSelection = (function (_super) {
                 j++;
             }
         }
+        if (hostElement.parentNode) {
+            hostElement.parentNode.removeOrphanNodes();
+        }
+        else {
+            hostElement.removeOrphanNodes();
+        }
         this.viewport.document.relayout(true);
         rng.focusNode().fragPos = (normalized.at(normalized.length - 1)).FRAGMENT_END + 1;
         rng.focusNode().target = this.viewport.document.findNodeAtIndex(rng.focusNode().fragPos);
         rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
         rng.fire('changed');
-        //console.log( "LAND ON: ", rng.focusNode().fragPos );
+    };
+    DocSelection.prototype.toString = function () {
+        var range = this.getRange();
+        if (range.focusNode()) {
+            return range.createContextualFragment().toString('text/html', true);
+        }
+        else {
+            return range.anchorNode().target.outerHTML();
+        }
     };
     // selection is painted with two colors, depending on
     // the focus state of the viewport

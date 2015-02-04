@@ -1,14 +1,10 @@
 class TNode_Collection_Dettached extends TNode_Collection {
 
-	public parentNode           : TNode_Element = null;
-
 	public surgeryStart         : number = 0;
 	public surgeryEnd           : number = 0;
 	
 	private fragLTR         	: number = 0;
 	private fragRTL             : number = 0;
-
-	private leftSibling         : TNode = null;
 
 	
 	constructor( parentNode: TNode_Element, surgeryStart: number = 0, surgeryEnd: number = 0 ) {
@@ -117,81 +113,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		}
 
 		//console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
-
-	}
-
-	public wrapInElement( nodeName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ) {
-
-		if ( ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
-			return;
-		}
-
-		var node: TNode_Element = this.parentNode.documentElement.createElement( nodeName ),
-		       i: number = 0,
-		     len: number = this.nodes.length;
-
-		if ( elAttributeName !== null ) {
-			node.setAttribute( elAttributeName, elAttributeValue || '' );
-		}
-
-		for ( i=0; i<len; i++ ) {
-			node.appendChild( this.nodes[i] );
-		}
-
-		this.nodes = [ node ];
-
-		this.parentNode.appendChild( node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1 );
-	}
-
-	public unwrapFromElement( nodeName: string, ifFunc: ( ) => boolean = null ) {
-		
-		if ( ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
-			return;
-		}
-
-		var subWraps  	: TNode_Element[] = [],
-		    i 			: number 		  = 0,
-		    len 		: number 		  = this.nodes.length,
-		    addLen		: number 		  = 0,
-		 	subChildren : TNode[]         = [],
-		 	unwrapped   : TNode_Collection;
-
-		// unwraps the direct children of collection.
-
-		for ( i=0; i<len; i++ ) {
-
-			switch ( this.nodes[i].nodeType ) {
-				case TNode_Type.TEXT:
-					break;
-				case TNode_Type.ELEMENT:
-					if ( ( <TNode_Element>this.nodes[i] ).nodeName == nodeName ) {
-						
-						//console.error( 'unwrap ' + nodeName );
-						unwrapped = ( <TNode_Element>this.nodes[i] ).unwrap();
-
-						Helper.spliceApply( this.nodes, i, 1, unwrapped.nodes );
-
-						len = this.nodes.length;
-
-						//console.error( 'after unwrap: ' + this.toString() );
-
-						i += unwrapped.nodes.length - 1;
-					}
-					break;
-			}
-
-		}
-
-		/* finds all the nodes in direct children subtrees. */
-		for ( i=0; i<len; i++ ) {
-			if ( this.nodes[i].nodeType == TNode_Type.ELEMENT ) {
-				
-				( <TNode_Element>this.nodes[i] ).queryAll( { "nodeName": nodeName } ).each( function() {
-					this.unwrap();
-				} );
-
-			}
-		}
 
 	}
 

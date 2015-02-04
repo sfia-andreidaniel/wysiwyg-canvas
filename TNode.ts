@@ -91,12 +91,18 @@ class TNode extends Events {
 
 		var nodesLeft: TNode_Collection,
 		    nodesRight: TNode_Collection,
+		    self = this;
+
+		if ( self.nodeType == TNode_Type.TEXT && (<TNode_Text>self).isBR ) {
+			self = this.parentNode;
+		}
 		    
-		    lParent: TNode_Element = this.parentNode,
-		    rParent: TNode_Element = null;
-		
-		nodesLeft = new TNode_Collection( this.elementsBeforeMyself( true ) );
-		nodesRight= new TNode_Collection( this.elementsAfterMyself( false ) );
+		var lParent: TNode_Element = self.parentNode,
+		    rParent: TNode_Element = null,
+
+
+		nodesLeft = new TNode_Collection( self.elementsBeforeMyself( true ) );
+		nodesRight= new TNode_Collection( self.elementsAfterMyself( false ) );
 
 		while ( lParent.parentNode && ( lParent.parentNode != lParent.documentElement ) && untilNodes.indexOf( lParent.parentNode.is() ) == -1 ) {
 			rParent = lParent.clone();

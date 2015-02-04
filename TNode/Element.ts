@@ -1062,9 +1062,12 @@ class TNode_Element extends TNode {
 
 		//append my child nodes after me...
 
-		this.parentNode.appendCollection( collection = new TNode_Collection( this.childNodes ), this.siblingIndex + 1 );
-
-		this.remove();
+		if ( this.parentNode ) {
+			this.parentNode.appendCollection( collection = new TNode_Collection( this.childNodes ), this.siblingIndex + 1 );
+			this.remove();
+		} else {
+			collection = new TNode_Collection( this.childNodes );
+		}
 
 		return collection;
 	}

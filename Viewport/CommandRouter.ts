@@ -1045,7 +1045,7 @@ class Viewport_CommandRouter extends Events {
 		for ( i=0; i<len; i++ ) {
 			switch ( blockType ) {
 				case 'normal':
-					if ( [ 'p', 'ol', 'ul', 'li', 'td', 'table', 'tr', 'body' ].indexOf( nodes[i].nodeName ) == -1 ) {
+					if ( [ 'p', 'td', 'table', 'tr', 'body' ].indexOf( nodes[i].nodeName ) == -1 ) {
 						nodes[i].becomeElement( 'p' );
 					}
 					break;

@@ -167,11 +167,15 @@ class DocSelection extends Events {
 			this.removeContents();
 		}
 
-		var rng = this.getRange(),
-		    fragPos: number = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos,
-		    targetElement: TNode = this.viewport.document.findNodeAtIndex( fragPos ),
-		    s: string,
-		    s1: string,
+		if ( !html ) {
+			return;
+		}
+
+		var rng            : TRange = this.getRange(),
+		    fragPos        : number = rng.focusNode() ? rng.focusNode().fragPos : rng.anchorNode().fragPos,
+		    targetElement  : TNode = this.viewport.document.findNodeAtIndex( fragPos ),
+		    s              : string,
+		    s1             : string,
 		    afterNode      : TNode,
 		    normalized     : TNode_Collection,
 		    hostElement    : TNode_Element = targetElement.hostElement(),
@@ -182,16 +186,13 @@ class DocSelection extends Events {
 		    rightSibling   : TNode_Element,
 		    i              : number,
 		    len            : number,
-		    j              : number;
+		    j              : number,
 
+		    unwrapAtNormalization: string[] = [];
 
-		normalized = this.viewport.document.createCollectionFromHTMLText( html ).normalizeForHost( hostElement.nodeName );
-
-		// no html or failed to parse HTML
-		if ( !normalized.length ) {
-			return;
+		if ( targetElement.nodeType == TNode_Type.TEXT && (<TNode_Text>targetElement).isBR ) {
+			targetElement = targetElement.parentNode;
 		}
-
 
 		if ( targetElement.nodeType == TNode_Type.TEXT ) {
 			
@@ -226,6 +227,24 @@ class DocSelection extends Events {
 			hostElement = afterNode.hostElement();
 
 		}
+
+		cursor = afterNode.parentNode;
+
+		while ( cursor != hostElement ) {
+			
+			if ( cursor.style.display() == 'inline' )
+				unwrapAtNormalization.push( cursor.is() );
+			
+			cursor = cursor.parentNode;
+		}
+
+		normalized = this.viewport.document.createCollectionFromHTMLText( html ).normalizeForHost( hostElement.nodeName, unwrapAtNormalization );
+
+		// no html or failed to parse HTML
+		if ( !normalized.length ) {
+			return;
+		}
+
 
 		if ( normalized.normalizedInlineStartNodes + normalized.normalizedInlineEndNodes < normalized.length ) {
 
@@ -300,6 +319,13 @@ class DocSelection extends Events {
 			}
 		}
 
+
+		if ( hostElement.parentNode ) {
+			hostElement.parentNode.removeOrphanNodes();
+		} else {
+			hostElement.removeOrphanNodes();
+		}
+
 		this.viewport.document.relayout( true );
 
 		rng.focusNode().fragPos = ( normalized.at(  normalized.length - 1 ) ).FRAGMENT_END + 1;
@@ -309,8 +335,16 @@ class DocSelection extends Events {
 
 		rng.fire( 'changed' );
 
-		//console.log( "LAND ON: ", rng.focusNode().fragPos );
+	}
 
+	public toString(): string {
+		var range = this.getRange();
+
+		if ( range.focusNode() ) {
+			return range.createContextualFragment().toString( 'text/html', true );
+		} else {
+			return (<TNode_Element>range.anchorNode().target).outerHTML();
+		}
 	}
 
 }

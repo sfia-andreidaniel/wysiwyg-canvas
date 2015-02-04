@@ -5,6 +5,8 @@ class Viewport extends Events {
 	public  _scrollbarSize : number                  = 10;
 	private _scrollTop     : number                  = 0;
 	private _scrollLeft    : number                  = 0;
+	public  _clientWidth   : number                  = 0;
+	public  _clientHeight  : number                  = 0;
 	
 	public  canvas  /* :HTMLCanvasElement        */  = document.createElement( 'canvas' );
 	public  context /* :CanvasRenderingContext2D */  = null;

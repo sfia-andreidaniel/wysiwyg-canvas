@@ -312,6 +312,9 @@ class HTML_Body extends TNode_Element {
 		this._layout.computeWidths( );
 		this._layout.computeHeights( this.style.marginTop() );
 
+		this.viewport._clientWidth = this._layout.offsetWidth + this._layout.offsetHeight;
+		this.viewport._clientHeight = this._layout.offsetHeight + this._layout.offsetTop;
+		
 		this.viewport.scrollTop( this.viewport.scrollTop() );
 
 		//console.log( this._layout.serialize() );

@@ -152,3 +152,15 @@ interface TInsertionPoint {
 	element: TNode_Element;
 	index: number;
 }
+
+enum TResizer {
+	NW,
+	NE,
+	SW,
+	SE,
+	N,
+	S,
+	W,
+	E,
+	NONE
+}

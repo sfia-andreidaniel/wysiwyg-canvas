@@ -129,6 +129,7 @@ class Layout_Horizontal extends Layout {
 				leftPosition += this.children[i].node.style.marginLeft();
 
 				this.children[i].offsetLeft = leftPosition;
+
 				this.children[i].innerLeft = this.children[i].offsetLeft + this.children[i].node.style.paddingLeft() + ( this.children[i].node.tabStop() * tabSize ) + this.children[i].node.style.borderWidth();
 				this.children[i].innerWidth = this.children[i].offsetWidth - ( this.children[i].node.style.borderWidth() * 2 ) - this.children[i].node.style.paddingLeft() - ( this.children[i].node.tabStop() * tabSize ) - this.children[i].node.style.paddingRight();
 
@@ -149,7 +150,7 @@ class Layout_Horizontal extends Layout {
 		// compute the widths of the sub-children
 
 		for ( i=0, len = this.children.length; i<len; i++ ) {
-			this.children[i].computeWidths();
+			this.children[i].computeWidths( true );
 		}
 	}
 

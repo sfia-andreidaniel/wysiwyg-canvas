@@ -41,11 +41,12 @@ class Layout_Block extends Layout {
 		}
 	}
 
-	public computeWidths() {
+	public computeWidths( offsetLeftComputed: boolean = false ) {
 		
 		if ( this.node ) {
 
-			this.offsetLeft += this.node.style.marginLeft();
+			if ( !offsetLeftComputed )
+				this.offsetLeft += this.node.style.marginLeft();
 
 		} else {
 		

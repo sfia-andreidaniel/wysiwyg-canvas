@@ -26,7 +26,7 @@ class Layout_Vertical extends Layout {
 		}
 	}
 
-	public computeWidths() {
+	public computeWidths( offsetLeftComputed: boolean = false ) {
 		var i: number = 0,
 		    len: number = this.children.length,
 		    tabSize = ( this.children && len && this.children[0].node && this.children[0].node.documentElement ) ? this.children[0].node.documentElement.tabSize() : 0;

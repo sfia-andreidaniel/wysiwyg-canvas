@@ -19,7 +19,7 @@ class Layout_Block_Table extends Layout_Block {
 
 	}
 
-	public computeWidths() {
+	public computeWidths( offsetLeftComputed: boolean = false ) {
 
 		var i: number = 0,
 		    len: number = 0,

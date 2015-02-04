@@ -5,6 +5,7 @@ class HTML_Image extends TNode_Element {
 	private error: boolean = false; // an error occured after loading
 
 	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
+	public  isResizable: boolean = true;
 
 	constructor( src: string = null ) {
 		super();
@@ -119,8 +120,11 @@ class HTML_Image extends TNode_Element {
 
 				ctx.drawImage( this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight );
 
-				if ( this.isPaintedSelected )
+				if ( this.isPaintedSelected ) {
 					ctx.globalAlpha = 1;
+
+					this.paintResizeHandles( ctx, layout, scrollLeft, scrollTop );
+				}
 
 			}
 
@@ -158,6 +162,35 @@ class HTML_Image extends TNode_Element {
 	// images don't have tabstops
 	public tabStop( value: number = null ): number {
 		return 0;
+	}
+
+	public onmousemove( point: TPoint, button: number ) {
+
+		if ( this.isSelected() && button == 0 ) {
+
+			var resizer: TResizer = this.getResizerTypeAtMousePoint( point ),
+			    cursor: string = '';
+			
+			if ( [ TResizer.NW, TResizer.NE, TResizer.SW, TResizer.SE ].indexOf( resizer ) >= 0 ) {
+				switch ( resizer ) {
+					case TResizer.NW:
+						cursor = 'nw-resize';
+						break;
+					case TResizer.NE:
+						cursor = 'ne-resize';
+						break;
+					case TResizer.SE:
+						cursor = 'se-resize';
+						break;
+					case TResizer.SW:
+						cursor = 'sw-resize';
+						break;
+				}
+				this.documentElement.viewport.canvas.style.cursor = cursor;
+			} else {
+				this.documentElement.viewport.canvas.style.cursor = 'default';
+			}
+		}
 	}
 
 }

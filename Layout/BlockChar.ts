@@ -126,7 +126,7 @@ class Layout_BlockChar extends Layout {
 		return out[0] + this.textContents() + '</text>';
 	}
 
-	public computeWidths() {
+	public computeWidths( offsetLeftComputed: boolean = false ) {
 		this.buildLines( this.innerWidth );
 	}
 

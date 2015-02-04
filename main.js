@@ -91,6 +91,18 @@ var CaretLockDirection;
     CaretLockDirection[CaretLockDirection["FROM_BEGINNING_OF_DOCUMENT"] = 0] = "FROM_BEGINNING_OF_DOCUMENT";
     CaretLockDirection[CaretLockDirection["FROM_ENDING_OF_DOCUMENT"] = 1] = "FROM_ENDING_OF_DOCUMENT";
 })(CaretLockDirection || (CaretLockDirection = {}));
+var TResizer;
+(function (TResizer) {
+    TResizer[TResizer["NW"] = 0] = "NW";
+    TResizer[TResizer["NE"] = 1] = "NE";
+    TResizer[TResizer["SW"] = 2] = "SW";
+    TResizer[TResizer["SE"] = 3] = "SE";
+    TResizer[TResizer["N"] = 4] = "N";
+    TResizer[TResizer["S"] = 5] = "S";
+    TResizer[TResizer["W"] = 6] = "W";
+    TResizer[TResizer["E"] = 7] = "E";
+    TResizer[TResizer["NONE"] = 8] = "NONE";
+})(TResizer || (TResizer = {}));
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -746,6 +758,7 @@ var TNode_Element = (function (_super) {
         this.isDefragmentable = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
         this.isNegation = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
         this.isSelectionPaintingDisabled = false; // The node is not painted as selected as a whole, if it is included inside a text range, by any circumstances,  by the paint method ( but it's text can be if it's selected )
+        this.layout = null;
         this._tabStop = 0;
         if (!postStyleInit)
             this.style = new TStyle(this);
@@ -1053,6 +1066,7 @@ var TNode_Element = (function (_super) {
     /* Paints the node according to @layout settings (offsetLeft, offsetTop, etc.) */
     TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
+        this.layout = layout;
         var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
         if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1) && !this.isSelectionPaintingDisabled)) {
             isSelected = true;
@@ -1074,6 +1088,62 @@ var TNode_Element = (function (_super) {
             ctx.fillStyle = backgroundColor;
             ctx.fillRect(layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth);
         }
+    };
+    TNode_Element.prototype.paintResizeHandles = function (ctx, layout, scrollLeft, scrollTop) {
+        var left = layout.offsetLeft - scrollLeft, top = layout.offsetTop - scrollTop, rng = this.documentElement.viewport.selection.getRange();
+        if (!rng.focusNode() && rng.anchorNode().target == this) {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(left, top, 4, 4);
+            ctx.fillRect(left + layout.offsetWidth - 4, top, 4, 4);
+            ctx.fillRect(left, top + layout.offsetHeight - 4, 4, 4);
+            ctx.fillRect(left + layout.offsetWidth - 4, top + layout.offsetHeight - 4, 4, 4);
+        }
+    };
+    TNode_Element.prototype.isSelected = function () {
+        if (this.documentElement) {
+            var rng = this.documentElement.viewport.selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode();
+            return !focus && anchor.target == this;
+        }
+        else
+            return false;
+    };
+    TNode_Element.prototype.getResizerTypeAtMousePoint = function (point) {
+        // set mouse shape, depending on which corer of the element is the mouse over
+        var left = this.layout.offsetLeft, top = this.layout.offsetTop, width = this.layout.offsetWidth, height = this.layout.offsetHeight;
+        if (this.isResizable && this.layout) {
+            switch (true) {
+                case point.x >= left && point.x <= left + 4 && point.y >= top && point.y <= top + 4:
+                    return 0 /* NW */;
+                    break;
+                case point.x >= left + width - 4 && point.x <= left + width && point.y >= top && point.y <= top + 4:
+                    return 1 /* NE */;
+                    break;
+                case point.x >= left && point.x <= left + 4 && point.y >= top + height - 4 && point.y <= top + height:
+                    return 2 /* SW */;
+                    break;
+                case point.x >= left + width - 4 && point.x <= left + width && point.y >= top + height - 4 && point.y <= top + height:
+                    return 3 /* SE */;
+                    break;
+                case point.x == left:
+                    return 5 /* S */;
+                    break;
+                case point.x == left + width:
+                    return 6 /* W */;
+                case point.y == top:
+                    return 4 /* N */;
+                    break;
+                case point.y == top + height:
+                    return 5 /* S */;
+                    break;
+                default:
+                    return 8 /* NONE */;
+            }
+        }
+    };
+    TNode_Element.prototype.onmousemove = function (point, button) {
+    };
+    TNode_Element.prototype.onmousedown = function (point, button) {
+        // should be implemented on
     };
     // makes the array of nodes @nodesList childNodes of this element.
     // if @scope is null, the contents of this element will be erased before.
@@ -2502,6 +2572,8 @@ var HTML_Body = (function (_super) {
         this.style._width.isSet = true;
         this._layout.computeWidths();
         this._layout.computeHeights(this.style.marginTop());
+        this.viewport._clientWidth = this._layout.offsetWidth + this._layout.offsetHeight;
+        this.viewport._clientHeight = this._layout.offsetHeight + this._layout.offsetTop;
         this.viewport.scrollTop(this.viewport.scrollTop());
         //console.log( this._layout.serialize() );
         this.bakeIntoFragment();
@@ -2681,6 +2753,7 @@ var HTML_Image = (function (_super) {
         this.loaded = false; // is the image loaded successfully
         this.error = false; // an error occured after loading
         this.isSelectable = true; // when the user clicks on this element, it is selectable
+        this.isResizable = true;
         this.nodeName = 'img';
         this.style.display('block');
         (function (me) {
@@ -2788,8 +2861,10 @@ var HTML_Image = (function (_super) {
                 if (this.isPaintedSelected)
                     ctx.globalAlpha = .5;
                 ctx.drawImage(this.node, 0, 0, this.node.width, this.node.height, layout.innerLeft - scrollLeft, layout.innerTop - scrollTop, layout.innerWidth, layout.innerHeight);
-                if (this.isPaintedSelected)
+                if (this.isPaintedSelected) {
                     ctx.globalAlpha = 1;
+                    this.paintResizeHandles(ctx, layout, scrollLeft, scrollTop);
+                }
             }
         }
     };
@@ -2816,6 +2891,31 @@ var HTML_Image = (function (_super) {
     HTML_Image.prototype.tabStop = function (value) {
         if (value === void 0) { value = null; }
         return 0;
+    };
+    HTML_Image.prototype.onmousemove = function (point, button) {
+        if (this.isSelected() && button == 0) {
+            var resizer = this.getResizerTypeAtMousePoint(point), cursor = '';
+            if ([0 /* NW */, 1 /* NE */, 2 /* SW */, 3 /* SE */].indexOf(resizer) >= 0) {
+                switch (resizer) {
+                    case 0 /* NW */:
+                        cursor = 'nw-resize';
+                        break;
+                    case 1 /* NE */:
+                        cursor = 'ne-resize';
+                        break;
+                    case 3 /* SE */:
+                        cursor = 'se-resize';
+                        break;
+                    case 2 /* SW */:
+                        cursor = 'sw-resize';
+                        break;
+                }
+                this.documentElement.viewport.canvas.style.cursor = cursor;
+            }
+            else {
+                this.documentElement.viewport.canvas.style.cursor = 'default';
+            }
+        }
     };
     return HTML_Image;
 })(TNode_Element);
@@ -4995,7 +5095,8 @@ var Layout = (function () {
             this.setInnerHeight(amount);
         }
     };
-    Layout.prototype.computeWidths = function () {
+    Layout.prototype.computeWidths = function (offsetLeftComputed) {
+        if (offsetLeftComputed === void 0) { offsetLeftComputed = false; }
     };
     /* @input: top placement position
        @output: top placement position */
@@ -5143,7 +5244,7 @@ var Layout_Horizontal = (function (_super) {
             leftPosition += this.children[i].offsetWidth;
         }
         for (i = 0, len = this.children.length; i < len; i++) {
-            this.children[i].computeWidths();
+            this.children[i].computeWidths(true);
         }
     };
     Layout_Horizontal.prototype.computeHeights = function (topPlacement, indent) {
@@ -5202,7 +5303,8 @@ var Layout_Vertical = (function (_super) {
             this.isBuilt = true;
         }
     };
-    Layout_Vertical.prototype.computeWidths = function () {
+    Layout_Vertical.prototype.computeWidths = function (offsetLeftComputed) {
+        if (offsetLeftComputed === void 0) { offsetLeftComputed = false; }
         var i = 0, len = this.children.length, tabSize = (this.children && len && this.children[0].node && this.children[0].node.documentElement) ? this.children[0].node.documentElement.tabSize() : 0;
         for (i = 0; i < len; i++) {
             if (this.children[i].node) {
@@ -5295,9 +5397,11 @@ var Layout_Block = (function (_super) {
             this.isBuilt = true;
         }
     };
-    Layout_Block.prototype.computeWidths = function () {
+    Layout_Block.prototype.computeWidths = function (offsetLeftComputed) {
+        if (offsetLeftComputed === void 0) { offsetLeftComputed = false; }
         if (this.node) {
-            this.offsetLeft += this.node.style.marginLeft();
+            if (!offsetLeftComputed)
+                this.offsetLeft += this.node.style.marginLeft();
         }
         else {
             throw "Unhandled scenario while computing widths!";
@@ -5430,7 +5534,8 @@ var Layout_BlockChar = (function (_super) {
         var out = _super.prototype.serialize.call(this, tabIndex).split('\n');
         return out[0] + this.textContents() + '</text>';
     };
-    Layout_BlockChar.prototype.computeWidths = function () {
+    Layout_BlockChar.prototype.computeWidths = function (offsetLeftComputed) {
+        if (offsetLeftComputed === void 0) { offsetLeftComputed = false; }
         this.buildLines(this.innerWidth);
     };
     Layout_BlockChar.prototype.computeHeights = function (topPlacement, indent) {
@@ -5638,7 +5743,8 @@ var Layout_Block_Table = (function (_super) {
             this.children.push(this.matrix.cellsArray[i].createLayout(this));
         }
     }
-    Layout_Block_Table.prototype.computeWidths = function () {
+    Layout_Block_Table.prototype.computeWidths = function (offsetLeftComputed) {
+        if (offsetLeftComputed === void 0) { offsetLeftComputed = false; }
         var i = 0, len = 0, table = this.node, node, totalCellsInnerWidths = 0, borderWidth = table.border() || 1, cellSpacing = table.cellSpacing(), cellPadding = table.cellPadding();
         this.offsetLeft += table.style.marginLeft();
         this.innerLeft = this.offsetLeft + table.style.borderWidth() + table.style.paddingLeft();
@@ -5705,6 +5811,8 @@ var Viewport = (function (_super) {
         this._scrollbarSize = 10;
         this._scrollTop = 0;
         this._scrollLeft = 0;
+        this._clientWidth = 0;
+        this._clientHeight = 0;
         this.canvas = document.createElement('canvas');
         this.context = null;
         this.document = null;
@@ -5857,21 +5965,39 @@ var Viewport_MouseDriver = (function (_super) {
         _super.call(this);
         this.viewport = null;
         this.mbPressed = false; // weather a mouse button is pressed
+        this.mouseIsGlobal = false;
+        this.lockedScrollbar = null; // 0 the vertical, 1 the horizontal, null -> no locked scrollbar
         this.viewport = viewport;
         (function (me) {
-            me.viewport.canvas.addEventListener('mousewheel', function (DOMEvent) {
-                me.viewport.scrollTop(me.viewport.scrollTop() + (DOMEvent.wheelDelta < 0 ? 12 : -12));
+            function globalMouseMove(DOMEvent) {
+                me.onmousemove(DOMEvent, true);
+            }
+            function globalMouseUp(DOMEvent) {
+                document.body.removeEventListener('mousemove', globalMouseMove, true);
+                document.body.removeEventListener('mouseup', globalMouseUp, true);
+                me.onmouseup(DOMEvent, true);
+                me.mouseIsGlobal = false;
+            }
+            me.viewport.canvas.addEventListener(typeof me.viewport.canvas.onmousewheel !== 'undefined' ? 'mousewheel' : 'wheel', function (DOMEvent) {
+                me.viewport.scrollTop(me.viewport.scrollTop() + ((DOMEvent.wheelDelta || -DOMEvent.deltaY) < 0 ? 12 : -12));
                 DOMEvent.preventDefault();
                 DOMEvent.stopPropagation();
             }, true);
             me.viewport.canvas.addEventListener('mousedown', function (DOMEvent) {
                 me.onmousedown(DOMEvent);
+                document.body.addEventListener('mousemove', globalMouseMove, true);
+                document.body.addEventListener('mouseup', globalMouseUp, true);
+                me.mouseIsGlobal = true;
             }, true);
             me.viewport.canvas.addEventListener('mousemove', function (DOMEvent) {
-                me.onmousemove(DOMEvent);
+                if (!me.mouseIsGlobal) {
+                    me.onmousemove(DOMEvent);
+                }
             }, true);
             me.viewport.canvas.addEventListener('mouseup', function (DOMEvent) {
-                me.onmouseup(DOMEvent);
+                if (!me.mouseIsGlobal) {
+                    me.onmouseup(DOMEvent);
+                }
             }, true);
             me.viewport.canvas.addEventListener('click', function (DOMEvent) {
                 me.onmouseclick(DOMEvent);
@@ -5879,12 +6005,12 @@ var Viewport_MouseDriver = (function (_super) {
             me.viewport.canvas.addEventListener('dblclick', function (DOMEvent) {
                 me.onmousedblclick(DOMEvent);
             }, true);
-            me.viewport.canvas.addEventListener('mouseout', function (DOMEvent) {
-                me.onmouseout(DOMEvent);
-            }, true);
-            me.viewport.canvas.addEventListener('mouseover', function (DOMEvent) {
-                me.onmouseover(DOMEvent);
-            }, true);
+            me.viewport.canvas.oncontextmenu = function (DOMEvent) {
+                me.oncontextmenu(DOMEvent);
+                DOMEvent.preventDefault();
+                DOMEvent.stopPropagation();
+                return false;
+            };
         })(this);
     }
     Viewport_MouseDriver.prototype.translateMouseEventXY = function (DOMEvent) {
@@ -5894,21 +6020,89 @@ var Viewport_MouseDriver = (function (_super) {
         };
     };
     Viewport_MouseDriver.prototype.onmousedown = function (DOMEvent) {
-        var target = this.viewport.getTargetAtXY(this.translateMouseEventXY(DOMEvent));
-        if (target) {
-            window['$1'] = target.target;
-            this.mbPressed = true;
-            this.viewport.selection.anchorTo(target);
-            this.fire('refocus');
+        var point = this.translateMouseEventXY(DOMEvent);
+        switch (DOMEvent.which) {
+            case 1:
+                switch (true) {
+                    case point.x - this.viewport.scrollLeft() >= this.viewport.width() - this.viewport._scrollbarSize:
+                        this.lockedScrollbar = 0;
+                        this.viewport.canvas.style.cursor = 'default';
+                        return;
+                        break;
+                    case point.y - this.viewport.scrollTop() >= this.viewport.height() - this.viewport._scrollbarSize:
+                        this.lockedScrollbar = 1;
+                        this.viewport.canvas.style.cursor = 'default';
+                        return;
+                        break;
+                    default:
+                        this.lockedScrollbar = null;
+                        break;
+                }
+                var target = this.viewport.getTargetAtXY(point);
+                if (target) {
+                    window['$1'] = target.target;
+                    this.mbPressed = true;
+                    this.viewport.selection.anchorTo(target);
+                    this.fire('refocus');
+                }
+                break;
+            case 3:
+                var target = this.viewport.getTargetAtXY(point), selection = this.viewport.selection, range = selection.getRange(), blocks, i = 0, len = 0;
+                /* Find if the target is contained in the selection. If the target
+                   is contained in the selection, we do not reanchor.
+                 */
+                if (range.length() && target.target) {
+                    blocks = range.affectedBlockNodes();
+                    for (i = 0, len = blocks.length; i < len; i++) {
+                        if (blocks[i] == target.target || blocks[i].containsNode(target.target)) {
+                            return;
+                        }
+                    }
+                }
+                if (target) {
+                    window['$1'] = target.target;
+                    this.viewport.selection.anchorTo(target);
+                    this.fire('refocus');
+                }
+                break;
+            default:
+                DOMEvent.preventDefault();
+                DOMEvent.stopPropagation();
+                break;
         }
     };
-    Viewport_MouseDriver.prototype.onmousemove = function (DOMEvent) {
-        var target, point;
-        target = this.viewport.getTargetAtXY(point = this.translateMouseEventXY(DOMEvent));
+    Viewport_MouseDriver.prototype.onmousemove = function (DOMEvent, isFromBody) {
+        if (isFromBody === void 0) { isFromBody = false; }
+        DOMEvent.preventDefault();
+        DOMEvent.stopPropagation();
+        var target, point, selection = this.viewport.selection, rng, anchor, focus;
+        if (!isFromBody) {
+            point = this.translateMouseEventXY(DOMEvent);
+            if (this.lockedScrollbar !== null) {
+                this.onhandlescrollbar(point);
+                return;
+            }
+            target = this.viewport.getTargetAtXY(point);
+        }
+        else {
+            var rectObject = this.viewport.canvas.getBoundingClientRect(), point = {
+                "x": DOMEvent.clientX - rectObject.left,
+                "y": DOMEvent.clientY - rectObject.top
+            };
+            if (this.lockedScrollbar !== null) {
+                this.onhandlescrollbar(point);
+                return;
+            }
+            else {
+                point.x += this.viewport.scrollLeft();
+                point.y += this.viewport.scrollTop();
+            }
+            target = this.viewport.getTargetAtXY(point);
+        }
         this.viewport.canvas.style.cursor = (target && target.target.nodeType == 1 /* TEXT */) ? 'text' : 'default';
         if (this.mbPressed) {
             if (target)
-                this.viewport.selection.focusTo(target);
+                selection.focusTo(target);
             // scroll up or down if mouse is on top / bottom bound.
             // make the point absolute on canvas
             point.x -= this.viewport.scrollLeft();
@@ -5922,41 +6116,72 @@ var Viewport_MouseDriver = (function (_super) {
                 }
             }
         }
+        else {
+            if (target && target.target.nodeType == 2 /* ELEMENT */) {
+                target.target.onmousemove(point, 0);
+            }
+        }
     };
-    Viewport_MouseDriver.prototype.onmouseup = function (DOMEvent) {
-        this.mbPressed = false;
+    Viewport_MouseDriver.prototype.onmouseup = function (DOMEvent, isFromBody) {
+        if (isFromBody === void 0) { isFromBody = false; }
+        this.lockedScrollbar = null;
+        switch (DOMEvent.which) {
+            case 3:
+            case 1:
+                this.mbPressed = false;
+                break;
+        }
+        DOMEvent.preventDefault();
+        DOMEvent.stopPropagation();
     };
     Viewport_MouseDriver.prototype.onmouseclick = function (DOMEvent) {
     };
     Viewport_MouseDriver.prototype.onmousedblclick = function (DOMEvent) {
     };
-    Viewport_MouseDriver.prototype.onmouseout = function (DOMEvent) {
-        if (this.mbPressed)
-            Viewport_MouseDriver.$BodyMouseUps.push(this);
+    Viewport_MouseDriver.prototype.oncontextmenu = function (DOMEvent) {
+        console.warn("SHOW CONTEXT MENU!", DOMEvent);
     };
-    Viewport_MouseDriver.prototype.onmouseover = function (DOMEvent) {
-        var index = -1;
-        if ((index = Viewport_MouseDriver.$BodyMouseUps.indexOf(this)) > -1) {
-            Viewport_MouseDriver.$BodyMouseUps.splice(index, 1);
+    Viewport_MouseDriver.prototype.onhandlescrollbar = function (point) {
+        var percent = 0, height = 0, width = 0, value = 0;
+        switch (this.lockedScrollbar) {
+            case null:
+                break;
+            case 0:
+                //handle vertical scrollbar
+                height = this.viewport.height() - this.viewport._scrollbarSize;
+                if (this.viewport._clientHeight < height) {
+                    return; // scrolling is disabled
+                }
+                if (point.y < 0) {
+                    point.y = 0;
+                }
+                if (point.y > height) {
+                    point.y = height;
+                }
+                percent = point.y / (height / 100);
+                value = percent * ((this.viewport._clientHeight - height) / 100);
+                this.viewport.scrollTop(value);
+                break;
+            case 1:
+                //handle horizontal scrollbar
+                width = this.viewport.width() - this.viewport._scrollbarSize;
+                if (this.viewport._clientWidth <= width) {
+                    return;
+                }
+                if (point.x < 0) {
+                    point.x = 0;
+                }
+                if (point.x > width) {
+                    point.x = width;
+                }
+                percent = point.x / (width / 100);
+                value = percent * ((this.viewport._clientWidth - width) / 100);
+                this.viewport.scrollLeft(value);
+                break;
         }
     };
-    Viewport_MouseDriver.$BodyMouseUps = [];
     return Viewport_MouseDriver;
 })(Events);
-window.addEventListener('load', function (DOMEvent) {
-    if (document.body) {
-        document.body.addEventListener('mouseup', function () {
-            if (Viewport_MouseDriver) {
-                for (var i = Viewport_MouseDriver.$BodyMouseUps.length - 1; i >= 0; i--) {
-                    if (Viewport_MouseDriver.$BodyMouseUps[i].mbPressed) {
-                        Viewport_MouseDriver.$BodyMouseUps[i].mbPressed = false;
-                    }
-                    Viewport_MouseDriver.$BodyMouseUps.splice(i, 1);
-                }
-            }
-        }, false);
-    }
-});
 var Viewport_KeyboardDriver = (function (_super) {
     __extends(Viewport_KeyboardDriver, _super);
     function Viewport_KeyboardDriver(viewport) {

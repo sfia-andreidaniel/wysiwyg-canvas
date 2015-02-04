@@ -84,7 +84,7 @@ class Layout {
 		}
 	}
 
-	public computeWidths( ) {
+	public computeWidths( offsetLeftComputed: boolean = false ) {
 	}
 
 	/* @input: top placement position

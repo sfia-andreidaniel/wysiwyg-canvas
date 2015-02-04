@@ -22,6 +22,8 @@ class TNode_Element extends TNode {
 	public isNegation                : boolean        = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
 	public isSelectionPaintingDisabled: boolean       = false; // The node is not painted as selected as a whole, if it is included inside a text range, by any circumstances,  by the paint method ( but it's text can be if it's selected )
 
+	public layout                    : Layout         = null;
+
 	private _tabStop                 : number         = 0;
 
 	/* @postStyleInit: weather to initialize the style property on this constructor,
@@ -441,6 +443,8 @@ class TNode_Element extends TNode {
 
 		// paint border
 
+		this.layout = layout;
+
 		var borderColor: string,
 		    borderWidth: number,
 		    backgroundColor: string,
@@ -475,6 +479,84 @@ class TNode_Element extends TNode {
 			ctx.fillRect( layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
 		}
 
+	}
+
+	public paintResizeHandles( ctx: any, layout: Layout, scrollLeft: number, scrollTop: number ) {
+		
+		
+		var left: number = layout.offsetLeft - scrollLeft,
+		    top : number = layout.offsetTop  - scrollTop,
+		    rng = this.documentElement.viewport.selection.getRange();
+
+		if ( !rng.focusNode() && rng.anchorNode().target == this ) {
+
+			ctx.fillStyle = '#000';
+
+			ctx.fillRect( left, top, 4, 4 );
+			ctx.fillRect( left + layout.offsetWidth - 4, top, 4, 4 );
+			ctx.fillRect( left, top + layout.offsetHeight - 4, 4, 4 );
+			ctx.fillRect( left + layout.offsetWidth - 4, top + layout.offsetHeight - 4, 4, 4 );
+
+		}
+
+	}
+
+	public isSelected(): boolean {
+		if ( this.documentElement ) {
+			var rng = this.documentElement.viewport.selection.getRange(),
+			    focus = rng.focusNode(),
+			    anchor= rng.anchorNode();
+			return !focus && anchor.target == this;
+		} else return false;
+	}
+
+	public getResizerTypeAtMousePoint( point: TPoint ): TResizer {
+		// set mouse shape, depending on which corer of the element is the mouse over
+		var left 	: number = this.layout.offsetLeft,
+		    top 	: number = this.layout.offsetTop,
+		   	width 	: number = this.layout.offsetWidth,
+		  	height 	: number = this.layout.offsetHeight;
+
+
+		if ( this.isResizable && this.layout ) {
+			switch ( true ) {
+				case point.x >= left && point.x <= left + 4 && point.y >= top && point.y <= top + 4:
+					return TResizer.NW;
+					break;
+				case point.x >= left + width - 4 && point.x <= left + width && point.y >= top && point.y <= top + 4:
+					return TResizer.NE;
+					break;
+				case point.x >= left && point.x <= left + 4 && point.y >= top + height - 4 && point.y <= top + height:
+					return TResizer.SW;
+					break;
+				case point.x >= left + width - 4 && point.x <= left + width && point.y >= top + height - 4 && point.y <= top + height:
+					return TResizer.SE;
+					break;
+				case point.x == left:
+					return TResizer.S;
+					break;
+				case point.x == left + width:
+					return TResizer.W;
+				case point.y == top:
+					return TResizer.N;
+					break;
+				case point.y == top + height:
+					return TResizer.S;
+					break;
+				default:
+					return TResizer.NONE;
+			}
+
+		}
+
+
+	}
+
+	public onmousemove( point: TPoint, button: number ) {
+	}
+
+	public onmousedown( point: TPoint, button: number ) {
+		// should be implemented on
 	}
 
 	// makes the array of nodes @nodesList childNodes of this element.

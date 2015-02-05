@@ -164,3 +164,13 @@ enum TResizer {
 	E,
 	NONE
 }
+
+enum TClipboardEffect {
+	COPY,
+	CUT
+};
+
+interface TClipboardItem {
+	data: string;
+	type: string;
+}

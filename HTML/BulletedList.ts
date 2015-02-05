@@ -6,8 +6,17 @@ class HTML_BulletedList extends TNode_Element {
 		super();
 		this.nodeName = 'ul';
 		this.style.display('block');
-		this.style.paddingLeft( '30' );
-		this.style.marginBottom( '10' );
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'ul', [
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'marginTop',
+			'marginBottom',
+			'marginLeft',
+			'marginRight'
+		] );
 
 	}
 

@@ -140,4 +140,14 @@ class Helper {
 
 	}
 
+	public static peek( o: any, properties: string[] ) {
+		var out = {};
+		for ( var i=0, len = properties.length; i<len; i++ ) {
+			if ( o[ properties[i] ] ) {
+				out[ properties[i] ] = o[ properties[i] ];
+			}
+		}
+		return out;
+	}
+
 }

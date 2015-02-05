@@ -153,8 +153,8 @@ class Layout_BlockChar extends Layout {
 		ctx.save();
 		ctx.fillStyle = '#000';
 		ctx.fillRect( 
-			Math.min( this.offsetLeft + this.offsetWidth, x - .5 ),
-			y - 2,
+			~~( Math.min( this.offsetLeft + this.offsetWidth, x - .5 ) ),
+			~~( y + 1 ),
 			2,
 			( height + 2 ) * 1.12
 		);
@@ -252,7 +252,7 @@ class Layout_BlockChar extends Layout {
 
 						if ( isUnderline || isStrike ) {
 							
-							underlineWidth = ~~( currentNode.style.fontSize() * .15 );
+							underlineWidth = ~~( currentNode.style.fontSize() * .1 );
 							
 							if ( underlineWidth < 1 ) {
 								underlineWidth = 1;
@@ -279,7 +279,7 @@ class Layout_BlockChar extends Layout {
 					if ( caret && range.contains( fragPos ) && !isPaintedSelected ) {
 
 						ctx.fillStyle = DocSelection.$Colors.focus;
-						ctx.fillRect( startX, ~~startY, size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
+						ctx.fillRect( startX, ~~startY + 1, size[0] + ( wordGap && ( k == l - 1 ) && ( i < len - 1 ) ? this.lines[i].wordGap : 0 ) + .5, ~~this.lines[i].size[1] + 1 );
 						ctx.fillStyle = 'white';
 
 						ctx.fillText( this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift );

@@ -7,7 +7,21 @@ class HTML_ListItem extends TNode_Element {
 		super();
 		this.nodeName = 'li';
 		this.style.display('block');
-		this.style.paddingLeft( '15' );
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'li', [
+			'fontSize',
+			'fontWeight',
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'marginTop',
+			'marginBottom',
+			'marginLeft',
+			'marginRight',
+			'fontFamily',
+			'fontWeight'
+		] );
 	}
 
 	public paint( ctx: any, layout: Layout, scrollLeft: number, scrollTop: number ) {

@@ -1,4 +1,4 @@
-class TStyle {
+class TStyle extends Events {
 
 	// <constructor> public node: TNode_Element
 
@@ -100,6 +100,9 @@ class TStyle {
 	];
 
 	constructor( public node: TNode_Element ) {
+
+		super();
+
 		this._width = new TStyle_Dimension( this, 'width' );
 		this._height= new TStyle_Dimension( this, 'height' );
 		this._aspectRatio = new TStyle_Dimension( this, 'aspectRatio' );
@@ -139,6 +142,7 @@ class TStyle {
 		} else {
 			this._width.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "width" );
 			return null;
 		}
 	}
@@ -149,6 +153,7 @@ class TStyle {
 		} else {
 			this._height.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "height" );
 			return null;
 		}
 	}
@@ -159,6 +164,7 @@ class TStyle {
 		} else {
 			this._aspectRatio.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "aspectRatio" );
 			return null;
 		}
 	}
@@ -169,6 +175,7 @@ class TStyle {
 		} else {
 			this._paddingLeft.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "paddingLeft" );
 			return null;
 		}
 	}
@@ -179,6 +186,7 @@ class TStyle {
 		} else {
 			this._paddingTop.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "paddingTop" );
 			return null;
 		}
 	}
@@ -189,6 +197,7 @@ class TStyle {
 		} else {
 			this._paddingRight.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "paddingRight" );
 			return null;
 		}
 	}
@@ -199,6 +208,7 @@ class TStyle {
 		} else {
 			this._paddingBottom.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "paddingBottom" );
 			return null;
 		}
 	}
@@ -209,6 +219,7 @@ class TStyle {
 		} else {
 			this._marginLeft.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "marginLeft" );
 			return null;
 		}
 	}
@@ -219,6 +230,7 @@ class TStyle {
 		} else {
 			this._marginTop.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "marginTop" );
 			return null;
 		}
 	}
@@ -229,6 +241,7 @@ class TStyle {
 		} else {
 			this._marginRight.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "marginRight" );
 			return null;
 		}
 	}
@@ -239,6 +252,7 @@ class TStyle {
 		} else {
 			this._marginBottom.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "marginBottom" );
 			return null;
 		}
 	}
@@ -249,6 +263,7 @@ class TStyle {
 		} else {
 			this._borderWidth.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "borderWidth" );
 			return null;
 		}
 	}
@@ -259,6 +274,7 @@ class TStyle {
 		} else {
 			this._fontSize.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "fontSize" );
 			return null;
 		}
 	}
@@ -269,6 +285,7 @@ class TStyle {
 		} else {
 			this._lineHeight.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "lineHeight" );
 			return null;
 		}
 	}
@@ -279,6 +296,7 @@ class TStyle {
 		} else {
 			this._fontFamily.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "fontFamily" );
 			return v;
 		}
 	}
@@ -289,6 +307,7 @@ class TStyle {
 		} else {
 			this._fontStyle.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "fontStyle" );
 			return v;
 		}
 	}
@@ -299,6 +318,7 @@ class TStyle {
 		} else {
 			this._fontWeight.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "fontWeight" );
 			return v;
 		}
 	}
@@ -317,6 +337,7 @@ class TStyle {
 		} else {
 			this._textDecoration.set( v );
 			this.node.requestRepaint();
+			this.fire( 'changed', "textDecoration" );
 			return v;
 		}
 	}
@@ -327,6 +348,7 @@ class TStyle {
 		} else {
 			this._display.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "display" );
 			return v;
 		}
 	}
@@ -337,6 +359,7 @@ class TStyle {
 		} else {
 			this._color.set( v );
 			this.node.requestRepaint();
+			this.fire( 'changed', "color" );
 			return v;
 		}
 	}
@@ -347,6 +370,7 @@ class TStyle {
 		} else {
 			this._backgroundColor.set( v );
 			this.node.requestRepaint();
+			this.fire( 'changed', "backgroundColor" );
 			return v;
 		}
 	}
@@ -357,6 +381,7 @@ class TStyle {
 		} else {
 			this._borderColor.set( v );
 			this.node.requestRepaint();
+			this.fire( 'changed', "borderColor" );
 			return v;
 		}
 	}
@@ -369,6 +394,7 @@ class TStyle {
 
 			this._float.set( v );
 			this.node.requestRelayout();
+			this.fire( 'changed', "float" );
 
 			return v;
 		}
@@ -386,6 +412,9 @@ class TStyle {
 		this._paddingTop.isSet = true;
 
 		this.node.requestRelayout();
+
+		this.fire( 'changed', "padding" );
+
 	}
 
 	public margin( value: string ) {
@@ -400,6 +429,8 @@ class TStyle {
 		this._marginTop.isSet = true;
 
 		this.node.requestRelayout();
+
+		this.fire( 'changed', "margin" );
 	}
 
 	public textAlign( value: string = null ): string {
@@ -410,6 +441,7 @@ class TStyle {
 			//setter
 			this._textAlign.set( value );
 			this.node.requestRepaint();
+			this.fire( 'changed', "textAlign" );
 			return value;
 		}
 	}
@@ -420,6 +452,7 @@ class TStyle {
 		} else {
 			this._verticalAlign.set( value );
 			this.node.requestRepaint();
+			this.fire( 'changed', "verticalAlign" );
 			return value;
 		}
 	}

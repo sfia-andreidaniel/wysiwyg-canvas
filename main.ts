@@ -44,6 +44,7 @@
 /// <reference path="./HTML/Strike.ts" /> 
 
 /// <reference path="TStyle.ts" />
+/// <reference path="./TStyle/Browser/Calculator.ts" />
 /// <reference path="./TStyle/TableCell.ts" />
 /// <reference path="./TStyle/Property.ts" />
 /// <reference path="./TStyle/PropertyInheritable.ts" />
@@ -68,6 +69,8 @@
 /// <reference path="./Viewport/MouseDriver.ts" />
 /// <reference path="./Viewport/KeyboardDriver.ts" />
 /// <reference path="./Viewport/CommandRouter.ts" />
+
+/// <reference path="Clipboard.ts" />
 
 /// <reference path="Fragment.ts" />
 /// <reference path="./Fragment/CaretLock.ts" />

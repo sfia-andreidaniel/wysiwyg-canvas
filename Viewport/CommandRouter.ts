@@ -1078,7 +1078,7 @@ class Viewport_CommandRouter extends Events {
 
 		this.viewport.selection.getRange().affectedRanges()
 			.unwrapFromElement( 'size' )
-			.unwrapFromElement('font')
+			.unwrapFromElement( 'font' )
 			.unwrapFromElement( 'b' )
 			.unwrapFromElement( '!b')
 			.unwrapFromElement( 'i' )

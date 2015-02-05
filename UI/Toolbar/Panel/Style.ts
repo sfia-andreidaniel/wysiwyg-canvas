@@ -18,7 +18,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 			'</div>',
 			'<div class="item index-0">',
 				'<div class="text-dropdown">',
-					'<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+					'<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5" placeholder="Style" value="" >',
 					'<div class="expander"></div>',
 				'</div>',
 			'</div>',
@@ -179,7 +179,9 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 				DOM.removeClass( items[i], 'hidden' );
 				/* "select" the option if the option textContents equals with the input value */
 				if ( items[i].textContent == input.value ) {
-					items[i].scrollIntoViewIfNeeded();
+					try {
+						items[i].scrollIntoViewIfNeeded();
+					} catch (e ) {}
 					DOM.addClass( items[i], 'on' );
 				} else {
 					DOM.removeClass( items[i], 'on' );
@@ -386,8 +388,7 @@ class UI_Toolbar_Panel_Style extends UI_Toolbar_Panel {
 		    	"h2": "Heading 2",
 		    	"h3": "Heading 3",
 		    	"h4": "Heading 4",
-		    	"h5": "Heading 5",
-		    	"h6": "Heading 6"
+		    	"h5": "Heading 5"
 		    };
 		this.blockLevel.value = strs[ level ] || '';
 	}

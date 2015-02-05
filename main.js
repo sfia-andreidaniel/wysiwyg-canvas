@@ -103,6 +103,12 @@ var TResizer;
     TResizer[TResizer["E"] = 7] = "E";
     TResizer[TResizer["NONE"] = 8] = "NONE";
 })(TResizer || (TResizer = {}));
+var TClipboardEffect;
+(function (TClipboardEffect) {
+    TClipboardEffect[TClipboardEffect["COPY"] = 0] = "COPY";
+    TClipboardEffect[TClipboardEffect["CUT"] = 1] = "CUT";
+})(TClipboardEffect || (TClipboardEffect = {}));
+;
 var Events = (function () {
     function Events() {
         this.$EVENTS_ENABLED = true;
@@ -349,6 +355,15 @@ var Helper = (function () {
         catch (parserError) {
             return null;
         }
+    };
+    Helper.peek = function (o, properties) {
+        var out = {};
+        for (var i = 0, len = properties.length; i < len; i++) {
+            if (o[properties[i]]) {
+                out[properties[i]] = o[properties[i]];
+            }
+        }
+        return out;
     };
     /* Logging */
     Helper.dev = false;
@@ -2126,6 +2141,7 @@ var TNode_Collection_Dettached = (function (_super) {
         //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
     };
     TNode_Collection_Dettached.prototype.reInsert = function () {
+        console.warn(this.parentNode.nodeName);
         this.parentNode.appendCollection(this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0);
         this.parentNode.removeOrphanNodes();
     };
@@ -2182,14 +2198,51 @@ var HTMLParser = (function () {
         else
             return null;
     };
+    HTMLParser.HAS_ATTRIBUTE = function (node, attributeName) {
+        for (var i = 0, len = node.attributes.length; i < len; i++) {
+            if (node.attributes[i].name == attributeName && node.attributes[i].value) {
+                return true;
+            }
+        }
+        return false;
+    };
+    HTMLParser.GET_ATTRIBUTE = function (node, attributeName) {
+        for (var i = 0, len = node.attributes.length; i < len; i++) {
+            if (node.attributes[i].name == attributeName) {
+                return String(node.attributes[i].value || '');
+            }
+        }
+        return '';
+    };
+    HTMLParser.SET_ATTRIBUTE = function (node, attributeName, attributeValue) {
+        for (var i = 0, len = node.attributes.length; i < len; i++) {
+            if (node.attributes[i].name == attributeName) {
+                if (attributeValue === null) {
+                    node.attributes.splice(i, 1);
+                    return;
+                }
+                else {
+                    node.attributes[i].value = String(attributeValue || '');
+                    return;
+                }
+            }
+        }
+        if (attributeValue !== null) {
+            node.attributes.push({
+                "name": String(attributeName || ''),
+                "value": String(attributeValue || '')
+            });
+        }
+    };
     HTMLParser.READ_NODE = function (data, doc) {
         var out = {
             "nodeName": "",
             "autoClose": false,
             "clearBuffer": "",
             "attributes": [],
-            "children": []
-        }, matches, matches1, attribute, textContents = '', r, insensitive = true;
+            "children": [],
+            "overrideNodeName": null
+        }, matches, matches1, matches2, attribute, textContents = '', r, insensitive = true, overrideNodeName = null, dataTagAttribute = '', dataTagAttributeValue = '';
         if (matches = /^\<([^\s\>\/]+)([^\>]+)?\>/.exec(data)) {
             out.clearBuffer = matches[0];
             if (matches[1] && /\/$/.test(matches[1])) {
@@ -2205,6 +2258,42 @@ var HTMLParser = (function () {
                 while (matches[2] && (attribute = HTMLParser.READ_ATTRIBUTE(matches[2]))) {
                     matches[2] = matches[2].substr(attribute.clearBuffer.length);
                     out.attributes.push({ "name": attribute.name, "value": attribute.value });
+                }
+            }
+            if (out.nodeName == 'span') {
+                /* We override the spans, if they have the data-tag set, with their internal node names */
+                dataTagAttribute = HTMLParser.GET_ATTRIBUTE(out, 'data-tag');
+                switch (true) {
+                    case dataTagAttribute == '!b':
+                    case dataTagAttribute == '!i':
+                    case dataTagAttribute == '!u':
+                    case dataTagAttribute == '!strike':
+                    case dataTagAttribute == '!sub':
+                    case dataTagAttribute == '!sup':
+                        overrideNodeName = dataTagAttribute;
+                        HTMLParser.SET_ATTRIBUTE(out, 'data-tag', null);
+                        break;
+                    case (matches2 = /^(color|font|size)\:(.*)?$/.exec(dataTagAttribute)) ? true : false:
+                        HTMLParser.SET_ATTRIBUTE(out, 'data-tag', null);
+                        dataTagAttribute = matches2[1];
+                        dataTagAttributeValue = matches2[2] || '';
+                        overrideNodeName = dataTagAttribute;
+                        if (dataTagAttributeValue) {
+                            switch (dataTagAttribute) {
+                                case 'font':
+                                    HTMLParser.SET_ATTRIBUTE(out, 'name', dataTagAttributeValue);
+                                    break;
+                                case 'color':
+                                    HTMLParser.SET_ATTRIBUTE(out, 'name', dataTagAttributeValue);
+                                    break;
+                                case 'size':
+                                    HTMLParser.SET_ATTRIBUTE(out, 'value', dataTagAttributeValue);
+                                    break;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
                 }
             }
             /* If the node is one of type with unescaped text, read it's text content,
@@ -2226,6 +2315,9 @@ var HTMLParser = (function () {
                     // consider all the text upto the end of the string is the text contents of this node
                     out.clearBuffer = data;
                 }
+            }
+            if (overrideNodeName) {
+                out.overrideNodeName = overrideNodeName;
             }
             return out;
         }
@@ -2314,6 +2406,9 @@ var HTMLParser = (function () {
                                         token3 = '';
                                         break;
                                     }
+                                }
+                                if (token2.overrideNodeName) {
+                                    token2.nodeName = token2.overrideNodeName;
                                 }
                                 data = data.substr(token3.length);
                             }
@@ -2641,6 +2736,37 @@ var HTML_Body = (function (_super) {
         'body',
         'span'
     ];
+    /* These are the types of node that can be safely imported / exported by the editor.
+       
+       Note that document.createElement may create internally a more richer list of nodes,
+       but they are not supported by the browser.
+    */
+    HTML_Body.IMPLEMENTED_NODES = [
+        'p',
+        'br',
+        'img',
+        'h1',
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'b',
+        'strong',
+        'i',
+        'em',
+        'u',
+        'a',
+        'ul',
+        'ol',
+        'li',
+        'sup',
+        'sub',
+        'strike',
+        'table',
+        'tr',
+        'td',
+        'span'
+    ];
     return HTML_Body;
 })(TNode_Element);
 var HTML_Paragraph = (function (_super) {
@@ -2650,8 +2776,20 @@ var HTML_Paragraph = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'p';
         this.style.display('block');
-        this.style.marginTop('5');
-        this.style.marginBottom('10');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'p', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     return HTML_Paragraph;
 })(TNode_Element);
@@ -2947,8 +3085,24 @@ var HTML_Heading1 = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'h1';
         this.style.display('block');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'h1', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
+        /*
         this.style.fontSize('18');
         this.style.fontWeight('bold');
+        */
     }
     return HTML_Heading1;
 })(TNode_Element);
@@ -2959,8 +3113,20 @@ var HTML_Heading2 = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'h2';
         this.style.display('block');
-        this.style.fontSize('17');
-        this.style.fontWeight('bold');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'h2', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     return HTML_Heading2;
 })(TNode_Element);
@@ -2971,9 +3137,20 @@ var HTML_Heading3 = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'h3';
         this.style.display('block');
-        this.style.fontSize('17');
-        this.style.fontWeight('bold');
-        this.style.fontStyle('italic');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'h3', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     return HTML_Heading3;
 })(TNode_Element);
@@ -2984,8 +3161,20 @@ var HTML_Heading4 = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'h4';
         this.style.display('block');
-        this.style.fontSize('16');
-        this.style.fontWeight('bold');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'h4', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     return HTML_Heading4;
 })(TNode_Element);
@@ -2996,8 +3185,20 @@ var HTML_Heading5 = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'h5';
         this.style.display('block');
-        this.style.fontSize('15');
-        this.style.fontWeight('bold');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'h5', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     return HTML_Heading5;
 })(TNode_Element);
@@ -3052,8 +3253,16 @@ var HTML_BulletedList = (function (_super) {
         this.isSelectionPaintingDisabled = true;
         this.nodeName = 'ul';
         this.style.display('block');
-        this.style.paddingLeft('30');
-        this.style.marginBottom('10');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'ul', [
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight'
+        ]);
     }
     HTML_BulletedList.prototype.breakBeforeOption = function (option) {
         var i = 0, len = option.siblingIndex - 1, ol;
@@ -3093,8 +3302,16 @@ var HTML_OrderedList = (function (_super) {
         this.isSelectionPaintingDisabled = true;
         this.nodeName = 'ol';
         this.style.display('block');
-        this.style.paddingLeft('30');
-        this.style.marginBottom('10');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'ol', [
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight'
+        ]);
     }
     HTML_OrderedList.prototype.breakBeforeOption = function (option) {
         var i = 0, len = option.siblingIndex - 1, ol;
@@ -3135,7 +3352,20 @@ var HTML_ListItem = (function (_super) {
         this.isBlockTextNode = true;
         this.nodeName = 'li';
         this.style.display('block');
-        this.style.paddingLeft('15');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'li', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'marginTop',
+            'marginBottom',
+            'marginLeft',
+            'marginRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
     }
     HTML_ListItem.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         _super.prototype.paint.call(this, ctx, layout, scrollLeft, scrollTop);
@@ -3282,6 +3512,13 @@ var HTML_Table = (function (_super) {
         this.nodeName = 'table';
         this.style.display('block');
         this.style.marginTop('10');
+        (function (me) {
+            me.style.on('changed', function (propertyName) {
+                if (propertyName == 'borderColor' && me.documentElement) {
+                    me.documentElement.changeThrottler.run();
+                }
+            });
+        })(this);
     }
     HTML_Table.prototype.requestCompile = function () {
         this.needCompile = true;
@@ -3417,6 +3654,23 @@ var HTML_Table = (function (_super) {
                 }
             }
         }
+    };
+    HTML_Table.prototype.xmlBeginning = function () {
+        var attrs = [];
+        if (this._border)
+            attrs.push('border="' + this._border + '"');
+        attrs.push('cellspacing="' + ~~(this._cellSpacing) + '"');
+        if (this._cellPadding)
+            attrs.push('cellpadding="' + this._cellPadding + '"');
+        if (this.style._borderColor.isSet)
+            attrs.push('bordercolor="' + this.style.borderColor() + '"');
+        if (this.style._width.isSet) {
+            attrs.push('width="' + this.style.width() + '"');
+        }
+        return '<table' + (attrs.length ? ' ' + attrs.join(' ') : '') + '>';
+    };
+    HTML_Table.prototype.xmlEnding = function () {
+        return '</table>';
     };
     HTML_Table.prototype.removeFromDOMAtUserCommand = function () {
         return false; // tables cannot be removed even if they are selected when the user press a removal key
@@ -3746,8 +4000,16 @@ var HTML_TableCell = (function (_super) {
         this.style = new TStyle_TableCell(this);
         this.nodeName = 'td';
         this.style.display('block');
-        this.style.borderWidth('1');
-        this.style.borderColor('black');
+        TStyle_Browser_Calculator.applyDefaultStyles(this, 'td', [
+            'fontSize',
+            'fontWeight',
+            'paddingTop',
+            'paddingBottom',
+            'paddingLeft',
+            'paddingRight',
+            'fontFamily',
+            'fontWeight'
+        ]);
         this.style.padding('5');
     }
     HTML_TableCell.prototype.colSpan = function (value) {
@@ -3843,6 +4105,30 @@ var HTML_NegationNode = (function (_super) {
                 break;
         }
     }
+    HTML_NegationNode.prototype.xmlBeginning = function () {
+        var out = '<span data-tag="' + this.nodeName + '" style="';
+        switch (this.nodeName) {
+            case '!b':
+                out += 'font-weight: normal;';
+                break;
+            case '!i':
+                out += 'font-style: normal;';
+                break;
+            case '!u':
+            case '!strike':
+                out += 'text-decoration: none;';
+                break;
+            case '!sub':
+            case '!sup':
+                out += 'vertical-align: baseline;';
+                break;
+        }
+        out += '">';
+        return out;
+    };
+    HTML_NegationNode.prototype.xmlEnding = function () {
+        return '</span>';
+    };
     return HTML_NegationNode;
 })(TNode_Element);
 var HTML_Font = (function (_super) {
@@ -3879,10 +4165,10 @@ var HTML_Font = (function (_super) {
         }
     };
     HTML_Font.prototype.xmlBeginning = function () {
-        return '<font' + (this._name ? ' name="' + this._name + '"' : '') + '>';
+        return '<span data-tag="font:' + this._name + '"' + (this._name ? ' style="font-family: \'' + this._name + '\'"' : '') + '>';
     };
     HTML_Font.prototype.xmlEnding = function () {
-        return '</font>';
+        return '</span>';
     };
     HTML_Font.prototype.clone = function () {
         var returnValue = _super.prototype.clone.call(this);
@@ -3930,10 +4216,10 @@ var HTML_Color = (function (_super) {
         }
     };
     HTML_Color.prototype.xmlBeginning = function () {
-        return '<color' + (this._name ? ' name="' + this._name + '"' : '') + '>';
+        return '<span data-tag="color:' + this._name + '"' + (this._name ? ' style="color: ' + this._name + '"' : '') + '>';
     };
     HTML_Color.prototype.xmlEnding = function () {
-        return '</color>';
+        return '</span>';
     };
     HTML_Color.prototype.clone = function () {
         var returnValue = _super.prototype.clone.call(this);
@@ -3983,10 +4269,10 @@ var HTML_Size = (function (_super) {
         return returnValue;
     };
     HTML_Size.prototype.xmlBeginning = function () {
-        return '<size' + ((this._value) ? ' value="' + this._value + '"' : '') + '>';
+        return '<span data-tag="size:' + (this._value ? this._value : '') + '"' + ((this._value) ? ' style="font-size: ' + this._value + 'px"' : '') + '>';
     };
     HTML_Size.prototype.xmlEnding = function () {
-        return '</size>';
+        return '</span>';
     };
     HTML_Size.prototype.canDefragmentWith = function (size) {
         return size.value() == this.value();
@@ -4004,8 +4290,10 @@ var HTML_Strike = (function (_super) {
     }
     return HTML_Strike;
 })(TNode_Element);
-var TStyle = (function () {
+var TStyle = (function (_super) {
+    __extends(TStyle, _super);
     function TStyle(node) {
+        _super.call(this);
         this.node = node;
         this._width = new TStyle_Dimension(this, 'width');
         this._height = new TStyle_Dimension(this, 'height');
@@ -4041,6 +4329,7 @@ var TStyle = (function () {
         else {
             this._width.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "width");
             return null;
         }
     };
@@ -4052,6 +4341,7 @@ var TStyle = (function () {
         else {
             this._height.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "height");
             return null;
         }
     };
@@ -4063,6 +4353,7 @@ var TStyle = (function () {
         else {
             this._aspectRatio.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "aspectRatio");
             return null;
         }
     };
@@ -4074,6 +4365,7 @@ var TStyle = (function () {
         else {
             this._paddingLeft.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "paddingLeft");
             return null;
         }
     };
@@ -4085,6 +4377,7 @@ var TStyle = (function () {
         else {
             this._paddingTop.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "paddingTop");
             return null;
         }
     };
@@ -4096,6 +4389,7 @@ var TStyle = (function () {
         else {
             this._paddingRight.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "paddingRight");
             return null;
         }
     };
@@ -4107,6 +4401,7 @@ var TStyle = (function () {
         else {
             this._paddingBottom.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "paddingBottom");
             return null;
         }
     };
@@ -4118,6 +4413,7 @@ var TStyle = (function () {
         else {
             this._marginLeft.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "marginLeft");
             return null;
         }
     };
@@ -4129,6 +4425,7 @@ var TStyle = (function () {
         else {
             this._marginTop.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "marginTop");
             return null;
         }
     };
@@ -4140,6 +4437,7 @@ var TStyle = (function () {
         else {
             this._marginRight.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "marginRight");
             return null;
         }
     };
@@ -4151,6 +4449,7 @@ var TStyle = (function () {
         else {
             this._marginBottom.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "marginBottom");
             return null;
         }
     };
@@ -4162,6 +4461,7 @@ var TStyle = (function () {
         else {
             this._borderWidth.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "borderWidth");
             return null;
         }
     };
@@ -4173,6 +4473,7 @@ var TStyle = (function () {
         else {
             this._fontSize.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "fontSize");
             return null;
         }
     };
@@ -4184,6 +4485,7 @@ var TStyle = (function () {
         else {
             this._lineHeight.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "lineHeight");
             return null;
         }
     };
@@ -4195,6 +4497,7 @@ var TStyle = (function () {
         else {
             this._fontFamily.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "fontFamily");
             return v;
         }
     };
@@ -4206,6 +4509,7 @@ var TStyle = (function () {
         else {
             this._fontStyle.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "fontStyle");
             return v;
         }
     };
@@ -4217,6 +4521,7 @@ var TStyle = (function () {
         else {
             this._fontWeight.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "fontWeight");
             return v;
         }
     };
@@ -4232,6 +4537,7 @@ var TStyle = (function () {
         else {
             this._textDecoration.set(v);
             this.node.requestRepaint();
+            this.fire('changed', "textDecoration");
             return v;
         }
     };
@@ -4243,6 +4549,7 @@ var TStyle = (function () {
         else {
             this._display.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "display");
             return v;
         }
     };
@@ -4254,6 +4561,7 @@ var TStyle = (function () {
         else {
             this._color.set(v);
             this.node.requestRepaint();
+            this.fire('changed', "color");
             return v;
         }
     };
@@ -4265,6 +4573,7 @@ var TStyle = (function () {
         else {
             this._backgroundColor.set(v);
             this.node.requestRepaint();
+            this.fire('changed', "backgroundColor");
             return v;
         }
     };
@@ -4276,6 +4585,7 @@ var TStyle = (function () {
         else {
             this._borderColor.set(v);
             this.node.requestRepaint();
+            this.fire('changed', "borderColor");
             return v;
         }
     };
@@ -4287,6 +4597,7 @@ var TStyle = (function () {
         else {
             this._float.set(v);
             this.node.requestRelayout();
+            this.fire('changed', "float");
             return v;
         }
     };
@@ -4294,11 +4605,13 @@ var TStyle = (function () {
         this._paddingLeft.value = this._paddingRight.value = this._paddingTop.value = this._paddingBottom.value = (parseFloat(value || '0') || 0);
         this._paddingLeft.isSet = this._paddingRight.isSet = this._paddingBottom.isSet = this._paddingTop.isSet = true;
         this.node.requestRelayout();
+        this.fire('changed', "padding");
     };
     TStyle.prototype.margin = function (value) {
         this._marginLeft.value = this._marginRight.value = this._marginTop.value = this._marginBottom.value = (parseFloat(value || '0') || 0);
         this._marginLeft.isSet = this._marginRight.isSet = this._marginBottom.isSet = this._marginTop.isSet = true;
         this.node.requestRelayout();
+        this.fire('changed', "margin");
     };
     TStyle.prototype.textAlign = function (value) {
         if (value === void 0) { value = null; }
@@ -4310,6 +4623,7 @@ var TStyle = (function () {
             //setter
             this._textAlign.set(value);
             this.node.requestRepaint();
+            this.fire('changed', "textAlign");
             return value;
         }
     };
@@ -4321,6 +4635,7 @@ var TStyle = (function () {
         else {
             this._verticalAlign.set(value);
             this.node.requestRepaint();
+            this.fire('changed', "verticalAlign");
             return value;
         }
     };
@@ -4388,7 +4703,135 @@ var TStyle = (function () {
         'normal'
     ];
     return TStyle;
+})(Events);
+/* This class is used to read the default appearence of the nodes in the browser,
+   in order to apply them as best as possible inside the canvas */
+var TStyle_Browser_Calculator = (function () {
+    function TStyle_Browser_Calculator() {
+    }
+    TStyle_Browser_Calculator.parseColor = function (c) {
+        var matches, rs, gs, bs;
+        switch (true) {
+            case /^\#[a-f\d]{3}$/i.test(c):
+            case /^\#[a-f\d]{6}$/i.test(c):
+            case /^[a-z]+$/i.test(c):
+                return c;
+                break;
+            case (matches = /^rgb\(([\s]+)?([\d]+)([\s]+)?\,([\s]+)?([\d]+)([\s]+)?\,([\s]+)?([\d]+)([\s]+)?\)$/i.exec(c)) ? true : false:
+            case (matches = /^rgba\(([\s]+)?([\d]+)([\s]+)?\,([\s]+)?([\d]+)([\s]+)?\,([\s]+)?([\d]+)([\s]+)?\,([\s]+)?([\d]+)([\s]+)?\)$/i.exec(c)) ? true : false:
+                rs = (~~matches[2]).toString(16);
+                gs = (~~matches[5]).toString(16);
+                bs = (~~matches[8]).toString(16);
+                rs = rs.length == 1 ? '0' + rs : rs;
+                gs = gs.length == 1 ? '0' + gs : gs;
+                bs = bs.length == 1 ? '0' + bs : bs;
+                return '#' + rs + gs + bs;
+                break;
+            default:
+                return null;
+                break;
+        }
+    };
+    TStyle_Browser_Calculator.parseDimension = function (c) {
+        var matches = /^([\-])?([\d\.]+)(px|\%)$/.exec(c), f, f1;
+        if (!matches) {
+            return null;
+        }
+        else {
+            f = String(matches[1] || '') + (matches[2] || '');
+            if (f.indexOf('.') > -1) {
+                f = parseFloat(f).toFixed(1);
+            }
+            return f + (matches[3] == '%' ? '%' : '');
+        }
+    };
+    TStyle_Browser_Calculator.initializeNode = function (nodeName) {
+        var node = document.createElement(nodeName), computed;
+        if (nodeName == 'a') {
+            node.innerHTML = 'aaa';
+            node['href'] = '#';
+        }
+        document.body.appendChild(node);
+        computed = Helper.peek(window.getComputedStyle(node), [
+            "color",
+            "backgroundColor",
+            "borderWidth",
+            "borderColor",
+            "paddingLeft",
+            "paddingRight",
+            "paddingBottom",
+            "paddingTop",
+            "marginLeft",
+            "marginRight",
+            "marginTop",
+            "marginBottom",
+            "fontFamily",
+            "fontSize",
+            "textDecoration",
+            "fontStyle",
+            "fontWeight",
+            "verticalAlign",
+            "textAlign"
+        ]);
+        computed['color'] = TStyle_Browser_Calculator.parseColor(computed['color']);
+        computed['backgroundColor'] = TStyle_Browser_Calculator.parseColor(computed['backgroundColor']);
+        computed['backgroundColor'] = computed['backgroundColor'] == '#000000' ? null : computed['backgroundColor'];
+        computed['borderColor'] = TStyle_Browser_Calculator.parseColor(computed['borderColor']);
+        computed['borderWidth'] = TStyle_Browser_Calculator.parseDimension(computed['borderWidth']);
+        computed['paddingLeft'] = TStyle_Browser_Calculator.parseDimension(computed['paddingLeft']);
+        computed['paddingRight'] = TStyle_Browser_Calculator.parseDimension(computed['paddingRight']);
+        computed['paddingBottom'] = TStyle_Browser_Calculator.parseDimension(computed['paddingBottom']);
+        computed['paddingTop'] = TStyle_Browser_Calculator.parseDimension(computed['paddingTop']);
+        computed['marginLeft'] = TStyle_Browser_Calculator.parseDimension(computed['marginLeft']);
+        computed['marginRight'] = TStyle_Browser_Calculator.parseDimension(computed['marginRight']);
+        computed['marginBottom'] = TStyle_Browser_Calculator.parseDimension(computed['marginBottom']);
+        computed['marginTop'] = TStyle_Browser_Calculator.parseDimension(computed['marginTop']);
+        computed['fontSize'] = TStyle_Browser_Calculator.parseDimension(computed['fontSize']);
+        computed['textAlign'] = ['left', 'right', 'center', 'justify', 'justified'].indexOf(computed['textAlign']) >= 0 ? computed['textAlign'] : null;
+        if (computed['textAlign'] == 'justify') {
+            computed['textAlign'] = 'justified';
+        }
+        computed['fontFamily'] = /^"(.*)"$/.test(computed['fontFamily']) ? computed['fontFamily'].substr(1, computed['fontFamily'].length - 2) : computed['fontFamily'];
+        computed['fontFamily'] = /^'(.*)'$/.test(computed['fontFamily']) ? computed['fontFamily'].substr(1, computed['fontFamily'].length - 2) : computed['fontFamily'];
+        if (computed['verticalAlign'] != 'sub' && computed['verticalAlign'] != 'super') {
+            computed['verticalAlign'] = null;
+        }
+        else {
+            if (computed['verticalAlign'] == 'super') {
+                computed['verticalAlign'] = 'sup';
+            }
+        }
+        if (TStyle.$FontFamily.indexOf(computed['fontFamily']) == -1) {
+            computed['fontFamily'] = 'Times New Roman';
+        }
+        var computed1 = {};
+        for (var k in computed) {
+            if (computed[k]) {
+                computed1[k] = computed[k];
+            }
+        }
+        TStyle_Browser_Calculator.nativeNodes[nodeName] = computed1;
+        document.body.removeChild(node);
+    };
+    TStyle_Browser_Calculator.initialize = function () {
+        var nodes = HTML_Body.IMPLEMENTED_NODES, i = 0, len = nodes.length;
+        for (i = 0; i < len; i++) {
+            TStyle_Browser_Calculator.initializeNode(nodes[i]);
+        }
+    };
+    TStyle_Browser_Calculator.applyDefaultStyles = function (node, fromNode, styleNames) {
+        for (var i = 0, len = styleNames.length; i < len; i++) {
+            if (TStyle_Browser_Calculator.nativeNodes[fromNode][styleNames[i]]) {
+                node.style[styleNames[i]](TStyle_Browser_Calculator.nativeNodes[fromNode][styleNames[i]]);
+            }
+        }
+    };
+    TStyle_Browser_Calculator.nativeNodes = {};
+    return TStyle_Browser_Calculator;
 })();
+window.addEventListener('load', function () {
+    TStyle_Browser_Calculator.initialize();
+}, true);
 var TStyle_TableCell = (function (_super) {
     __extends(TStyle_TableCell, _super);
     function TStyle_TableCell(node) {
@@ -5574,7 +6017,7 @@ var Layout_BlockChar = (function (_super) {
     Layout_BlockChar.prototype.paintCaret = function (ctx, x, y, height, scrollLeft, scrollTop) {
         ctx.save();
         ctx.fillStyle = '#000';
-        ctx.fillRect(Math.min(this.offsetLeft + this.offsetWidth, x - .5), y - 2, 2, (height + 2) * 1.12);
+        ctx.fillRect(~~(Math.min(this.offsetLeft + this.offsetWidth, x - .5)), ~~(y + 1), 2, (height + 2) * 1.12);
         ctx.restore();
     };
     Layout_BlockChar.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
@@ -5621,7 +6064,7 @@ var Layout_BlockChar = (function (_super) {
                         isStrike = textDecoration == 'line-through';
                         valign = currentNode.style.verticalAlign();
                         if (isUnderline || isStrike) {
-                            underlineWidth = ~~(currentNode.style.fontSize() * .15);
+                            underlineWidth = ~~(currentNode.style.fontSize() * .1);
                             if (underlineWidth < 1) {
                                 underlineWidth = 1;
                             }
@@ -5641,7 +6084,7 @@ var Layout_BlockChar = (function (_super) {
                     size = this.lines[i].words[j].characters[k].computeSize();
                     if (caret && range.contains(fragPos) && !isPaintedSelected) {
                         ctx.fillStyle = DocSelection.$Colors.focus;
-                        ctx.fillRect(startX, ~~startY, size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
+                        ctx.fillRect(startX, ~~startY + 1, size[0] + (wordGap && (k == l - 1) && (i < len - 1) ? this.lines[i].wordGap : 0) + .5, ~~this.lines[i].size[1] + 1);
                         ctx.fillStyle = 'white';
                         ctx.fillText(this.lines[i].words[j].characters[k].letter(), startX, startY + lineDiff + valignShift);
                         if (isUnderline) {
@@ -5852,6 +6295,9 @@ var Viewport = (function (_super) {
                     me.document.repaint();
                 me.paintScrollbars();
             }, 10);
+            me.canvas.onclipboardtrap = function () {
+                return me.selection.toString();
+            };
         })(this);
         this.document = new HTML_Body(this);
         this.selection = new DocSelection(this);
@@ -5916,7 +6362,6 @@ var Viewport = (function (_super) {
             return this._scrollLeft;
         }
         else {
-            throw "not implemented scrollLeft";
         }
     };
     // attempts to scroll the document to the last known painted caret position.
@@ -6009,7 +6454,7 @@ var Viewport_MouseDriver = (function (_super) {
                 me.mouseIsGlobal = false;
             }
             me.viewport.canvas.addEventListener(typeof me.viewport.canvas.onmousewheel !== 'undefined' ? 'mousewheel' : 'wheel', function (DOMEvent) {
-                me.viewport.scrollTop(me.viewport.scrollTop() + ((DOMEvent.wheelDelta || -DOMEvent.deltaY) < 0 ? 12 : -12));
+                me.viewport.scrollTop(me.viewport.scrollTop() + ((DOMEvent.wheelDelta || -DOMEvent.deltaY) < 0 ? 40 : -40));
                 DOMEvent.preventDefault();
                 DOMEvent.stopPropagation();
             }, true);
@@ -6368,42 +6813,35 @@ var Viewport_KeyboardDriver = (function (_super) {
     function Viewport_KeyboardDriver(viewport) {
         _super.call(this);
         this.viewport = null;
-        this.pasteAdapter = document.createElement('div');
-        this.focusedElement = 0 /* CANVAS */;
         this.viewport = viewport;
-        this.pasteAdapter.tabIndex = 0;
-        this.pasteAdapter.style.cssText = "width: 0px; height: 0px; display: block; opacity: 0; position: absolute; left: 0px; top: -40px";
-        this.pasteAdapter.setAttribute('contenteditable', 'true');
         (function (me) {
             me.viewport.canvas.addEventListener('keydown', function (DOMEvent) {
-                me.onkeydown(DOMEvent, 0 /* CANVAS */);
+                me.onkeydown(DOMEvent);
             }, true);
             me.viewport.canvas.addEventListener('keyup', function (DOMEvent) {
-                me.onkeyup(DOMEvent, 0 /* CANVAS */);
+                me.onkeyup(DOMEvent);
             }, true);
             me.viewport.canvas.addEventListener('keypress', function (DOMEvent) {
-                me.onkeypress(DOMEvent, 0 /* CANVAS */);
+                me.onkeypress(DOMEvent);
             }, true);
-            me.pasteAdapter.addEventListener('keydown', function (DOMEvent) {
-                me.onkeydown(DOMEvent, 1 /* PASTE_ADAPTER */);
-            });
-            me.pasteAdapter.addEventListener('keyup', function (DOMEvent) {
-                me.onkeyup(DOMEvent, 1 /* PASTE_ADAPTER */);
-            });
-            me.pasteAdapter.addEventListener('keypress', function (DOMEvent) {
-                me.onkeypress(DOMEvent, 1 /* PASTE_ADAPTER */);
-            });
+            me.viewport.canvas.forwardkeyboardevent = function (evtype, evt) {
+                switch (evtype) {
+                    case 'keydown':
+                        me.onkeydown(evt);
+                        break;
+                    case 'keyup':
+                        me.onkeyup(evt);
+                        break;
+                    case 'keypress':
+                        me.onkeypress(evt);
+                        break;
+                }
+            };
         })(this);
     }
     Viewport_KeyboardDriver.prototype.onkeyup = function (DOMEvent, eventSource) {
-        if (eventSource == 1 /* PASTE_ADAPTER */ && DOMEvent.keyCode == 17) {
-            document.body.removeChild(this.pasteAdapter);
-            this.viewport.canvas.focus();
-            console.log('kb: canvas');
-            return;
-        }
     };
-    Viewport_KeyboardDriver.prototype.onkeypress = function (DOMEvent, eventSource) {
+    Viewport_KeyboardDriver.prototype.onkeypress = function (DOMEvent) {
         var chr = String.fromCharCode(DOMEvent.charCode), key = DOMEvent.keyCode;
         if (!DOMEvent.ctrlKey && chr && chr != '\n') {
             this.viewport.execCommand(0 /* INSERT_TEXT */, chr);
@@ -6411,13 +6849,7 @@ var Viewport_KeyboardDriver = (function (_super) {
             DOMEvent.stopPropagation();
         }
     };
-    Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent, eventSource) {
-        if (eventSource == 0 /* CANVAS */ && DOMEvent.keyCode == 17) {
-            document.body.appendChild(this.pasteAdapter);
-            this.pasteAdapter.innerHTML = '';
-            this.pasteAdapter.focus();
-            return;
-        }
+    Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent) {
         var cancelEvent = false;
         switch (DOMEvent.keyCode) {
             case 32:
@@ -6473,19 +6905,16 @@ var Viewport_KeyboardDriver = (function (_super) {
             case 67:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(10 /* COPY */);
-                    cancelEvent = true;
                 }
                 break;
             case 88:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(11 /* CUT */);
-                    cancelEvent = true;
                 }
                 break;
             case 86:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(12 /* PASTE */);
-                    cancelEvent = true;
                 }
                 break;
             case 189:
@@ -7442,6 +7871,141 @@ var Viewport_CommandRouter = (function (_super) {
     };
     return Viewport_CommandRouter;
 })(Events);
+var Clipboard = (function (_super) {
+    __extends(Clipboard, _super);
+    /* Should not be used by the programmer, but instead use the static "singleton" method,
+       in order to access it as a singleton
+     */
+    function Clipboard() {
+        _super.call(this);
+        this.effect = 0 /* COPY */;
+        this.data = null;
+        this.trap = document.createElement('div');
+        this.activeElement = null;
+        (function (me) {
+            me.on('cut', function (EVT) {
+                console.warn('cut: ', EVT);
+            });
+            me.on('copy', function (EVT) {
+                console.warn('copy: ', EVT);
+            });
+            me.on('paste', function (EVT) {
+                console.warn('paste: ', EVT);
+            });
+        })(this);
+        this.trap.setAttribute('contenteditable', 'true');
+        this.trap.style.cssText = 'position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; display: block; background-color: red; opacity: .4; z-index: 1000';
+    }
+    Clipboard.singleton = function () {
+        return Clipboard.$instance || (Clipboard.$instance = new Clipboard());
+    };
+    Clipboard.prototype.isEmpty = function () {
+        return this.data == null;
+    };
+    Clipboard.prototype.setContents = function (content, contentType, effect) {
+        if (contentType === void 0) { contentType = 'text/plain'; }
+        if (effect === void 0) { effect = 0 /* COPY */; }
+        this.effect = effect;
+        this.data = {
+            "data": content || '',
+            "type": contentType || ''
+        };
+    };
+    Clipboard.prototype.getContents = function (autoClear) {
+        if (autoClear === void 0) { autoClear = true; }
+        var returnValue = this.data || null;
+        if (autoClear && this.effect == 1 /* CUT */) {
+            this.data = null;
+        }
+        return returnValue;
+    };
+    Clipboard.prototype.installTrap = function () {
+        if (this.trap.parentNode) {
+            //trap allready installed
+            return;
+        }
+        this.activeElement = document.activeElement;
+        this.trap.style.top = document.body.scrollTop + "px";
+        this.trap.style.left = document.body.scrollLeft + "px";
+        document.body.appendChild(this.trap);
+        switch (true) {
+            case typeof this.activeElement.onclipboardtrap !== 'undefined':
+                this.trap.innerHTML = this.activeElement.onclipboardtrap();
+                break;
+            case typeof this.activeElement.value == 'string':
+                this.trap.innerHTML = '';
+                this.trap.appendChild(document.createTextNode(this.activeElement.value));
+                break;
+            default:
+                this.trap.innerHTML = '';
+        }
+        this.trap.focus();
+        (function (trap) {
+            setTimeout(function () {
+                if (window.getSelection) {
+                    var range = document.createRange();
+                    range.selectNodeContents(trap);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                }
+            }, 10);
+        })(this.trap);
+        console.log('trap installed');
+    };
+    Clipboard.prototype.uninstallTrap = function () {
+        if (this.trap.parentNode)
+            document.body.removeChild(this.trap);
+        if (this.activeElement) {
+            this.activeElement.focus();
+        }
+        console.log('trap uninstalled');
+    };
+    Clipboard.$instance = null;
+    return Clipboard;
+})(Events);
+window.addEventListener('load', function () {
+    var clipboard = Clipboard.singleton();
+    document.body.addEventListener('cut', function (DOMEvt) {
+        clipboard.fire('cut', DOMEvt);
+    }, true);
+    document.body.addEventListener('paste', function (DOMEvt) {
+        clipboard.fire('paste', DOMEvt);
+    }, true);
+    document.body.addEventListener('copy', function (DOMEvt) {
+        clipboard.fire('copy', DOMEvt);
+    }, true);
+    document.body.addEventListener('keydown', function (evt) {
+        if (evt.keyCode == 17) {
+            clipboard.installTrap();
+        }
+    }, true);
+    document.body.addEventListener('keydown', function (evt) {
+        if (evt.keyCode == 17) {
+            clipboard.uninstallTrap();
+        }
+        else {
+            if (evt.ctrlKey) {
+                if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
+                    clipboard.activeElement.forwardkeyboardevent('keydown', evt);
+                }
+            }
+        }
+    });
+    document.body.addEventListener('keypress', function (evt) {
+        if (evt.ctrlKey) {
+            if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
+                clipboard.activeElement.forwardkeyboardevent('keypress', evt);
+            }
+        }
+    });
+    document.body.addEventListener('keyup', function (evt) {
+        if (evt.ctrlKey) {
+            if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
+                clipboard.activeElement.forwardkeyboardevent('keyup', evt);
+            }
+        }
+    });
+});
 var Fragment = (function () {
     function Fragment(document) {
         this._at = [];
@@ -9531,7 +10095,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             '</div>',
             '<div class="item index-0">',
             '<div class="text-dropdown">',
-            '<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6" placeholder="Style" value="" >',
+            '<input class="nodeName" type="text" data-suggestions="normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5" placeholder="Style" value="" >',
             '<div class="expander"></div>',
             '</div>',
             '</div>',
@@ -9652,7 +10216,11 @@ var UI_Toolbar_Panel_Style = (function (_super) {
                 DOM.removeClass(items[i], 'hidden');
                 /* "select" the option if the option textContents equals with the input value */
                 if (items[i].textContent == input.value) {
-                    items[i].scrollIntoViewIfNeeded();
+                    try {
+                        items[i].scrollIntoViewIfNeeded();
+                    }
+                    catch (e) {
+                    }
                     DOM.addClass(items[i], 'on');
                 }
                 else {
@@ -9796,8 +10364,7 @@ var UI_Toolbar_Panel_Style = (function (_super) {
             "h2": "Heading 2",
             "h3": "Heading 3",
             "h4": "Heading 4",
-            "h5": "Heading 5",
-            "h6": "Heading 6"
+            "h5": "Heading 5"
         };
         this.blockLevel.value = strs[level] || '';
     };

@@ -39,11 +39,11 @@ class HTML_Size extends TNode_Element {
 
 
 	public xmlBeginning() {
-		return '<size' + ( ( this._value ) ? ' value="' + this._value + '"' : '' ) + '>';
+		return '<span data-tag="size:' + (this._value ? this._value : '' ) + '"' + ( ( this._value ) ? ' style="font-size: ' + this._value + 'px"' : '' ) + '>';
 	}
 
 	public xmlEnding(): string {
-		return '</size>';
+		return '</span>';
 	}
 
 	public canDefragmentWith( size: TNode_Element ) {

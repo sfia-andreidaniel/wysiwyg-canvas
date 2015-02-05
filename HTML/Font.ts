@@ -34,11 +34,11 @@ class HTML_Font extends TNode_Element {
 	}
 
 	public xmlBeginning() {
-		return '<font' + ( this._name ? ' name="' + this._name + '"' : '' ) + '>';
+		return '<span data-tag="font:'+ this._name +'"' + ( this._name ? ' style="font-family: \'' + this._name + '\'"' : '' ) + '>';
 	}
 
 	public xmlEnding() {
-		return '</font>';
+		return '</span>';
 	}
 
 	public clone(): TNode_Element {

@@ -15,6 +15,16 @@ class HTML_Table extends TNode_Element {
 		this.style.display('block');
 
 		this.style.marginTop( '10' );
+
+		( function(me) {
+
+			me.style.on( 'changed', function( propertyName ) {
+				if ( propertyName == 'borderColor' && me.documentElement ) {
+					me.documentElement.changeThrottler.run();
+				}
+			} );
+
+		} )(this);
 	}
 
 	public requestCompile() {
@@ -181,6 +191,31 @@ class HTML_Table extends TNode_Element {
 				}
 			}
 		}
+	}
+
+	public xmlBeginning(): string {
+		var attrs: string[] = [];
+
+		if ( this._border )
+			attrs.push('border="' + this._border + '"' );
+		
+		attrs.push('cellspacing="' + ~~(this._cellSpacing) + '"' );
+
+		if ( this._cellPadding )
+			attrs.push('cellpadding="' + this._cellPadding + '"' );
+
+		if ( this.style._borderColor.isSet )
+			attrs.push( 'bordercolor="' + this.style.borderColor() + '"' );
+
+		if ( this.style._width.isSet ) {
+			attrs.push( 'width="' + this.style.width() + '"' );
+		}
+
+		return '<table' + ( attrs.length ? ' ' + attrs.join( ' ' ) : '' ) + '>';
+	}
+
+	public xmlEnding(): string {
+		return '</table>';
 	}
 
 	public removeFromDOMAtUserCommand(): boolean {

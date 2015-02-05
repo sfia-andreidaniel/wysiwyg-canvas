@@ -51,6 +51,44 @@ class HTMLParser {
 
 	}
 
+	public static HAS_ATTRIBUTE( node: any, attributeName: string ): boolean {
+		for (var i=0, len = node.attributes.length; i<len; i++ ) {
+			if ( node.attributes[i].name == attributeName && node.attributes[i].value ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static GET_ATTRIBUTE( node: any, attributeName: string ): string {
+		for ( var i=0, len=node.attributes.length; i<len; i++ ) {
+			if ( node.attributes[i].name == attributeName ) {
+				return String( node.attributes[i].value || '' );
+			}
+		}
+		return '';
+	}
+
+	public static SET_ATTRIBUTE( node: any, attributeName: string, attributeValue: string ) {
+		for ( var i=0, len=node.attributes.length; i<len; i++ ) {
+			if ( node.attributes[i].name == attributeName ) {
+				if ( attributeValue === null ) {
+					node.attributes.splice( i, 1 );
+					return;
+				} else {
+					node.attributes[i].value = String( attributeValue || '' );
+					return;
+				}
+			}
+		}
+		if ( attributeValue !== null ) {
+			node.attributes.push( {
+				"name": String( attributeName || '' ),
+				"value": String( attributeValue || '' )
+			} );
+		}
+	}
+
 	public static READ_NODE( data: string, doc: HTML_Body ): any {
 		
 		var out = {
@@ -58,13 +96,17 @@ class HTMLParser {
 				"autoClose": false,
 				"clearBuffer": "",
 				"attributes": [],
-				"children": []
+				"children": [],
+				"overrideNodeName": null
 			},
-		    matches, matches1,
+		    matches, matches1, matches2,
 		    attribute,
 		    textContents: string = '',
 		    r: RegExp,
-		    insensitive: boolean = true;
+		    insensitive: boolean = true,
+		    overrideNodeName: string = null,
+		    dataTagAttribute: string = '',
+		    dataTagAttributeValue: string = '';
 
 		if ( matches = /^\<([^\s\>\/]+)([^\>]+)?\>/.exec( data ) ) {
 
@@ -92,6 +134,54 @@ class HTMLParser {
 
 				}
 
+			}
+
+			if ( out.nodeName == 'span' ) {
+				/* We override the spans, if they have the data-tag set, with their internal node names */
+				dataTagAttribute = HTMLParser.GET_ATTRIBUTE( out, 'data-tag' );
+				
+				switch ( true ) {
+					
+					case dataTagAttribute == '!b':
+					case dataTagAttribute == '!i':
+					case dataTagAttribute == '!u':
+					case dataTagAttribute == '!strike':
+					case dataTagAttribute == '!sub':
+					case dataTagAttribute == '!sup':
+					
+						overrideNodeName = dataTagAttribute;
+						HTMLParser.SET_ATTRIBUTE( out, 'data-tag', null );
+					
+						break;
+					
+					case ( matches2 = /^(color|font|size)\:(.*)?$/.exec( dataTagAttribute ) ) ? true : false:
+					
+						HTMLParser.SET_ATTRIBUTE( out, 'data-tag', null );
+						
+						dataTagAttribute = matches2[1];
+						dataTagAttributeValue = matches2[2] || '';
+
+						overrideNodeName = dataTagAttribute;
+						
+						if ( dataTagAttributeValue ) {
+							switch ( dataTagAttribute ) {
+								case 'font':
+									HTMLParser.SET_ATTRIBUTE( out, 'name', dataTagAttributeValue );
+									break;
+								case 'color':
+									HTMLParser.SET_ATTRIBUTE( out, 'name', dataTagAttributeValue );
+									break;
+								case 'size':
+									HTMLParser.SET_ATTRIBUTE( out, 'value', dataTagAttributeValue );
+									break;
+							}
+						}
+						
+						break;
+
+					default:
+						break;
+				}
 			}
 
 			/* If the node is one of type with unescaped text, read it's text content,
@@ -122,6 +212,10 @@ class HTMLParser {
 					out.clearBuffer = data;
 				}
 
+			}
+
+			if ( overrideNodeName ) {
+				out.overrideNodeName = overrideNodeName;
 			}
 
 			return out;
@@ -252,6 +346,10 @@ class HTMLParser {
 										break;
 									}
 
+								}
+
+								if ( token2.overrideNodeName ) {
+									token2.nodeName = token2.overrideNodeName;
 								}
 
 								data = data.substr( token3.length );

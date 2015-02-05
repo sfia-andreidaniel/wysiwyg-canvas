@@ -27,8 +27,19 @@ class HTML_TableCell extends TNode_Element {
 
 		this.nodeName = 'td';
 		this.style.display('block');
-		this.style.borderWidth( '1' );
-		this.style.borderColor( 'black' );
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'td', [
+			'fontSize',
+			'fontWeight',
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'fontFamily',
+			'fontWeight'
+		] );
+
+
 		this.style.padding( '5' );
 	}
 

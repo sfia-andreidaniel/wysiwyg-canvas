@@ -6,8 +6,17 @@ class HTML_OrderedList extends TNode_Element {
 		super();
 		this.nodeName = 'ol';
 		this.style.display('block');
-		this.style.paddingLeft( '30' );
-		this.style.marginBottom( '10' );
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'ol', [
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'marginTop',
+			'marginBottom',
+			'marginLeft',
+			'marginRight'
+		] );
 	}
 
 	public breakBeforeOption( option: HTML_ListItem ): TListBreakResult {

@@ -46,6 +46,10 @@ class Viewport extends Events {
 
 			}, 10 );
 
+			me.canvas.onclipboardtrap = function(): string {
+				return me.selection.toString();
+			};
+
 		})( this );
 		
 
@@ -120,7 +124,7 @@ class Viewport extends Events {
 		if ( value === null ) {
 			return this._scrollLeft;
 		} else {
-			throw "not implemented scrollLeft";
+			// throw "not implemented scrollLeft";
 		}
 	}
 

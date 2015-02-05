@@ -1,43 +1,42 @@
 class Viewport_KeyboardDriver extends Events {
 
 	public viewport: Viewport = null;
-	public pasteAdapter       = document.createElement( 'div' );
-	public focusedElement: KbEventSource = KbEventSource.CANVAS;
 
 	constructor( viewport: Viewport ) {
 		super();
 
 		this.viewport = viewport;
 
-		this.pasteAdapter.tabIndex = 0;
-		this.pasteAdapter.style.cssText = "width: 0px; height: 0px; display: block; opacity: 0; position: absolute; left: 0px; top: -40px";
-		this.pasteAdapter.setAttribute( 'contenteditable', 'true' );
-
 		( function( me ) {
 
 			me.viewport.canvas.addEventListener( 'keydown', function( DOMEvent ) {
-				me.onkeydown( DOMEvent, KbEventSource.CANVAS );
+				me.onkeydown( DOMEvent );
 			}, true );
 
 			me.viewport.canvas.addEventListener( 'keyup', function( DOMEvent ) {
-				me.onkeyup( DOMEvent, KbEventSource.CANVAS );
+				me.onkeyup( DOMEvent );
 			}, true );
 
 			me.viewport.canvas.addEventListener( 'keypress', function( DOMEvent ) {
-				me.onkeypress( DOMEvent, KbEventSource.CANVAS );
+				me.onkeypress( DOMEvent );
 			}, true );
 
-			me.pasteAdapter.addEventListener( 'keydown', function( DOMEvent ) {
-				me.onkeydown( DOMEvent, KbEventSource.PASTE_ADAPTER );
-			});
-
-			me.pasteAdapter.addEventListener( 'keyup', function( DOMEvent ) {
-				me.onkeyup( DOMEvent, KbEventSource.PASTE_ADAPTER );
-			});
-
-			me.pasteAdapter.addEventListener( 'keypress', function( DOMEvent ) {
-				me.onkeypress( DOMEvent, KbEventSource.PASTE_ADAPTER );
-			});
+			me.viewport.canvas.forwardkeyboardevent = function( evtype, evt ) {
+				switch ( evtype ) {
+					
+					case 'keydown':
+						me.onkeydown( evt );
+						break;
+					
+					case 'keyup':
+						me.onkeyup( evt );
+						break;
+					
+					case 'keypress':
+						me.onkeypress( evt );
+						break;
+				}
+			};
 
 		})(this);
 
@@ -45,16 +44,9 @@ class Viewport_KeyboardDriver extends Events {
 
 	onkeyup( DOMEvent: any, eventSource: KbEventSource ) {
 
-		if ( eventSource == KbEventSource.PASTE_ADAPTER && DOMEvent.keyCode == 17 /* ctrl */) {
-			document.body.removeChild( this.pasteAdapter );
-			this.viewport.canvas.focus();
-			console.log( 'kb: canvas' );
-			return;
-		}
-	
 	}
 
-	onkeypress( DOMEvent: any, eventSource: KbEventSource ) {
+	onkeypress( DOMEvent: any ) {
 		
 		var chr: string = String.fromCharCode( DOMEvent.charCode ),
 		    key: number = DOMEvent.keyCode;
@@ -70,15 +62,8 @@ class Viewport_KeyboardDriver extends Events {
 
 	}
 
-	onkeydown( DOMEvent: any, eventSource: KbEventSource ) {
+	onkeydown( DOMEvent: any ) {
 		
-		if ( eventSource == KbEventSource.CANVAS && DOMEvent.keyCode == 17 ) { // ctrl key
-			document.body.appendChild( this.pasteAdapter );
-			this.pasteAdapter.innerHTML = '';
-			this.pasteAdapter.focus();
-			return;
-		}
-
 		var cancelEvent: boolean = false;
 
 		switch ( DOMEvent.keyCode ) {
@@ -146,21 +131,21 @@ class Viewport_KeyboardDriver extends Events {
 			case 67: // c
 				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.COPY );
-					cancelEvent = true;
+					//cancelEvent = true;
 				}
 				break;
 
 			case 88: // x
 				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.CUT );
-					cancelEvent = true;
+					//cancelEvent = true;
 				}
 				break;
 
 			case 86: // v
 				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.PASTE );
-					cancelEvent = true;
+					//cancelEvent = true;
 				}
 				break;
 

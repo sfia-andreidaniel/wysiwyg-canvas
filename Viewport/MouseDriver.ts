@@ -38,7 +38,7 @@ class Viewport_MouseDriver extends Events {
 	    	}
 
    			me.viewport.canvas.addEventListener( typeof me.viewport.canvas.onmousewheel !== 'undefined' ? 'mousewheel' : 'wheel', function( DOMEvent ) {
-				me.viewport.scrollTop( me.viewport.scrollTop() + ( ( DOMEvent.wheelDelta || -DOMEvent.deltaY ) < 0 ? 12 : -12 ) );
+				me.viewport.scrollTop( me.viewport.scrollTop() + ( ( DOMEvent.wheelDelta || -DOMEvent.deltaY ) < 0 ? 40 : -40 ) );
 				DOMEvent.preventDefault();
 				DOMEvent.stopPropagation();
 			}, true );

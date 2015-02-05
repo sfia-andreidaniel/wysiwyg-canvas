@@ -6,7 +6,20 @@ class HTML_Paragraph extends TNode_Element {
 		super();
 		this.nodeName = 'p';
 		this.style.display('block');
-		this.style.marginTop( '5' );
-		this.style.marginBottom( '10' );
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'p', [
+			'fontSize',
+			'fontWeight',
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'marginTop',
+			'marginBottom',
+			'marginLeft',
+			'marginRight',
+			'fontFamily',
+			'fontWeight'
+		] );
 	}
 }

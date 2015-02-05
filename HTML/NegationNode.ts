@@ -24,4 +24,33 @@ class HTML_NegationNode extends TNode_Element {
 				break;
 		}
 	}
+
+	public xmlBeginning(): string {
+		var out = '<span data-tag="' + this.nodeName + '" style="';
+
+		switch ( this.nodeName ) {
+			case '!b':
+				out += 'font-weight: normal;';
+				break;
+			case '!i':
+				out += 'font-style: normal;';
+				break;
+			case '!u':
+			case '!strike':
+				out += 'text-decoration: none;';
+				break;
+			case '!sub':
+			case '!sup':
+				out += 'vertical-align: baseline;'
+				break;
+		}
+
+		out += '">';
+
+		return out;
+	}
+
+	public xmlEnding(): string {
+		return '</span>';
+	}
 }

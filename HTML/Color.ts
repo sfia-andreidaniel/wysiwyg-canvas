@@ -34,11 +34,11 @@ class HTML_Color extends TNode_Element {
 	}
 
 	public xmlBeginning() {
-		return '<color' + ( this._name ? ' name="' + this._name + '"' : '' ) + '>';
+		return '<span data-tag="color:' + this._name + '"' + ( this._name ? ' style="color: ' + this._name + '"' : '' ) + '>';
 	}
 
 	public xmlEnding() {
-		return '</color>';
+		return '</span>';
 	}
 
 	public clone(): TNode_Element {

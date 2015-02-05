@@ -6,7 +6,20 @@ class HTML_Heading2 extends TNode_Element {
 		super();
 		this.nodeName = 'h2';
 		this.style.display('block');
-		this.style.fontSize('17');
-		this.style.fontWeight('bold');
+
+		TStyle_Browser_Calculator.applyDefaultStyles( this, 'h2', [
+			'fontSize',
+			'fontWeight',
+			'paddingTop',
+			'paddingBottom',
+			'paddingLeft',
+			'paddingRight',
+			'marginTop',
+			'marginBottom',
+			'marginLeft',
+			'marginRight',
+			'fontFamily',
+			'fontWeight'
+		] );
 	}
 }

@@ -43,6 +43,38 @@ class HTML_Body extends TNode_Element {
 		'span'
 	];
 
+	/* These are the types of node that can be safely imported / exported by the editor. 
+       
+       Note that document.createElement may create internally a more richer list of nodes,
+       but they are not supported by the browser.
+	*/
+	public static IMPLEMENTED_NODES: string[] = [
+		'p',
+		'br',
+		'img',
+		'h1',
+		'h2',
+		'h3',
+		'h4',
+		'h5',
+		'b',
+		'strong',
+		'i',
+		'em',
+		'u',
+		'a',
+		'ul',
+		'ol',
+		'li',
+		'sup',
+		'sub',
+		'strike',
+		'table',
+		'tr',
+		'td',
+		'span'
+	];
+
 	public tabSize( size: number = null ): number {
 		if ( size === null ) {
 			return this._tabSize;

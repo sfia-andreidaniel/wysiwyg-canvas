@@ -25,6 +25,13 @@ class Viewport extends Events {
 		super();
 		
 		this.context = this.canvas.getContext( '2d' );
+
+		this.context.imageSmoothingEnabled =
+			this.context.webkitImageSmoothingEnabled =
+			this.context.msImageSmoothingEnabled = 
+			this.context.mozImageSmoothingEnabled = 
+			this.context.oImageSmoothingEnabled = true;
+
 		this.canvas.tabIndex = 0;
 		this.canvas.setAttribute( 'data-object-type', 'html-viewport' );
 

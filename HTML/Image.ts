@@ -164,7 +164,7 @@ class HTML_Image extends TNode_Element {
 		return 0;
 	}
 
-	public onmousemove( point: TPoint, button: number ) {
+	public onmousemove( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
 
 		if ( this.isSelected() && button == 0 ) {
 
@@ -187,10 +187,40 @@ class HTML_Image extends TNode_Element {
 						break;
 				}
 				this.documentElement.viewport.canvas.style.cursor = cursor;
+				return true;
 			} else {
 				this.documentElement.viewport.canvas.style.cursor = 'default';
+				return false;
 			}
+		} else {
+			return false;
 		}
+	}
+
+	public onmousedown( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
+
+		if ( this.isSelected() && button == 1 ) {
+
+			var resizer: TResizer = this.getResizerTypeAtMousePoint( point );
+
+			if ( [ TResizer.NW, TResizer.NE, TResizer.SW, TResizer.SE ].indexOf( resizer ) >= 0 ) {
+				
+				driver.lockTargetForResizing( this, resizer, point );
+
+				return true;
+
+			} else {
+
+				return false;
+
+			}
+
+		} else {
+
+			return false;
+		
+		}
+
 	}
 
 }

@@ -4,7 +4,16 @@ class Viewport_MouseDriver extends Events {
 	public  mbPressed		: boolean 	= false; // weather a mouse button is pressed
 	public  mouseIsGlobal	: boolean 	= false;
 
+	/* Scrollbar locking properties */
 	public  lockedScrollbar	: number 	= null;  // 0 the vertical, 1 the horizontal, null -> no locked scrollbar
+
+	/* Resizing properties */
+	public  resizingReferencePoint	: TPoint 		= null;
+	public  resizingLockTarget 		: TNode_Element = null;
+	public  resizingMethod			: TResizer 		= null;
+	public  resizingAspectRatio     : number        = null;
+	public  resizingDelta           : TPoint        = null;
+	public  resizingLastPoint       : TPoint        = null;
 	
 	constructor( viewport: Viewport ) {
 	    
@@ -116,6 +125,12 @@ class Viewport_MouseDriver extends Events {
 					this.viewport.selection.anchorTo( target );
 
 					this.fire( 'refocus' );
+
+					// Run the onmousedown event on the target...
+
+					if ( target.target && target.target.nodeType == TNode_Type.ELEMENT && (<TNode_Element>target.target).onmousedown( point, 1, this ) ) {
+						// console.warn( target mousedown )
+					}
 				}
 
 				break;
@@ -182,9 +197,12 @@ class Viewport_MouseDriver extends Events {
 			if ( this.lockedScrollbar !== null ) {
 				this.onhandlescrollbar( point );
 				return;
+			} else
+			if ( this.resizingLockTarget !== null ) {
+				this.handleResize( point );
+			} else {
+				target = this.viewport.getTargetAtXY( point );
 			}
-
-			target = this.viewport.getTargetAtXY( point );
 
 		} else {
 
@@ -196,6 +214,10 @@ class Viewport_MouseDriver extends Events {
 
 			if ( this.lockedScrollbar !== null ) {
 				this.onhandlescrollbar( point );
+				return;
+			} else
+			if ( this.resizingLockTarget !== null ) {
+				this.handleResize( point );
 				return;
 			} else {
 				point.x += this.viewport.scrollLeft();
@@ -229,7 +251,7 @@ class Viewport_MouseDriver extends Events {
 		} else {
 
 			if ( target && target.target.nodeType == TNode_Type.ELEMENT ) {
-				(<TNode_Element>target.target).onmousemove( point, 0 )
+				(<TNode_Element>target.target).onmousemove( point, 0, this );
 			}
 
 		}
@@ -238,8 +260,18 @@ class Viewport_MouseDriver extends Events {
 
 	public onmouseup( DOMEvent, isFromBody: boolean = false ) {
 
+		// cancel scrollbar locking
 		this.lockedScrollbar = null;
 
+		// cancel resizing locking
+		this.resizingLockTarget 	= null;
+		this.resizingMethod 		= null;
+		this.resizingReferencePoint = null;
+		this.resizingDelta 			= null;
+		this.resizingLastPoint      = null;
+		this.resizingAspectRatio 	= null;
+
+		// cancel selection capturing.
 		switch ( DOMEvent.which ) {
 
 			case 3: // RIGHT MOUSE BUTTON
@@ -249,6 +281,7 @@ class Viewport_MouseDriver extends Events {
 
 		}
 
+		// cancel the event.
 		DOMEvent.preventDefault();
 		DOMEvent.stopPropagation();
 	}
@@ -324,6 +357,182 @@ class Viewport_MouseDriver extends Events {
 				break;
 		}
 		
+	}
+
+	protected handleResize( point: TPoint ) {
+		
+		var computeWidth: boolean = false,
+		    computeHeight: boolean = false,
+		    newWidth: number = null,
+		    newHeight: number = null;
+
+		if ( this.resizingLastPoint.x != point.x || this.resizingLastPoint.y != point.y ) {
+
+			this.resizingDelta = {
+				"x": point.x - this.resizingLastPoint.x,
+				"y": point.y - this.resizingLastPoint.y
+			};
+
+			if ( this.resizingAspectRatio === null ) {
+				computeHeight = true;
+				computeWidth  = true;
+			} else {
+
+				if ( this.resizingLockTarget.style._width.isSet ) {
+					computeWidth  = true;
+				}
+
+				if ( this.resizingLockTarget.style._height.isSet ) {
+					computeHeight = true;
+				}
+			}
+
+			if ( !computeWidth && !computeHeight ) {
+				computeWidth = true;
+				computeHeight = true;
+			}
+
+			switch ( this.resizingMethod ) {
+				case TResizer.NW:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth - this.resizingDelta.x;
+					}
+
+					if ( computeHeight ) {
+						newHeight = this.resizingLockTarget.layout.offsetHeight - this.resizingDelta.y;
+					}
+
+					break;
+
+				case TResizer.NE:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth + this.resizingDelta.x;
+					}
+
+					if ( computeHeight ) { 
+						newHeight = this.resizingLockTarget.layout.offsetHeight - this.resizingDelta.y;
+					}
+
+					break;
+
+				case TResizer.SW:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth - this.resizingDelta.x;
+					}
+
+					if ( computeHeight ) {
+						newHeight = this.resizingLockTarget.layout.offsetHeight + this.resizingDelta.y;
+					}
+
+					break;
+
+				case TResizer.SE:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth + this.resizingDelta.x;
+					}
+
+					if ( computeHeight ) {
+						newHeight = this.resizingLockTarget.layout.offsetHeight + this.resizingDelta.y;
+					}
+
+					break;
+
+				default:
+					throw "Unexpected resizing method!";
+			}
+
+			if ( this.resizingAspectRatio === null ) {
+
+				if ( computeWidth ) {
+					this.resizingLockTarget.style.width( String( newWidth - 2 * this.resizingLockTarget.style.borderWidth() - this.resizingLockTarget.style.paddingLeft() - this.resizingLockTarget.style.paddingRight() ) );
+				}
+
+				if ( computeHeight ) {
+					this.resizingLockTarget.style.height( String( newHeight - 2 * this.resizingLockTarget.style.borderWidth() - this.resizingLockTarget.style.paddingTop() - this.resizingLockTarget.style.paddingBottom() ) );
+				}
+
+			} else {
+
+				if ( computeWidth ) {
+					newHeight = ~~( newWidth / this.resizingAspectRatio );
+				} else {
+					newWidth = ~~( newHeight * this.resizingAspectRatio );
+				}
+
+				if ( this.resizingLockTarget.style._width.isSet ) {
+					this.resizingLockTarget.style.width( String( newWidth - 2 * this.resizingLockTarget.style.borderWidth() - this.resizingLockTarget.style.paddingLeft() - this.resizingLockTarget.style.paddingRight() ) );
+				}
+
+				if ( computeHeight ) {
+					this.resizingLockTarget.style.height( String( newHeight - 2 * this.resizingLockTarget.style.borderWidth() - this.resizingLockTarget.style.paddingTop() - this.resizingLockTarget.style.paddingBottom() ) );
+				}
+
+			}
+
+
+			this.resizingLastPoint.x = point.x;
+			this.resizingLastPoint.y = point.y;
+
+		}
+
+	}
+
+	public lockTargetForResizing( target: TNode_Element, resizeType: TResizer, initialEventPoint: TPoint ) {
+		
+		this.resizingMethod = resizeType;
+		this.resizingLockTarget = target;
+		
+		switch ( resizeType ) {
+			case TResizer.NW:
+				// save the opposite node for the resizing process
+				this.resizingReferencePoint = {
+					"x": target.layout.offsetLeft + target.layout.offsetWidth,
+					"y": target.layout.offsetTop  + target.layout.offsetHeight
+				};
+				break;
+			case TResizer.NE:
+				// save the opposite node for the resizing process
+				this.resizingReferencePoint = {
+					"x": target.layout.offsetLeft,
+					"y": target.layout.offsetTop + target.layout.offsetHeight
+				};
+				break;
+			case TResizer.SW:
+				// save the opposite node for the resizing process
+				this.resizingReferencePoint = {
+					"x": target.layout.offsetLeft + target.layout.offsetWidth,
+					"y": target.layout.offsetTop
+				};
+				break;
+			case TResizer.SE:
+				// save the opposite node for the resizing process
+				this.resizingReferencePoint = {
+					"x": target.layout.offsetLeft,
+					"y": target.layout.offsetTop
+				};
+				break;
+			default:
+				throw "Unimplemented resize method!";
+				break;
+		}
+
+		this.resizingAspectRatio = target.style._aspectRatio.isSet
+			? target.style.aspectRatio()
+			: null;
+
+		this.resizingDelta = {
+			"x": 0,
+			"y": 0
+		};
+
+		this.resizingLastPoint = initialEventPoint;
+
+		// cancel mouse moving ...
+		this.mbPressed = false;
 	}
 
 }

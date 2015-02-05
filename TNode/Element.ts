@@ -552,11 +552,12 @@ class TNode_Element extends TNode {
 
 	}
 
-	public onmousemove( point: TPoint, button: number ) {
+	public onmousemove( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
+		return false;
 	}
 
-	public onmousedown( point: TPoint, button: number ) {
-		// should be implemented on
+	public onmousedown( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
+		return false;
 	}
 
 	// makes the array of nodes @nodesList childNodes of this element.

@@ -21,7 +21,7 @@ class Viewport_KeyboardDriver extends Events {
 				me.onkeypress( DOMEvent );
 			}, true );
 
-			me.viewport.canvas.forwardkeyboardevent = function( evtype, evt ) {
+			me.viewport.canvas.forwardKeyboardEvent = function( evtype, evt ) {
 				switch ( evtype ) {
 					
 					case 'keydown':
@@ -128,6 +128,8 @@ class Viewport_KeyboardDriver extends Events {
 				break;
 
 
+			/* These are handled for now by the Clipboard class.
+			
 			case 67: // c
 				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
 					this.viewport.execCommand( EditorCommand.COPY );
@@ -148,6 +150,7 @@ class Viewport_KeyboardDriver extends Events {
 					//cancelEvent = true;
 				}
 				break;
+			*/
 
 			case 189: // -
 				if ( DOMEvent.ctrlKey ) {

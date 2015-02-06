@@ -2,11 +2,26 @@ class Clipboard extends Events {
 
 	protected static $instance: Clipboard = null;
 
-	protected effect : TClipboardEffect = TClipboardEffect.COPY;
-	protected data   : TClipboardItem   = null;
+	protected effect        : TClipboardEffect = TClipboardEffect.COPY;
+	
+	//protected data          : TClipboardItem   = null;
 
-	public    trap = document.createElement('div');
-	public    activeElement: any = null;
+	public    trap          : any = document.createElement('textarea');
+	public    activeElement : any = null; // will point to an instance of a viewport.canvas
+
+	protected get data(): TClipboardItem {
+		var v = window.localStorage.getItem( '_clipboard_data_' );
+
+		if ( v ) {
+			return JSON.parse( v );
+		} else {
+			return null;
+		}
+	}
+
+	protected set data(v: TClipboardItem) {
+		window.localStorage.setItem( "_clipboard_data_", JSON.stringify( v ) );
+	}
 
 	/* Should not be used by the programmer, but instead use the static "singleton" method,
 	   in order to access it as a singleton
@@ -15,19 +30,109 @@ class Clipboard extends Events {
 	    super();
 
 	    ( function( me ) {
-	    	me.on( 'cut', function( EVT ) {
-	    		console.warn( 'cut: ', EVT );
+	    	
+	    	me.on( 'cut', function( evt ) {
+	    		
+	    		if ( !me.trap.parentNode || me.trap != document['activeElement'] ) {
+	    			
+	    		} else {
+
+	    			if ( !me.trap.value ) {
+	    				return;
+	    			}
+
+	    			// the command is inside the trap
+	    			me.activeElement.execCommand( EditorCommand.CUT, false );
+	    		}
+
 	    	} );
-	    	me.on( 'copy', function( EVT ) {
-	    		console.warn( 'copy: ', EVT );
+	    	
+	    	me.on( 'copy', function( evt ) {
+	    		
+	    		if ( !me.trap.parentNode || me.trap != document['activeElement'] ) {
+
+	    			// the copy occured outside our trap.
+	    		
+	    		} else {
+
+	    			if ( !me.trap.value ) {
+	    				return;
+	    			}
+
+	    			// the copy occured in the trap.
+
+	    			me.setContents( me.trap.value, 'text/html', TClipboardEffect.COPY );
+
+	    		}
+
 	    	} );
-	    	me.on( 'paste', function( EVT ) {
-	    		console.warn( 'paste: ', EVT );
+	    	
+	    	me.on( 'paste', function( evt ) {
+	    		
+	    		if ( !me.trap.parentNode || me.trap != document['activeElement'] ) {
+	    			// paste outside the trap...
+	    			return;
+	    		}
+
+	    		if ( evt.clipboardData ) {
+
+	    			var asText: string = evt.clipboardData.getData( 'text/plain' ),
+	    			    asHTML: string = evt.clipboardData.getData( 'text/html' );
+
+	    			if ( asHTML ) {
+	    				me.setContents( asHTML, 'text/html' );
+	    			} else {
+	    				me.setContents( asText, /<[a-z\][\s\S]*>/i.test( asText ) ? 'text/html' : 'text/plain' );
+	    			}
+
+	    			me.activeElement.execCommand( EditorCommand.PASTE );
+
+    			} else {
+
+    				setTimeout( function() {
+
+    					me.fire( 'after-paste' );
+
+    				}, 5 );
+
+    			}
+
+
 	    	} );
+
+	    	me.on( 'after-paste', function() {
+
+	    		var asText: string = me.trap.value;
+
+	    		me.trap.value = this.activeElement.onclipboardtrap();
+
+	    		me.setContents( asText, /<[a-z\][\s\S]*>/i.test( asText ) ? 'text/html' : 'text/plain' );
+
+	    		me.activeElement.execCommand( EditorCommand.PASTE );
+
+	    	} );
+
+	    	me.trap.addEventListener( 'keyup', function( evt ) {
+	    		if ( evt.keyCode == 17 ) {
+	    			me.uninstallTrap();
+	    		} else {
+	    			me.activeElement.forwardKeyboardEvent( 'keyup', evt );
+	    		}
+	    	}, true );
+
+	    	me.trap.addEventListener( 'keypress', function( evt ) {
+	    		me.activeElement.forwardKeyboardEvent( 'keypress', evt );
+	    	}, true );
+
+	    	me.trap.addEventListener( 'keydown', function( evt ) {
+	    		me.activeElement.forwardKeyboardEvent( 'keydown', evt );
+	    	} );
+
+
 	    } )( this );
 
-	    this.trap.setAttribute( 'contenteditable', 'true' );
-	    this.trap.style.cssText = 'position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; display: block; background-color: red; opacity: .4; z-index: 1000';
+	    //this.trap.readOnly = true;
+	    this.trap.style.cssText = 'position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; width: 50px; height: 50px; display: block; background-color: red; opacity: 0 !important; z-index: 1000; overflow: hidden;';
 	}
 
 	public static singleton(): Clipboard {
@@ -59,8 +164,7 @@ class Clipboard extends Events {
 
 	public installTrap() {
 		
-		if ( this.trap.parentNode ) {
-			//trap allready installed
+		if ( typeof document.activeElement['onclipboardtrap'] == 'undefined' ) {
 			return;
 		}
 
@@ -71,44 +175,12 @@ class Clipboard extends Events {
 
 		document.body.appendChild( this.trap );
 
-		switch ( true ) {
-
-			case typeof this.activeElement.onclipboardtrap !== 'undefined':
-				this.trap.innerHTML = this.activeElement.onclipboardtrap();
-				break;
-
-			case typeof this.activeElement.value == 'string':
-				this.trap.innerHTML = '';
-				this.trap.appendChild( document.createTextNode( this.activeElement.value ) );
-				break;
-
-			default:
-				this.trap.innerHTML = '';
-
-		}
+		this.trap.value = this.activeElement.onclipboardtrap();
 
 		this.trap.focus();
+		this.trap.select();
 
-		( function( trap ) {
-
-			setTimeout( function() {
-
-		        if (window.getSelection) {
-		            var range = document.createRange();
-		            range.selectNodeContents( trap );
-		            window.getSelection().removeAllRanges();
-		            window.getSelection().addRange(range);
-		        }
-
-		    }, 10 );
-
-		} )( this.trap );
-
-
-		
-
-
-		console.log( 'trap installed' );
+		//console.log( 'trap installed' );
 	}
 
 	public uninstallTrap() {
@@ -120,60 +192,36 @@ class Clipboard extends Events {
 			this.activeElement.focus();
 		}
 
-		console.log( 'trap uninstalled' );
+		//console.log( 'trap uninstalled' );
 	}
 
 }
 
-window.addEventListener( 'load', function() {
-
-	var clipboard = Clipboard.singleton();
-
-	document.body.addEventListener( 'cut', function( DOMEvt ) {
-		clipboard.fire( 'cut', DOMEvt );
-	}, true );
-
-	document.body.addEventListener( 'paste', function( DOMEvt ) {
-		clipboard.fire( 'paste', DOMEvt );
-	}, true );
-
-	document.body.addEventListener( 'copy', function( DOMEvt ) {
-		clipboard.fire( 'copy', DOMEvt );
-	}, true );
+window.addEventListener( 'load', function( e ) {
 
 	document.body.addEventListener( 'keydown', function( evt ) {
 		if ( evt.keyCode == 17 ) {
-			clipboard.installTrap();
+			Clipboard.singleton().installTrap();
 		}
 	}, true );
 
-	document.body.addEventListener( 'keydown', function( evt) {
-		if ( evt.keyCode == 17 ) {
-			clipboard.uninstallTrap();
-		} else {
-			if ( evt.ctrlKey ) {
-				if ( clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent ) {
-					clipboard.activeElement.forwardkeyboardevent( 'keydown', evt );
-				}
-			}
+	document.body.addEventListener( 'keyup', function( evt ) {
+		if ( evt.keyCode == 17 && Clipboard.singleton().trap.parentNode ) {
+			Clipboard.singleton().uninstallTrap();
 		}
 	} );
 
-	document.body.addEventListener( 'keypress', function( evt) {
-		if ( evt.ctrlKey ) {
-			if ( clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent ) {
-				clipboard.activeElement.forwardkeyboardevent( 'keypress', evt );
-			}
-		}
-	} );
+	document.body.addEventListener( 'cut', function( evt ) {
+		Clipboard.singleton().fire( 'cut', evt );
+	}, false );
 
-	document.body.addEventListener( 'keyup', function( evt) {
-		if ( evt.ctrlKey ) {
-			if ( clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent ) {
-				clipboard.activeElement.forwardkeyboardevent( 'keyup', evt );
-			}
-		}
-	} );
+	document.body.addEventListener( 'copy', function( evt ) {
+		Clipboard.singleton().fire( 'copy', evt );
+	}, false );
+
+	document.body.addEventListener( 'paste', function( evt ) {
+		Clipboard.singleton().fire( 'paste', evt );
+	}, false );
 
 
 } );

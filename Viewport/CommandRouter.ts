@@ -130,17 +130,17 @@ class Viewport_CommandRouter extends Events {
 				}
 				break;
 			case EditorCommand.COPY:
-				if ( !this.ensureArgs( args, 0, 0 ) ) {
-					throw "Command: " + commandName + " doesn't require any arguments!";
+				if ( !this.ensureArgs( args, 0, 1 ) ) {
+					throw "Command: " + commandName + " requires max 1 argument of type boolean!";
 				} else {
-					this.copy();
+					this.copy( args.length ? !!args[0] : null );
 				}
 				break;
 			case EditorCommand.CUT:
-				if ( !this.ensureArgs( args, 0, 0 ) ) {
-					throw "Command: " + commandName + " doesn't require any arguments!";
+				if ( !this.ensureArgs( args, 0, 1 ) ) {
+					throw "Command: " + commandName + " requires max 1 argument of type boolean!";
 				} else {
-					this.cut();
+					this.cut( args.length ? !!args[0] : null );
 				}
 				break;
 
@@ -856,13 +856,44 @@ class Viewport_CommandRouter extends Events {
 	}
 
 	// copies the selection into the clipboard.
-	public copy() {
+	public copy( setClipboard: boolean = true ) {
+
+		if ( setClipboard === null ) {
+			setClipboard = true;
+		}
+
+		var sel = this.viewport.selection,
+		    contents = sel.toString();
+
+		if ( !contents ) {
+			return; //cannot copy something empty
+		}
+
+		if ( setClipboard ) {
+			Clipboard.singleton().setContents( contents, 'text/html', TClipboardEffect.COPY );
+		}
 
 	}
 
 	// cuts the selection into the clipboard.
-	public cut() {
+	public cut( setClipboard: boolean = true ) {
+		
+		if ( setClipboard === null ) {
+			setClipboard = true;
+		}
 
+		var sel = this.viewport.selection,
+		    contents = sel.toString();
+
+		if ( !contents ) {
+			return;
+		}
+
+		if ( setClipboard ) {
+			Clipboard.singleton().setContents( contents, 'text/html', TClipboardEffect.CUT );
+		}
+
+		sel.removeContents();
 	}
 
 	// pastes a text of format contentType.
@@ -870,6 +901,32 @@ class Viewport_CommandRouter extends Events {
 	// used instead.
 	// @contentType: the type of the content. allowed values can be "text" or "html".
 	public paste( content: string = null, contentType: string = null ) {
+
+		var data: TClipboardItem;
+
+		if ( content === null ) {
+			data = Clipboard.singleton().getContents();
+			if ( data === null ) {
+				return;
+			} else {
+				content = data.data;
+				contentType = data.type;
+			}
+		}
+
+		if ( !content ) {
+			return;
+		}
+
+		if ( [ 'text/plain', 'text/html' ].indexOf( contentType ) == -1 ) {
+			throw "ERR_BAD_CONTENT_TYPE!";
+		}
+
+		if ( contentType == 'text/plain' ) {
+			this.insertText( content );
+		} else {
+			this.viewport.selection.insertHTML( content );
+		}
 
 	}
 

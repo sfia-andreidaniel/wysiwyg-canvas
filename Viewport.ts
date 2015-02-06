@@ -50,6 +50,10 @@ class Viewport extends Events {
 				return me.selection.toString();
 			};
 
+			me.canvas.execCommand = function( ...args: any[] ) {
+				return me.execCommand.apply( me, args );
+			};
+
 		})( this );
 		
 

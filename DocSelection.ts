@@ -21,12 +21,19 @@ class DocSelection extends Events {
 		this.editorState = new Selection_EditorState( this );
 
 		(function(me){
+			
 			me.stateComputer = new Throttler( function() {
 				me.editorState.compute();
 			}, 100);
+			
 			me.changeThrottler = new Throttler( function() {
 				me.fire( 'changed' );
 			}, 30 );
+			
+			me.on( 'changed', function() {
+				me.onchanged();
+			} );
+
 		})(this);
 	}
 
@@ -106,17 +113,18 @@ class DocSelection extends Events {
 		    atEnd: boolean = false,
 		    len: number = range.length();
 
+		range.save();
+
 		if ( range.removeContents() ) {
 
 			this.viewport.document.removeOrphanNodes();
 
 			this.viewport.document.relayout(true);
 
-			range.collapse( len < 0 );
-
-			range.moveRightUntilCharacterIfNotLandedOnText();
-
 		}
+
+		range.restore();
+		range.collapse();
 	}
 
 	/* This function is used by the default StatusBar, and *might* not treat
@@ -332,6 +340,7 @@ class DocSelection extends Events {
 		rng.focusNode().target  = this.viewport.document.findNodeAtIndex( rng.focusNode().fragPos );
 
 		rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+		rng.collapse( true );
 
 		rng.fire( 'changed' );
 
@@ -344,6 +353,16 @@ class DocSelection extends Events {
 			return range.createContextualFragment().toString( 'text/html', true );
 		} else {
 			return (<TNode_Element>range.anchorNode().target).outerHTML();
+		}
+	}
+
+	public onchanged() {
+		var clipboard = Clipboard.singleton(),
+		    element = clipboard.activeElement;
+
+		if ( element == this.viewport.canvas && clipboard.trap.parentNode ) {
+			clipboard['trap'].value = this['toString']();
+			clipboard['trap']['select']();
 		}
 	}
 

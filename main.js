@@ -6298,6 +6298,13 @@ var Viewport = (function (_super) {
             me.canvas.onclipboardtrap = function () {
                 return me.selection.toString();
             };
+            me.canvas.execCommand = function () {
+                var args = [];
+                for (var _i = 0; _i < arguments.length; _i++) {
+                    args[_i - 0] = arguments[_i];
+                }
+                return me.execCommand.apply(me, args);
+            };
         })(this);
         this.document = new HTML_Body(this);
         this.selection = new DocSelection(this);
@@ -6824,7 +6831,7 @@ var Viewport_KeyboardDriver = (function (_super) {
             me.viewport.canvas.addEventListener('keypress', function (DOMEvent) {
                 me.onkeypress(DOMEvent);
             }, true);
-            me.viewport.canvas.forwardkeyboardevent = function (evtype, evt) {
+            me.viewport.canvas.forwardKeyboardEvent = function (evtype, evt) {
                 switch (evtype) {
                     case 'keydown':
                         me.onkeydown(evt);
@@ -6900,21 +6907,6 @@ var Viewport_KeyboardDriver = (function (_super) {
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
                     this.viewport.execCommand(8 /* ALIGN */, 'right');
                     cancelEvent = true;
-                }
-                break;
-            case 67:
-                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(10 /* COPY */);
-                }
-                break;
-            case 88:
-                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(11 /* CUT */);
-                }
-                break;
-            case 86:
-                if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
-                    this.viewport.execCommand(12 /* PASTE */);
                 }
                 break;
             case 189:
@@ -7186,19 +7178,19 @@ var Viewport_CommandRouter = (function (_super) {
                 }
                 break;
             case 10 /* COPY */:
-                if (!this.ensureArgs(args, 0, 0)) {
-                    throw "Command: " + commandName + " doesn't require any arguments!";
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " requires max 1 argument of type boolean!";
                 }
                 else {
-                    this.copy();
+                    this.copy(args.length ? !!args[0] : null);
                 }
                 break;
             case 11 /* CUT */:
-                if (!this.ensureArgs(args, 0, 0)) {
-                    throw "Command: " + commandName + " doesn't require any arguments!";
+                if (!this.ensureArgs(args, 0, 1)) {
+                    throw "Command: " + commandName + " requires max 1 argument of type boolean!";
                 }
                 else {
-                    this.cut();
+                    this.cut(args.length ? !!args[0] : null);
                 }
                 break;
             case 12 /* PASTE */:
@@ -7718,10 +7710,33 @@ var Viewport_CommandRouter = (function (_super) {
             this.viewport.selection.editorState.compute();
     };
     // copies the selection into the clipboard.
-    Viewport_CommandRouter.prototype.copy = function () {
+    Viewport_CommandRouter.prototype.copy = function (setClipboard) {
+        if (setClipboard === void 0) { setClipboard = true; }
+        if (setClipboard === null) {
+            setClipboard = true;
+        }
+        var sel = this.viewport.selection, contents = sel.toString();
+        if (!contents) {
+            return; //cannot copy something empty
+        }
+        if (setClipboard) {
+            Clipboard.singleton().setContents(contents, 'text/html', 0 /* COPY */);
+        }
     };
     // cuts the selection into the clipboard.
-    Viewport_CommandRouter.prototype.cut = function () {
+    Viewport_CommandRouter.prototype.cut = function (setClipboard) {
+        if (setClipboard === void 0) { setClipboard = true; }
+        if (setClipboard === null) {
+            setClipboard = true;
+        }
+        var sel = this.viewport.selection, contents = sel.toString();
+        if (!contents) {
+            return;
+        }
+        if (setClipboard) {
+            Clipboard.singleton().setContents(contents, 'text/html', 1 /* CUT */);
+        }
+        sel.removeContents();
     };
     // pastes a text of format contentType.
     // @content: string. if null, the content from the clipboard will be 
@@ -7730,6 +7745,29 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.paste = function (content, contentType) {
         if (content === void 0) { content = null; }
         if (contentType === void 0) { contentType = null; }
+        var data;
+        if (content === null) {
+            data = Clipboard.singleton().getContents();
+            if (data === null) {
+                return;
+            }
+            else {
+                content = data.data;
+                contentType = data.type;
+            }
+        }
+        if (!content) {
+            return;
+        }
+        if (['text/plain', 'text/html'].indexOf(contentType) == -1) {
+            throw "ERR_BAD_CONTENT_TYPE!";
+        }
+        if (contentType == 'text/plain') {
+            this.insertText(content);
+        }
+        else {
+            this.viewport.selection.insertHTML(content);
+        }
     };
     // indents text with a number of tabs on the left. A tab width is 20px.
     Viewport_CommandRouter.prototype.indent = function (tabs) {
@@ -7879,23 +7917,93 @@ var Clipboard = (function (_super) {
     function Clipboard() {
         _super.call(this);
         this.effect = 0 /* COPY */;
-        this.data = null;
-        this.trap = document.createElement('div');
-        this.activeElement = null;
+        //protected data          : TClipboardItem   = null;
+        this.trap = document.createElement('textarea');
+        this.activeElement = null; // will point to an instance of a viewport.canvas
         (function (me) {
-            me.on('cut', function (EVT) {
-                console.warn('cut: ', EVT);
+            me.on('cut', function (evt) {
+                if (!me.trap.parentNode || me.trap != document['activeElement']) {
+                }
+                else {
+                    if (!me.trap.value) {
+                        return;
+                    }
+                    // the command is inside the trap
+                    me.activeElement.execCommand(11 /* CUT */, false);
+                }
             });
-            me.on('copy', function (EVT) {
-                console.warn('copy: ', EVT);
+            me.on('copy', function (evt) {
+                if (!me.trap.parentNode || me.trap != document['activeElement']) {
+                }
+                else {
+                    if (!me.trap.value) {
+                        return;
+                    }
+                    // the copy occured in the trap.
+                    me.setContents(me.trap.value, 'text/html', 0 /* COPY */);
+                }
             });
-            me.on('paste', function (EVT) {
-                console.warn('paste: ', EVT);
+            me.on('paste', function (evt) {
+                if (!me.trap.parentNode || me.trap != document['activeElement']) {
+                    // paste outside the trap...
+                    return;
+                }
+                if (evt.clipboardData) {
+                    var asText = evt.clipboardData.getData('text/plain'), asHTML = evt.clipboardData.getData('text/html');
+                    if (asHTML) {
+                        me.setContents(asHTML, 'text/html');
+                    }
+                    else {
+                        me.setContents(asText, /<[a-z\][\s\S]*>/i.test(asText) ? 'text/html' : 'text/plain');
+                    }
+                    me.activeElement.execCommand(12 /* PASTE */);
+                }
+                else {
+                    setTimeout(function () {
+                        me.fire('after-paste');
+                    }, 5);
+                }
+            });
+            me.on('after-paste', function () {
+                var asText = me.trap.value;
+                me.trap.value = this.activeElement.onclipboardtrap();
+                me.setContents(asText, /<[a-z\][\s\S]*>/i.test(asText) ? 'text/html' : 'text/plain');
+                me.activeElement.execCommand(12 /* PASTE */);
+            });
+            me.trap.addEventListener('keyup', function (evt) {
+                if (evt.keyCode == 17) {
+                    me.uninstallTrap();
+                }
+                else {
+                    me.activeElement.forwardKeyboardEvent('keyup', evt);
+                }
+            }, true);
+            me.trap.addEventListener('keypress', function (evt) {
+                me.activeElement.forwardKeyboardEvent('keypress', evt);
+            }, true);
+            me.trap.addEventListener('keydown', function (evt) {
+                me.activeElement.forwardKeyboardEvent('keydown', evt);
             });
         })(this);
-        this.trap.setAttribute('contenteditable', 'true');
-        this.trap.style.cssText = 'position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; display: block; background-color: red; opacity: .4; z-index: 1000';
+        //this.trap.readOnly = true;
+        this.trap.style.cssText = 'position: absolute; left: 0px; top: 0px; right: 0px; bottom: 0px; width: 50px; height: 50px; display: block; background-color: red; opacity: 0 !important; z-index: 1000; overflow: hidden;';
     }
+    Object.defineProperty(Clipboard.prototype, "data", {
+        get: function () {
+            var v = window.localStorage.getItem('_clipboard_data_');
+            if (v) {
+                return JSON.parse(v);
+            }
+            else {
+                return null;
+            }
+        },
+        set: function (v) {
+            window.localStorage.setItem("_clipboard_data_", JSON.stringify(v));
+        },
+        enumerable: true,
+        configurable: true
+    });
     Clipboard.singleton = function () {
         return Clipboard.$instance || (Clipboard.$instance = new Clipboard());
     };
@@ -7920,37 +8028,17 @@ var Clipboard = (function (_super) {
         return returnValue;
     };
     Clipboard.prototype.installTrap = function () {
-        if (this.trap.parentNode) {
-            //trap allready installed
+        if (typeof document.activeElement['onclipboardtrap'] == 'undefined') {
             return;
         }
         this.activeElement = document.activeElement;
         this.trap.style.top = document.body.scrollTop + "px";
         this.trap.style.left = document.body.scrollLeft + "px";
         document.body.appendChild(this.trap);
-        switch (true) {
-            case typeof this.activeElement.onclipboardtrap !== 'undefined':
-                this.trap.innerHTML = this.activeElement.onclipboardtrap();
-                break;
-            case typeof this.activeElement.value == 'string':
-                this.trap.innerHTML = '';
-                this.trap.appendChild(document.createTextNode(this.activeElement.value));
-                break;
-            default:
-                this.trap.innerHTML = '';
-        }
+        this.trap.value = this.activeElement.onclipboardtrap();
         this.trap.focus();
-        (function (trap) {
-            setTimeout(function () {
-                if (window.getSelection) {
-                    var range = document.createRange();
-                    range.selectNodeContents(trap);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(range);
-                }
-            }, 10);
-        })(this.trap);
-        console.log('trap installed');
+        this.trap.select();
+        //console.log( 'trap installed' );
     };
     Clipboard.prototype.uninstallTrap = function () {
         if (this.trap.parentNode)
@@ -7958,53 +8046,31 @@ var Clipboard = (function (_super) {
         if (this.activeElement) {
             this.activeElement.focus();
         }
-        console.log('trap uninstalled');
+        //console.log( 'trap uninstalled' );
     };
     Clipboard.$instance = null;
     return Clipboard;
 })(Events);
-window.addEventListener('load', function () {
-    var clipboard = Clipboard.singleton();
-    document.body.addEventListener('cut', function (DOMEvt) {
-        clipboard.fire('cut', DOMEvt);
-    }, true);
-    document.body.addEventListener('paste', function (DOMEvt) {
-        clipboard.fire('paste', DOMEvt);
-    }, true);
-    document.body.addEventListener('copy', function (DOMEvt) {
-        clipboard.fire('copy', DOMEvt);
-    }, true);
+window.addEventListener('load', function (e) {
     document.body.addEventListener('keydown', function (evt) {
         if (evt.keyCode == 17) {
-            clipboard.installTrap();
+            Clipboard.singleton().installTrap();
         }
     }, true);
-    document.body.addEventListener('keydown', function (evt) {
-        if (evt.keyCode == 17) {
-            clipboard.uninstallTrap();
-        }
-        else {
-            if (evt.ctrlKey) {
-                if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
-                    clipboard.activeElement.forwardkeyboardevent('keydown', evt);
-                }
-            }
-        }
-    });
-    document.body.addEventListener('keypress', function (evt) {
-        if (evt.ctrlKey) {
-            if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
-                clipboard.activeElement.forwardkeyboardevent('keypress', evt);
-            }
-        }
-    });
     document.body.addEventListener('keyup', function (evt) {
-        if (evt.ctrlKey) {
-            if (clipboard.trap.parentNode && clipboard.activeElement && clipboard.activeElement.forwardkeyboardevent) {
-                clipboard.activeElement.forwardkeyboardevent('keyup', evt);
-            }
+        if (evt.keyCode == 17 && Clipboard.singleton().trap.parentNode) {
+            Clipboard.singleton().uninstallTrap();
         }
     });
+    document.body.addEventListener('cut', function (evt) {
+        Clipboard.singleton().fire('cut', evt);
+    }, false);
+    document.body.addEventListener('copy', function (evt) {
+        Clipboard.singleton().fire('copy', evt);
+    }, false);
+    document.body.addEventListener('paste', function (evt) {
+        Clipboard.singleton().fire('paste', evt);
+    }, false);
 });
 var Fragment = (function () {
     function Fragment(document) {
@@ -9384,6 +9450,9 @@ var DocSelection = (function (_super) {
             me.changeThrottler = new Throttler(function () {
                 me.fire('changed');
             }, 30);
+            me.on('changed', function () {
+                me.onchanged();
+            });
         })(this);
     }
     // obtains an instance of the range of the selection.
@@ -9437,12 +9506,13 @@ var DocSelection = (function (_super) {
     // removes the contents of selection.
     DocSelection.prototype.removeContents = function () {
         var range = this.getRange(), atEnd = false, len = range.length();
+        range.save();
         if (range.removeContents()) {
             this.viewport.document.removeOrphanNodes();
             this.viewport.document.relayout(true);
-            range.collapse(len < 0);
-            range.moveRightUntilCharacterIfNotLandedOnText();
         }
+        range.restore();
+        range.collapse();
     };
     /* This function is used by the default StatusBar, and *might* not treat
        all the test cases.
@@ -9586,6 +9656,7 @@ var DocSelection = (function (_super) {
         rng.focusNode().fragPos = (normalized.at(normalized.length - 1)).FRAGMENT_END + 1;
         rng.focusNode().target = this.viewport.document.findNodeAtIndex(rng.focusNode().fragPos);
         rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+        rng.collapse(true);
         rng.fire('changed');
     };
     DocSelection.prototype.toString = function () {
@@ -9595,6 +9666,13 @@ var DocSelection = (function (_super) {
         }
         else {
             return range.anchorNode().target.outerHTML();
+        }
+    };
+    DocSelection.prototype.onchanged = function () {
+        var clipboard = Clipboard.singleton(), element = clipboard.activeElement;
+        if (element == this.viewport.canvas && clipboard.trap.parentNode) {
+            clipboard['trap'].value = this['toString']();
+            clipboard['trap']['select']();
         }
     };
     // selection is painted with two colors, depending on

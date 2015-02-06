@@ -50,6 +50,8 @@
 			    htmlEditor.on('change', function() {
 			        document.getElementById( 'html-value' ).value = this.value;
 			    } );
+
+			    new UI_Dialog( { "width": 300, "height": 300, "caption": "Dialog", "childOf": document.body } );
 		});
 		</script>
 	</head>

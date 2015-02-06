@@ -174,3 +174,22 @@ interface TClipboardItem {
 	data: string;
 	type: string;
 }
+
+interface UI_DialogConfig {
+
+	x?: number;
+	y?: number;
+
+	width?: number;
+	height?: number;
+	
+	caption?: string;
+
+	childOf?: any;
+	
+	closable?: boolean;
+	resizable?: boolean;
+
+	maxWidth?: number;
+	maxHeight?: number;
+}

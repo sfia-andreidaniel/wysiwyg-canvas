@@ -394,3 +394,182 @@ div.html-editor .ui-panel-multimedia .ui-button.picture {
 div.html-editor .ui-panel-multimedia .ui-button.video {
 	background-position: -41px -1px !important;
 }
+
+
+/* UI_Dialog */
+
+div.ui-dialog,
+div.ui-dialog * {
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	user-select: none;
+}
+
+div.ui-dialog {
+
+	top: 0px;
+	left: 0px;
+
+	display: block;
+	position: absolute;
+	padding: 0;
+	margin: 0;
+	background-color: #ddd;
+	outline: 1px outset #bbb;
+
+	z-index: 3000;
+}
+
+div.ui-dialog > div.resizer {
+	position: relative;
+	display: block;
+	padding: 0;
+	margin: 0;
+}
+
+div.ui-dialog > div.resizer > div.titlebar {
+	background-color: blue;
+	display: block;
+	margin: 2px;
+	padding: 2px;
+	position: relative;
+	height: 20px;
+	overflow: hidden;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.caption {
+	position: absolute;
+	left: 2px;
+	top: 2px;
+	padding-top: 4px;
+	bottom: 2px;
+	right: 2px;
+	font-family: Arial;
+	white-space: no-wrap;
+	cursor: default;
+	color: white;
+	text-overflow: ellipsis;
+	line-height: 12px;
+	font-size: 12px;
+	font-weight: bold;
+	overflow: hidden;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons {
+	position: absolute;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons > div {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background-color: #bbb;
+	margin: 2px;
+	border: 2px outset #bbb;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons > div:active {
+	border: 2px inset #bbb;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons > div.close {
+	background-position: -42px -122px;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons > div.close:active {
+	background-position: -41px -121px;
+}
+
+
+div.ui-dialog > div.resizer > div.titlebar.closable > div.caption {
+	right: 27px;
+}
+
+div.ui-dialog > div.resizer > div.body {
+	background-color: white;
+	position: relative;
+	margin: 2px;
+}
+
+div.ui-dialog > div.resizer > div.handle {
+	position: absolute;
+	display: block;
+	padding: 0;
+	margin: 0;
+	z-index: 100;
+}
+
+div.ui-dialog > div.resizer > div.handle.n {
+	left: 4px;
+	top: -2px;
+	right: 4px;
+	height: 2px;
+	cursor: n-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.s {
+	left: 4px;
+	right: 4px;
+	bottom: -2px;
+	height: 2px;
+	cursor: s-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.w {
+	left: 0px;
+	top: 2px;
+	bottom: 2px;
+	width: 2px;
+	cursor: w-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.e {
+	top: 2px;
+	right: 0px;
+	bottom: 2px;
+	width: 2px;
+	cursor: e-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.nw {
+	left: 0px;
+	top: -2px;
+	width: 4px;
+	height: 4px;
+	cursor: nw-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.ne {
+	top: -2px;
+	right: 0px;
+	width: 4px;
+	height: 4px;
+	cursor: ne-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.sw {
+	left: 0px;
+	bottom: -2px;
+	width: 4px;
+	height: 4px;
+	cursor: sw-resize;
+}
+
+div.ui-dialog > div.resizer > div.handle.se {
+	right: 0px;
+	bottom: -2px;
+	width: 4px;
+	height: 4px;
+	cursor: se-resize;
+}
+
+html, body {
+	height: 100%;
+}

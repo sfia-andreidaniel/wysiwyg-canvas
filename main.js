@@ -11008,6 +11008,304 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
     }
     return UI_Toolbar_Panel_Multimedia;
 })(UI_Toolbar_Panel);
+var UI_Dialog = (function (_super) {
+    __extends(UI_Dialog, _super);
+    function UI_Dialog(config) {
+        _super.call(this);
+        /* DOM Elements */
+        this.outerNode = document.createElement('div');
+        this.titlebar = document.createElement('div');
+        this.label = document.createElement('div');
+        this.buttons = document.createElement('div');
+        this.body = document.createElement('div');
+        this.resizer = document.createElement('div');
+        /* Resizing stuff */
+        this.resizerType = null;
+        this.resizerLastPoint = null;
+        this.settings = {
+            "width": 100,
+            "height": 100,
+            "caption": "Dialog",
+            "closable": true,
+            "resizable": true,
+            "minWidth": 90,
+            "minHeight": 10,
+            "childOf": null,
+            "x": 0,
+            "y": 0
+        };
+        this.titlebar.appendChild(this.label);
+        this.titlebar.appendChild(this.buttons);
+        this.outerNode.appendChild(this.resizer);
+        this.resizer.innerHTML = '<div class="handle n"></div><div class="handle s"></div><div class="handle w"></div><div class="handle e"></div><div class="handle nw"></div><div class="handle ne"></div><div class="handle sw"></div><div class="handle se"></div>';
+        this.resizer.appendChild(this.titlebar);
+        this.resizer.appendChild(this.body);
+        DOM.addClass(this.outerNode, 'ui-dialog');
+        DOM.addClass(this.resizer, 'resizer');
+        DOM.addClass(this.titlebar, 'titlebar');
+        DOM.addClass(this.label, 'caption');
+        DOM.addClass(this.buttons, 'buttons');
+        DOM.addClass(this.body, 'body');
+        this.width = typeof config.width == 'undefined' ? this.settings.width : config.width;
+        this.height = typeof config.height == 'undefined' ? this.settings.height : config.height;
+        this.caption = typeof config.caption == 'undefined' ? this.settings.caption : config.caption;
+        this.closable = typeof config.closable == 'undefined' ? this.settings.closable : config.closable;
+        this.childOf = typeof config.childOf == 'undefined' ? this.settings.childOf : config.childOf;
+        this._initResizer_();
+    }
+    Object.defineProperty(UI_Dialog.prototype, "x", {
+        get: function () {
+            return this.settings.x;
+        },
+        set: function (num) {
+            this.settings.x = ~~num;
+            this.outerNode.style.left = this.settings.x + "px";
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "y", {
+        get: function () {
+            return this.settings.y;
+        },
+        set: function (num) {
+            this.settings.y = ~~num;
+            this.outerNode.style.top = this.settings.y + "px";
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "width", {
+        get: function () {
+            return this.settings.width;
+        },
+        set: function (v) {
+            this.settings.width = ~~v;
+            this.outerNode.style.width = v + 4 + "px";
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "height", {
+        get: function () {
+            return this.settings.height;
+        },
+        set: function (v) {
+            this.settings.height = ~~v;
+            this.outerNode.style.height = v + 30 + "px";
+            this.body.style.height = v + "px";
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "caption", {
+        get: function () {
+            return this.settings.caption;
+        },
+        set: function (s) {
+            this.settings.caption = String(s || '');
+            this.label.innerHTML = '';
+            this.label.appendChild(document.createTextNode(this.settings.caption));
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "childOf", {
+        get: function () {
+            return this.outerNode.parentNode;
+        },
+        set: function (element) {
+            if (element) {
+                element.appendChild(this.outerNode);
+                this.fire('open', element);
+            }
+            else {
+                if (this.outerNode.parentNode) {
+                    this.outerNode.parentNode.removeChild(this.outerNode);
+                }
+            }
+            this.settings.childOf = element || null;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "innerHTML", {
+        get: function () {
+            return this.body.innerHTML;
+        },
+        set: function (s) {
+            this.body.innerHTML = String(s || '');
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(UI_Dialog.prototype, "closable", {
+        get: function () {
+            return this.settings.closable;
+        },
+        set: function (v) {
+            this.settings.closable = !!v;
+            var rm = this.buttons.querySelector('div.close');
+            if (rm) {
+                this.buttons.removeChild(rm);
+            }
+            if (v) {
+                DOM.addClass(this.titlebar, 'closable');
+                var btnClose = document.createElement('div');
+                DOM.addClass(btnClose, 'close');
+                this.buttons.appendChild(btnClose);
+                (function (me) {
+                    btnClose.addEventListener('click', function () {
+                        me.close();
+                    }, true);
+                })(this);
+            }
+            else {
+                DOM.removeClass(this.titlebar, 'closable');
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    UI_Dialog.prototype.close = function () {
+        this.childOf = null;
+        this.fire('close');
+        return this;
+    };
+    UI_Dialog.prototype.open = function (inParent) {
+        if (inParent === void 0) { inParent = null; }
+        if (inParent) {
+            this.childOf = inParent;
+        }
+        else {
+            this.childOf = document.body;
+        }
+        this.fire('open');
+        return this;
+    };
+    UI_Dialog.prototype._initResizer_ = function () {
+        (function (me) {
+            function onresizer_mousemove(evt) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                var currentPoint = {
+                    "x": evt.clientX,
+                    "y": evt.clientY
+                }, delta = {
+                    "x": me.resizerLastPoint.x - currentPoint.x,
+                    "y": me.resizerLastPoint.y - currentPoint.y
+                }, rect = {
+                    "width": me.width,
+                    "height": me.height,
+                    "x": me.x,
+                    "y": me.y
+                };
+                switch (me.resizerType) {
+                    case 4 /* N */:
+                        rect.y -= delta.y;
+                        rect.height += delta.y;
+                        break;
+                    case 5 /* S */:
+                        rect.height -= delta.y;
+                        break;
+                    case 6 /* W */:
+                        rect.x -= delta.x;
+                        rect.width += delta.x;
+                        break;
+                    case 7 /* E */:
+                        rect.width -= delta.x;
+                        break;
+                    case 2 /* SW */:
+                        rect.x -= delta.x;
+                        rect.width += delta.x;
+                        rect.height -= delta.y;
+                        break;
+                    case 3 /* SE */:
+                        rect.width -= delta.x;
+                        rect.height -= delta.y;
+                        break;
+                    case 0 /* NW */:
+                        rect.x -= delta.x;
+                        rect.y -= delta.y;
+                        rect.width += delta.x;
+                        rect.height += delta.y;
+                        break;
+                    case 1 /* NE */:
+                        rect.y -= delta.y;
+                        rect.width -= delta.x;
+                        rect.height += delta.y;
+                        break;
+                }
+                if (rect.width >= me.settings.minWidth && rect.height >= me.settings.minHeight) {
+                    if (rect.x != me.x) {
+                        me.x = rect.x;
+                    }
+                    if (rect.y != me.y) {
+                        me.y = rect.y;
+                    }
+                    if (rect.width != me.width) {
+                        me.width = rect.width;
+                    }
+                    if (rect.height != me.height) {
+                        me.height = rect.height;
+                    }
+                    me.resizerLastPoint.x = currentPoint.x;
+                    me.resizerLastPoint.y = currentPoint.y;
+                }
+            }
+            function onresizer_mouseup(evt) {
+                evt.preventDefault();
+                evt.stopPropagation();
+                me.resizerType = null;
+                document.body.removeEventListener('mousemove', onresizer_mousemove, true);
+                document.body.removeEventListener('mouseup', onresizer_mouseup, true);
+            }
+            me.resizer.addEventListener('mousedown', function (evt) {
+                var handle = evt.target || evt.toElement;
+                if (handle && DOM.hasClass(handle, 'handle')) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    switch (true) {
+                        case DOM.hasClass(handle, 'n'):
+                            me.resizerType = 4 /* N */;
+                            break;
+                        case DOM.hasClass(handle, 's'):
+                            me.resizerType = 5 /* S */;
+                            break;
+                        case DOM.hasClass(handle, 'w'):
+                            me.resizerType = 6 /* W */;
+                            break;
+                        case DOM.hasClass(handle, 'e'):
+                            me.resizerType = 7 /* E */;
+                            break;
+                        case DOM.hasClass(handle, 'nw'):
+                            me.resizerType = 0 /* NW */;
+                            break;
+                        case DOM.hasClass(handle, 'ne'):
+                            me.resizerType = 1 /* NE */;
+                            break;
+                        case DOM.hasClass(handle, 'sw'):
+                            me.resizerType = 2 /* SW */;
+                            break;
+                        case DOM.hasClass(handle, 'se'):
+                            me.resizerType = 3 /* SE */;
+                            break;
+                    }
+                    me.resizerLastPoint = {
+                        "x": evt.clientX,
+                        "y": evt.clientY
+                    };
+                    console.warn(me.resizerLastPoint);
+                    document.body.addEventListener('mousemove', onresizer_mousemove, true);
+                    document.body.addEventListener('mouseup', onresizer_mouseup, true);
+                }
+            }, true);
+        })(this);
+    };
+    UI_Dialog.onWinResize = function () {
+    };
+    return UI_Dialog;
+})(Events);
 /// <reference path="Types.ts" />
 /// <reference path="Events.ts" />
 /// <reference path="Throttler.ts" />

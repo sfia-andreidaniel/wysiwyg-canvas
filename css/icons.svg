@@ -14,7 +14,7 @@
    id="svg2"
    version="1.1"
    inkscape:version="0.91pre3 r13670"
-   sodipodi:docname="ms97-icons.svg">
+   sodipodi:docname="icons.svg">
   <defs
      id="defs4" />
   <sodipodi:namedview
@@ -25,16 +25,16 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="2.0000001"
-     inkscape:cx="116.91442"
-     inkscape:cy="8.2718989"
+     inkscape:cx="1.6644258"
+     inkscape:cy="7.7718989"
      inkscape:document-units="px"
-     inkscape:current-layer="text4243"
+     inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1920"
      inkscape:window-height="1018"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
-     inkscape:window-maximized="1"
+     inkscape:window-x="-32000"
+     inkscape:window-y="-32000"
+     inkscape:window-maximized="0"
      showguides="true"
      inkscape:guide-bbox="true">
     <sodipodi:guide
@@ -437,29 +437,27 @@
            sodipodi:role="line">2</tspan></text>
     </g>
     <g
-       id="g3419"
-       transform="translate(-252.32271,-125.34765)"
-       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       id="g4215"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90">
       <path
          style="fill:#000000;stroke:none"
-         d="m 297.62913,1144.1407 3.48029,3.4803 -3.45819,3.4582 1.02751,1.0275 3.49134,-3.4914 3.49134,3.4914 1.03856,-1.0386 -3.54658,-3.5466 3.46924,-3.4692 -1.03856,-1.0386 -3.49134,3.4914 -3.414,-3.414 c -0.34994,0.3498 -0.69975,0.6997 -1.04961,1.0496 z"
+         d="m 45.30642,1018.793 3.48029,3.4803 -3.45819,3.4583 1.02751,1.0274 3.49134,-3.4914 3.49134,3.4914 1.03856,-1.0386 -3.54658,-3.5466 3.46924,-3.4692 -1.03856,-1.0386 -3.49134,3.4914 -3.414,-3.414 c -0.34994,0.3498 -0.69975,0.6997 -1.04961,1.0496 z"
          id="path3399"
          inkscape:connector-curvature="0"
          sodipodi:nodetypes="ccccccccccccc" />
       <text
          xml:space="preserve"
-         style="font-size:5.95524168px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
-         x="307.87903"
-         y="1145.3925"
+         style="font-style:normal;font-weight:normal;font-size:5.95524168px;line-height:125%;font-family:Sans;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none"
+         x="55.55632"
+         y="1020.0448"
          id="text3401"
          sodipodi:linespacing="125%"><tspan
            sodipodi:role="line"
            id="tspan3403"
-           x="307.87903"
-           y="1145.3925"
-           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial;-inkscape-font-specification:Arial Bold">2</tspan></text>
+           x="55.55632"
+           y="1020.0448"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:Arial;-inkscape-font-specification:'Arial Bold'">2</tspan></text>
     </g>
     <path
        style="fill:#000000;stroke:none"
@@ -523,5 +521,13 @@
          inkscape:export-xdpi="90"
          inkscape:export-ydpi="90" />
     </g>
+    <path
+       style="fill:#000000;stroke:none"
+       d="m 45.30642,1038.793 3.48029,3.4803 -3.45819,3.4583 1.02751,1.0274 3.49134,-3.4914 3.49134,3.4914 1.03856,-1.0386 -3.54658,-3.5466 3.46924,-3.4692 -1.03856,-1.0386 -3.49134,3.4914 -3.414,-3.414 c -0.34994,0.3498 -0.69975,0.6997 -1.04961,1.0496 z"
+       id="path4213"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccccccccccc"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
   </g>
 </svg>

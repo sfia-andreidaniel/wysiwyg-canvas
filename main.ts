@@ -98,4 +98,4 @@
 /// <reference path="./UI/Toolbar/Panel/BordersAndColors.ts" />
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 
-
+/// <reference path="./UI/Dialog.ts" />

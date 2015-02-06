@@ -398,4 +398,96 @@ class HTML_Body extends TNode_Element {
 		return Helper.createCollectionFromHTMLText( s, this );
 	}
 
+	/* The body cannot have direct float=left or float=right children. */
+
+	public evaluateLayout( left: Layout_Block[], center: Layout_Block[], right: Layout_Block[], argIndex: number = 0 ): number {
+		var i: number = 0,
+		    len: number = this.childNodes.length,
+		    oldArgIndex: number = argIndex,
+		    currentArgIndex: number = argIndex,
+		    j: number = 0,
+		    n: number = 0,
+		    layoutType: string = '',
+		    lblock: Layout_Block,
+		    lchar: Layout_BlockChar,
+		    children: TNode[];
+
+		for ( i=0, children = this.childNodes, len = children.length; i<len; i++ ) {
+			
+			if ( children[i].nodeType == TNode_Type.TEXT ) {
+				currentArgIndex = 1;
+				layoutType = 'Layout_BlockChar';
+			
+			} else {
+				
+				switch ( true ) {
+					case (<TNode_Element>children[i]).style.display() == 'block':
+						layoutType = 'Layout_Block';
+						currentArgIndex = 1;
+						break;
+					default:
+						layoutType = 'Layout_BlockChar';
+						currentArgIndex = 1;
+						break;
+				}
+
+			}
+
+			switch ( layoutType ) {
+
+				case 'Layout_BlockChar':
+					
+					if ( currentArgIndex != oldArgIndex ) {
+					
+						lchar = new Layout_BlockChar();
+						center.push( lchar );
+					
+					} else {
+					
+						lchar = <Layout_BlockChar>( ( function() {
+								if ( center[ center.length - 1 ] && center[ center.length - 1 ].hasChars ) {
+									return center[ center.length - 1 ];
+								} else {
+									return null;
+								}
+
+							} )() || ( function() {
+								lchar = new Layout_BlockChar();
+								center.push( lchar );
+								return lchar;
+						} )() );
+					
+					}
+					
+					if ( children[i].nodeType == TNode_Type.TEXT ) {
+						lchar.addTextNode( <TNode_Text>children[i] );
+					} else {
+						currentArgIndex = (<TNode_Element>children[i]).evaluateLayout( left, center, right, currentArgIndex );
+					}
+
+					break;
+
+				case 'Layout_Block':
+					lblock = new Layout_Block( <TNode_Element>children[i] );
+					switch ( currentArgIndex ) {
+						case 0:
+							left.push( lblock );
+							break;
+						case 1:
+							center.push( lblock );
+							break;
+						case 2:
+							right.push( lblock );
+							break;
+					}
+					break;
+			}
+
+			oldArgIndex = currentArgIndex;
+		}
+
+		return currentArgIndex;
+
+	}
+
 }

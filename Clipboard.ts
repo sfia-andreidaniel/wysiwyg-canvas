@@ -41,8 +41,12 @@ class Clipboard extends Events {
 	    				return;
 	    			}
 
-	    			// the command is inside the trap
-	    			me.activeElement.execCommand( EditorCommand.CUT, false );
+	    			me.setContents( me.trap.value, 'text/html', TClipboardEffect.CUT );
+
+	    			setTimeout( function() {
+		    			// the command is inside the trap
+		    			me.activeElement.execCommand( EditorCommand.CUT, false );
+	    			}, 5 );
 	    		}
 
 	    	} );
@@ -213,15 +217,15 @@ window.addEventListener( 'load', function( e ) {
 
 	document.body.addEventListener( 'cut', function( evt ) {
 		Clipboard.singleton().fire( 'cut', evt );
-	}, false );
+	}, true );
 
 	document.body.addEventListener( 'copy', function( evt ) {
 		Clipboard.singleton().fire( 'copy', evt );
-	}, false );
+	}, true );
 
 	document.body.addEventListener( 'paste', function( evt ) {
 		Clipboard.singleton().fire( 'paste', evt );
-	}, false );
+	}, true );
 
 
 } );

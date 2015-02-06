@@ -266,6 +266,8 @@ class TNode_Element extends TNode {
 	*/
 
 	public evaluateLayout( left: Layout_Block[], center: Layout_Block[], right: Layout_Block[], argIndex: number = 0 ): number {
+		
+
 		var i: number = 0,
 		    len: number = this.childNodes.length,
 		    oldArgIndex: number = argIndex,
@@ -388,11 +390,33 @@ class TNode_Element extends TNode {
 		}
 	}
 
+	public xmlAttributes(): string {
+		var out: string[] = [];
+
+		if ( this.style._textAlign.isSet )
+			out.push( 'align="' + this.style.textAlign() + '"' );
+		
+		if ( this.style._color.isSet )
+			out.push( 'color="' + this.style.color() + '"' );
+		
+		if ( this.style._backgroundColor.isSet )
+			out.push( 'bgcolor="' + this.style.backgroundColor() + '"' );
+		
+		if ( this._tabStop )
+			out.push( 'data-tabstop="' + this._tabStop + '"' );
+
+		return out.join( ' ' );
+
+	}
+
 	/* Returns the element header as string ( for example for a "<p>asda</p>" it returns "<p>")
 	 */
 
 	public xmlBeginning(): string {
-		return '<' + this.nodeName + ( this._tabStop ? " data-tabstop=\"" + this._tabStop + "\"" : "" ) + ( this.childNodes.length ? '' : '/' ) + '>';
+		
+		var attrs: string = this.xmlAttributes();
+
+		return '<' + this.nodeName + ( attrs ? ' ' + attrs : '' ) + ( this.childNodes.length ? '' : '/' ) + '>';
 	}
 
 	/* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
@@ -860,6 +884,10 @@ class TNode_Element extends TNode {
 							this.childNodes[i].remove();
 						}
 					} 
+				}
+
+				if ( !this.childNodes.length ) {
+					this.remove();
 				}
 			
 			}

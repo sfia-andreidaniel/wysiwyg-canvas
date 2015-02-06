@@ -29,6 +29,35 @@ class TNode_Collection {
 		}
 	}
 
+	public isBlock( node: TNode ) {
+		
+		var is: string = node.is();
+
+		if ( is == '#text' ) {
+			return false;
+		} else {
+			if ( TNode_Collection.BLOCK_NODES_LIST.indexOf( is ) >= 0 && ['left', 'right'].indexOf( (<TNode_Element>node).style.float() ) == -1 ) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
+	public isInline( node: TNode ) {
+		var is: string = node.is();
+
+		if ( is == '#text' ) {
+			return true;
+		} else {
+			if ( TNode_Collection.INLINE_NODES_LIST.indexOf( is ) >= 0 || ['left', 'right'].indexOf( (<TNode_Element>node).style.float() ) >= 0 ) {
+				return true;
+			} else {
+				return false;
+			}
+		}
+	}
+
 	get length(): number {
 		return this.nodes.length;
 	}
@@ -131,10 +160,10 @@ class TNode_Collection {
 		
 
 		for ( i=minAfterLength; i<len; i++ ) {
-			if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
+			if ( this.isInline( this.nodes[i] ) ) {
 				m = 1;
 				for ( j=i + 1; j<len; j++ ) {
-					if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[j].is() ) > -1 ) {
+					if ( this.isInline( this.nodes[j] ) ) {
 						m++;
 					} else {
 						break;
@@ -161,10 +190,10 @@ class TNode_Collection {
 		    m: number = 0;
 
 		for ( i=minAfterLength; i<len; i++ ) {
-			if ( TNode_Collection.BLOCK_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
+			if ( this.isBlock( this.nodes[i] ) ) {
 				m = 1;
 				for ( j=i + 1; j<len; j++ ) {
-					if ( TNode_Collection.BLOCK_NODES_LIST.indexOf( this.nodes[j].is() ) > -1 ) {
+					if ( this.isBlock( this.nodes[j] ) ) {
 						m++;
 					} else {
 						break;
@@ -187,7 +216,7 @@ class TNode_Collection {
 		    inlineStartNodes: number = 0;
 
 		for ( i=0, len = this.nodes.length; i < len; i++ ) {
-			if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
+			if ( this.isInline( this.nodes[i] ) ) {
 				inlineStartNodes++;
 			} else {
 				break;
@@ -205,7 +234,7 @@ class TNode_Collection {
 	 */
 	public normalizeForHost( hostNodeName: string, unwrapNodes: string[] ): TNode_Collection {
 
-		console.warn( unwrapNodes );
+		//console.warn( unwrapNodes );
 
 		var doc: HTML_Body = this.nodes.length ? this.nodes[0].documentElement : null,
 			seq: { collection: TNode_Collection; index: number } = null,
@@ -251,7 +280,7 @@ class TNode_Collection {
 
 		if ( inlineStartNodes < len ) {
 			for ( i = len-1; i >= 0; i-- ) {
-				if ( TNode_Collection.INLINE_NODES_LIST.indexOf( this.nodes[i].is() ) > -1 ) {
+				if ( this.isInline( this.nodes[i] ) ) {
 					inlineEndNodes++;
 				} else {
 					break;

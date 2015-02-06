@@ -5,7 +5,7 @@ class DocSelection extends Events {
 
 	protected stateComputer : Throttler = null;              // a throttler that computes the editor state when the selection is changed
 	protected changeThrottler: Throttler = null;
-	public    editorState   : Selection_EditorState = null;
+	public    editorState    : Selection_EditorState = null;
 
 	// selection is painted with two colors, depending on
 	// the focus state of the viewport
@@ -117,14 +117,21 @@ class DocSelection extends Events {
 
 		if ( range.removeContents() ) {
 
+			
+			this.viewport.document.relayout(true);
 			this.viewport.document.removeOrphanNodes();
 
-			this.viewport.document.relayout(true);
+
+			range.restore();
+			
+			if (!range.focusNode() && range.anchorNode() && range.anchorNode().target.nodeType == TNode_Type.TEXT ) {
+				range.setFocusAndAnchorTo( range.anchorNode() );
+			}
+
+			range.collapse( true );
 
 		}
 
-		range.restore();
-		range.collapse();
 	}
 
 	/* This function is used by the default StatusBar, and *might* not treat
@@ -281,7 +288,7 @@ class DocSelection extends Events {
 				"index": afterNode.siblingIndex + 1
 			}
 
-			console.warn( 'insertion point is: ' + insertionPoint.element.xmlBeginning(), "index:" + insertionPoint.index );
+			//console.warn( 'insertion point is: ' + insertionPoint.element.xmlBeginning(), "index:" + insertionPoint.index );
 
 		}
 
@@ -349,10 +356,12 @@ class DocSelection extends Events {
 	public toString(): string {
 		var range = this.getRange();
 
-		if ( range.focusNode() ) {
+		if ( range.focusNode() && range.anchorNode() ) {
 			return range.createContextualFragment().toString( 'text/html', true );
 		} else {
-			return (<TNode_Element>range.anchorNode().target).outerHTML();
+			return (<TNode_Element>range.anchorNode().target).nodeType == TNode_Type.ELEMENT
+				? (<TNode_Element>range.anchorNode().target).outerHTML()
+				: '';
 		}
 	}
 

@@ -16,4 +16,10 @@ class TStyle_Property {
 		this.isSet = true;
 		this.value = v;
 	}
+
+	public copyTo( property: TStyle_Property ) {
+		property.value = this.value;
+		property.isSet = this.isSet;
+	}
+
 }

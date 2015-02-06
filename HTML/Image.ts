@@ -13,6 +13,7 @@ class HTML_Image extends TNode_Element {
 		this.style.display( 'block' );
 
 		( function( me ) {
+			
 			me.node.addEventListener( 'load', function() {
 				me.loaded = true;
 				me.error = false;
@@ -22,12 +23,14 @@ class HTML_Image extends TNode_Element {
 				}
 				me.requestRelayout();
 			}, false );
+
 			me.node.addEventListener( 'erorr', function() {
 				me.loaded = true;
 				me.error = true;
 				me.style.aspectRatio( '1' );
 				me.requestRelayout();
 			}, false );
+
 		} )( this );
 		if ( src !== null ) {
 			this.src( src );
@@ -140,13 +143,9 @@ class HTML_Image extends TNode_Element {
 			attrs.push( 'src="' + tmp + '"' );
 		}
 
-		if ( this.style._width.isSet ) {
-			attrs.push( 'width="' + this.style.width() + '"' );
-		}
+		attrs.push( 'width="' + ~~this.style.width() + '"' );
 
-		if ( this.style._height.isSet ) {
-			attrs.push( 'height="' + this.style.height() + '"' );
-		}
+		attrs.push( 'height="' + ~~this.style.height() + '"' );
 
 		if ( this.style._float.isSet ) {
 			attrs.push( 'align="' + this.style.float() + '"' );

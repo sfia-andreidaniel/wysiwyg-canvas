@@ -127,31 +127,6 @@ class Viewport_KeyboardDriver extends Events {
 				}
 				break;
 
-
-			/* These are handled for now by the Clipboard class.
-			
-			case 67: // c
-				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
-					this.viewport.execCommand( EditorCommand.COPY );
-					//cancelEvent = true;
-				}
-				break;
-
-			case 88: // x
-				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
-					this.viewport.execCommand( EditorCommand.CUT );
-					//cancelEvent = true;
-				}
-				break;
-
-			case 86: // v
-				if ( DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
-					this.viewport.execCommand( EditorCommand.PASTE );
-					//cancelEvent = true;
-				}
-				break;
-			*/
-
 			case 189: // -
 				if ( DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.SIZE, '-1' );

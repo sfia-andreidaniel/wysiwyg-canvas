@@ -389,7 +389,9 @@ class TStyle extends Events {
 	public float( v: string = null ): string {
 		
 		if ( v === null ) {
+
 			return this._float.get();
+
 		} else {
 
 			this._float.set( v );
@@ -463,6 +465,18 @@ class TStyle extends Events {
 
 	public offsetHeight(): number {
 		return this.borderWidth() + this.paddingTop() + this.height() + this.paddingRight() + this.borderWidth();
+	}
+
+	public copyTo( style: TStyle, properties: string[] ) {
+		
+		for ( var i=0, len = properties.length; i<len; i++ ) {
+
+			if ( properties[i] && this[ '_' + properties[i] ] && style[ '_' + properties[i] ] && typeof this[ '_' + properties[i] ].isSet != 'undefined' ) {
+				this[ '_' + properties[i] ].copyTo( style[ '_' + properties[i] ] );
+			}
+
+		}
+
 	}
 
 }

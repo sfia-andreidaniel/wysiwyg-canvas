@@ -1035,10 +1035,23 @@ var TNode_Element = (function (_super) {
             this.setInnerNodes(nodes);
         }
     };
+    TNode_Element.prototype.xmlAttributes = function () {
+        var out = [];
+        if (this.style._textAlign.isSet)
+            out.push('align="' + this.style.textAlign() + '"');
+        if (this.style._color.isSet)
+            out.push('color="' + this.style.color() + '"');
+        if (this.style._backgroundColor.isSet)
+            out.push('bgcolor="' + this.style.backgroundColor() + '"');
+        if (this._tabStop)
+            out.push('data-tabstop="' + this._tabStop + '"');
+        return out.join(' ');
+    };
     /* Returns the element header as string ( for example for a "<p>asda</p>" it returns "<p>")
      */
     TNode_Element.prototype.xmlBeginning = function () {
-        return '<' + this.nodeName + (this._tabStop ? " data-tabstop=\"" + this._tabStop + "\"" : "") + (this.childNodes.length ? '' : '/') + '>';
+        var attrs = this.xmlAttributes();
+        return '<' + this.nodeName + (attrs ? ' ' + attrs : '') + (this.childNodes.length ? '' : '/') + '>';
     };
     /* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
      */
@@ -1386,6 +1399,9 @@ var TNode_Element = (function (_super) {
                             this.childNodes[i].remove();
                         }
                     }
+                }
+                if (!this.childNodes.length) {
+                    this.remove();
                 }
             }
         }
@@ -1761,6 +1777,34 @@ var TNode_Collection = (function () {
             }
         }
     }
+    TNode_Collection.prototype.isBlock = function (node) {
+        var is = node.is();
+        if (is == '#text') {
+            return false;
+        }
+        else {
+            if (TNode_Collection.BLOCK_NODES_LIST.indexOf(is) >= 0 && ['left', 'right'].indexOf(node.style.float()) == -1) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+    };
+    TNode_Collection.prototype.isInline = function (node) {
+        var is = node.is();
+        if (is == '#text') {
+            return true;
+        }
+        else {
+            if (TNode_Collection.INLINE_NODES_LIST.indexOf(is) >= 0 || ['left', 'right'].indexOf(node.style.float()) >= 0) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+    };
     Object.defineProperty(TNode_Collection.prototype, "length", {
         get: function () {
             return this.nodes.length;
@@ -1837,10 +1881,10 @@ var TNode_Collection = (function () {
         if (maxBeforeLength === void 0) { maxBeforeLength = 0; }
         var i = 0, j = 0, len = this.nodes.length - maxBeforeLength, nodes = [], m = 0;
         for (i = minAfterLength; i < len; i++) {
-            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+            if (this.isInline(this.nodes[i])) {
                 m = 1;
                 for (j = i + 1; j < len; j++) {
-                    if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[j].is()) > -1) {
+                    if (this.isInline(this.nodes[j])) {
                         m++;
                     }
                     else {
@@ -1862,10 +1906,10 @@ var TNode_Collection = (function () {
         if (maxBeforeLength === void 0) { maxBeforeLength = 0; }
         var i = 0, j = 0, len = this.nodes.length - maxBeforeLength, nodes = [], m = 0;
         for (i = minAfterLength; i < len; i++) {
-            if (TNode_Collection.BLOCK_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+            if (this.isBlock(this.nodes[i])) {
                 m = 1;
                 for (j = i + 1; j < len; j++) {
-                    if (TNode_Collection.BLOCK_NODES_LIST.indexOf(this.nodes[j].is()) > -1) {
+                    if (this.isBlock(this.nodes[j])) {
                         m++;
                     }
                     else {
@@ -1882,7 +1926,7 @@ var TNode_Collection = (function () {
     TNode_Collection.prototype.computeInlineStartNodes = function () {
         var i = 0, len = 0, inlineStartNodes = 0;
         for (i = 0, len = this.nodes.length; i < len; i++) {
-            if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+            if (this.isInline(this.nodes[i])) {
                 inlineStartNodes++;
             }
             else {
@@ -1895,7 +1939,7 @@ var TNode_Collection = (function () {
      * This method is used by Selection.insertHTML.
      */
     TNode_Collection.prototype.normalizeForHost = function (hostNodeName, unwrapNodes) {
-        console.warn(unwrapNodes);
+        //console.warn( unwrapNodes );
         var doc = this.nodes.length ? this.nodes[0].documentElement : null, seq = null, wrap, inlineStartNodes = 0, inlineEndNodes = 0, len = 0, i = 0, j = 0, n = 0;
         if (doc === null) {
             return this;
@@ -1921,7 +1965,7 @@ var TNode_Collection = (function () {
         }
         if (inlineStartNodes < len) {
             for (i = len - 1; i >= 0; i--) {
-                if (TNode_Collection.INLINE_NODES_LIST.indexOf(this.nodes[i].is()) > -1) {
+                if (this.isInline(this.nodes[i])) {
                     inlineEndNodes++;
                 }
                 else {
@@ -2711,6 +2755,73 @@ var HTML_Body = (function (_super) {
     HTML_Body.prototype.createCollectionFromHTMLText = function (s) {
         return Helper.createCollectionFromHTMLText(s, this);
     };
+    /* The body cannot have direct float=left or float=right children. */
+    HTML_Body.prototype.evaluateLayout = function (left, center, right, argIndex) {
+        if (argIndex === void 0) { argIndex = 0; }
+        var i = 0, len = this.childNodes.length, oldArgIndex = argIndex, currentArgIndex = argIndex, j = 0, n = 0, layoutType = '', lblock, lchar, children;
+        for (i = 0, children = this.childNodes, len = children.length; i < len; i++) {
+            if (children[i].nodeType == 1 /* TEXT */) {
+                currentArgIndex = 1;
+                layoutType = 'Layout_BlockChar';
+            }
+            else {
+                switch (true) {
+                    case children[i].style.display() == 'block':
+                        layoutType = 'Layout_Block';
+                        currentArgIndex = 1;
+                        break;
+                    default:
+                        layoutType = 'Layout_BlockChar';
+                        currentArgIndex = 1;
+                        break;
+                }
+            }
+            switch (layoutType) {
+                case 'Layout_BlockChar':
+                    if (currentArgIndex != oldArgIndex) {
+                        lchar = new Layout_BlockChar();
+                        center.push(lchar);
+                    }
+                    else {
+                        lchar = ((function () {
+                            if (center[center.length - 1] && center[center.length - 1].hasChars) {
+                                return center[center.length - 1];
+                            }
+                            else {
+                                return null;
+                            }
+                        })() || (function () {
+                            lchar = new Layout_BlockChar();
+                            center.push(lchar);
+                            return lchar;
+                        })());
+                    }
+                    if (children[i].nodeType == 1 /* TEXT */) {
+                        lchar.addTextNode(children[i]);
+                    }
+                    else {
+                        currentArgIndex = children[i].evaluateLayout(left, center, right, currentArgIndex);
+                    }
+                    break;
+                case 'Layout_Block':
+                    lblock = new Layout_Block(children[i]);
+                    switch (currentArgIndex) {
+                        case 0:
+                            left.push(lblock);
+                            break;
+                        case 1:
+                            center.push(lblock);
+                            break;
+                        case 2:
+                            right.push(lblock);
+                            break;
+                    }
+                    break;
+            }
+            oldArgIndex = currentArgIndex;
+        }
+        return currentArgIndex;
+    };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
         'canvas',
@@ -3012,12 +3123,8 @@ var HTML_Image = (function (_super) {
         if (tmp = this.src()) {
             attrs.push('src="' + tmp + '"');
         }
-        if (this.style._width.isSet) {
-            attrs.push('width="' + this.style.width() + '"');
-        }
-        if (this.style._height.isSet) {
-            attrs.push('height="' + this.style.height() + '"');
-        }
+        attrs.push('width="' + ~~this.style.width() + '"');
+        attrs.push('height="' + ~~this.style.height() + '"');
         if (this.style._float.isSet) {
             attrs.push('align="' + this.style.float() + '"');
         }
@@ -4645,6 +4752,13 @@ var TStyle = (function (_super) {
     TStyle.prototype.offsetHeight = function () {
         return this.borderWidth() + this.paddingTop() + this.height() + this.paddingRight() + this.borderWidth();
     };
+    TStyle.prototype.copyTo = function (style, properties) {
+        for (var i = 0, len = properties.length; i < len; i++) {
+            if (properties[i] && this['_' + properties[i]] && style['_' + properties[i]] && typeof this['_' + properties[i]].isSet != 'undefined') {
+                this['_' + properties[i]].copyTo(style['_' + properties[i]]);
+            }
+        }
+    };
     TStyle.$FontFamily = [
         "Arial",
         "Calibri",
@@ -4988,6 +5102,10 @@ var TStyle_Property = (function () {
         this.isSet = true;
         this.value = v;
     };
+    TStyle_Property.prototype.copyTo = function (property) {
+        property.value = this.value;
+        property.isSet = this.isSet;
+    };
     return TStyle_Property;
 })();
 var TStyle_PropertyInheritable = (function (_super) {
@@ -5116,146 +5234,146 @@ var TStyle_Color = (function (_super) {
         this.isSet = false;
     };
     TStyle_Color.$NamedColors = {
-        "aliceblue": "#f0f8ff",
-        "antiquewhite": "#faebd7",
-        "aqua": "#00ffff",
-        "aquamarine": "#7fffd4",
-        "azure": "#f0ffff",
-        "beige": "#f5f5dc",
-        "bisque": "#ffe4c4",
-        "black": "#000000",
-        "blanchedalmond": "#ffebcd",
-        "blue": "#0000ff",
-        "blueviolet": "#8a2be2",
-        "brown": "#a52a2a",
-        "burlywood": "#deb887",
-        "cadetblue": "#5f9ea0",
-        "chartreuse": "#7fff00",
-        "chocolate": "#d2691e",
-        "coral": "#ff7f50",
-        "cornflowerblue": "#6495ed",
-        "cornsilk": "#fff8dc",
-        "crimson": "#dc143c",
-        "cyan": "#00ffff",
-        "darkblue": "#00008b",
-        "darkcyan": "#008b8b",
-        "darkgoldenrod": "#b8860b",
-        "darkgray": "#a9a9a9",
-        "darkgreen": "#006400",
-        "darkkhaki": "#bdb76b",
-        "darkmagenta": "#8b008b",
-        "darkolivegreen": "#556b2f",
-        "darkorange": "#ff8c00",
-        "darkorchid": "#9932cc",
-        "darkred": "#8b0000",
-        "darksalmon": "#e9967a",
-        "darkseagreen": "#8fbc8f",
-        "darkslateblue": "#483d8b",
-        "darkslategray": "#2f4f4f",
-        "darkturquoise": "#00ced1",
-        "darkviolet": "#9400d3",
-        "deeppink": "#ff1493",
-        "deepskyblue": "#00bfff",
-        "dimgray": "#696969",
-        "dodgerblue": "#1e90ff",
-        "firebrick": "#b22222",
-        "floralwhite": "#fffaf0",
-        "forestgreen": "#228b22",
-        "fuchsia": "#ff00ff",
-        "gainsboro": "#dcdcdc",
-        "ghostwhite": "#f8f8ff",
-        "gold": "#ffd700",
-        "goldenrod": "#daa520",
-        "gray": "#808080",
-        "green": "#008000",
-        "greenyellow": "#adff2f",
-        "honeydew": "#f0fff0",
-        "hotpink": "#ff69b4",
-        "indianred ": "#cd5c5c",
-        "indigo  ": "#4b0082",
-        "ivory": "#fffff0",
-        "khaki": "#f0e68c",
-        "lavender": "#e6e6fa",
-        "lavenderblush": "#fff0f5",
-        "lawngreen": "#7cfc00",
-        "lemonchiffon": "#fffacd",
-        "lightblue": "#add8e6",
-        "lightcoral": "#f08080",
-        "lightcyan": "#e0ffff",
-        "lightgoldenrodyellow": "#fafad2",
-        "lightgray": "#d3d3d3",
-        "lightgreen": "#90ee90",
-        "lightpink": "#ffb6c1",
-        "lightsalmon": "#ffa07a",
-        "lightseagreen": "#20b2aa",
-        "lightskyblue": "#87cefa",
-        "lightslategray": "#778899",
-        "lightsteelblue": "#b0c4de",
-        "lightyellow": "#ffffe0",
-        "lime": "#00ff00",
-        "limegreen": "#32cd32",
-        "linen": "#faf0e6",
-        "magenta": "#ff00ff",
-        "maroon": "#800000",
-        "mediumaquamarine": "#66cdaa",
-        "mediumblue": "#0000cd",
-        "mediumorchid": "#ba55d3",
-        "mediumpurple": "#9370db",
-        "mediumseagreen": "#3cb371",
-        "mediumslateblue": "#7b68ee",
-        "mediumspringgreen": "#00fa9a",
-        "mediumturquoise": "#48d1cc",
-        "mediumvioletred": "#c71585",
-        "midnightblue": "#191970",
-        "mintcream": "#f5fffa",
-        "mistyrose": "#ffe4e1",
-        "moccasin": "#ffe4b5",
-        "navajowhite": "#ffdead",
-        "navy": "#000080",
-        "oldlace": "#fdf5e6",
-        "olive": "#808000",
-        "olivedrab": "#6b8e23",
-        "orange": "#ffa500",
-        "orangered": "#ff4500",
-        "orchid": "#da70d6",
-        "palegoldenrod": "#eee8aa",
-        "palegreen": "#98fb98",
-        "paleturquoise": "#afeeee",
-        "palevioletred": "#db7093",
-        "papayawhip": "#ffefd5",
-        "peachpuff": "#ffdab9",
-        "peru": "#cd853f",
-        "pink": "#ffc0cb",
-        "plum": "#dda0dd",
-        "powderblue": "#b0e0e6",
-        "purple": "#800080",
-        "red": "#ff0000",
-        "rosybrown": "#bc8f8f",
-        "royalblue": "#4169e1",
-        "saddlebrown": "#8b4513",
-        "salmon": "#fa8072",
-        "sandybrown": "#f4a460",
-        "seagreen": "#2e8b57",
-        "seashell": "#fff5ee",
-        "sienna": "#a0522d",
-        "silver": "#c0c0c0",
-        "skyblue": "#87ceeb",
-        "slateblue": "#6a5acd",
-        "slategray": "#708090",
-        "snow": "#fffafa",
-        "springgreen": "#00ff7f",
-        "steelblue": "#4682b4",
-        "tan": "#d2b48c",
-        "teal": "#008080",
-        "thistle": "#d8bfd8",
-        "tomato": "#ff6347",
-        "turquoise": "#40e0d0",
-        "violet": "#ee82ee",
-        "wheat": "#f5deb3",
-        "white": "#ffffff",
-        "whitesmoke": "#f5f5f5",
-        "yellow": "#ffff00",
-        "yellowgreen": "#9acd32"
+        white: "#ffffff",
+        ivory: "#fffff0",
+        lightyellow: "#ffffe0",
+        yellow: "#ffff00",
+        snow: "#fffafa",
+        floralwhite: "#fffaf0",
+        lemonchiffon: "#fffacd",
+        cornsilk: "#fff8dc",
+        seashell: "#fff5ee",
+        lavenderblush: "#fff0f5",
+        papayawhip: "#ffefd5",
+        blanchedalmond: "#ffebcd",
+        mistyrose: "#ffe4e1",
+        bisque: "#ffe4c4",
+        moccasin: "#ffe4b5",
+        navajowhite: "#ffdead",
+        peachpuff: "#ffdab9",
+        gold: "#ffd700",
+        pink: "#ffc0cb",
+        lightpink: "#ffb6c1",
+        orange: "#ffa500",
+        lightsalmon: "#ffa07a",
+        darkorange: "#ff8c00",
+        coral: "#ff7f50",
+        hotpink: "#ff69b4",
+        tomato: "#ff6347",
+        orangered: "#ff4500",
+        deeppink: "#ff1493",
+        fuchsia: "#ff00ff",
+        magenta: "#ff00ff",
+        red: "#ff0000",
+        oldlace: "#fdf5e6",
+        lightgoldenrodyellow: "#fafad2",
+        linen: "#faf0e6",
+        antiquewhite: "#faebd7",
+        salmon: "#fa8072",
+        ghostwhite: "#f8f8ff",
+        mintcream: "#f5fffa",
+        whitesmoke: "#f5f5f5",
+        beige: "#f5f5dc",
+        wheat: "#f5deb3",
+        sandybrown: "#f4a460",
+        azure: "#f0ffff",
+        honeydew: "#f0fff0",
+        aliceblue: "#f0f8ff",
+        khaki: "#f0e68c",
+        lightcoral: "#f08080",
+        palegoldenrod: "#eee8aa",
+        violet: "#ee82ee",
+        darksalmon: "#e9967a",
+        lavender: "#e6e6fa",
+        lightcyan: "#e0ffff",
+        burlywood: "#deb887",
+        plum: "#dda0dd",
+        gainsboro: "#dcdcdc",
+        crimson: "#dc143c",
+        palevioletred: "#db7093",
+        goldenrod: "#daa520",
+        orchid: "#da70d6",
+        thistle: "#d8bfd8",
+        lightgray: "#d3d3d3",
+        tan: "#d2b48c",
+        chocolate: "#d2691e",
+        peru: "#cd853f",
+        indianred: "#cd5c5c",
+        mediumvioletred: "#c71585",
+        silver: "#c0c0c0",
+        darkkhaki: "#bdb76b",
+        rosybrown: "#bc8f8f",
+        mediumorchid: "#ba55d3",
+        darkgoldenrod: "#b8860b",
+        firebrick: "#b22222",
+        powderblue: "#b0e0e6",
+        lightsteelblue: "#b0c4de",
+        paleturquoise: "#afeeee",
+        greenyellow: "#adff2f",
+        lightblue: "#add8e6",
+        darkgray: "#a9a9a9",
+        brown: "#a52a2a",
+        sienna: "#a0522d",
+        yellowgreen: "#9acd32",
+        darkorchid: "#9932cc",
+        palegreen: "#98fb98",
+        darkviolet: "#9400d3",
+        mediumpurple: "#9370db",
+        lightgreen: "#90ee90",
+        darkseagreen: "#8fbc8f",
+        saddlebrown: "#8b4513",
+        darkmagenta: "#8b008b",
+        darkred: "#8b0000",
+        blueviolet: "#8a2be2",
+        lightskyblue: "#87cefa",
+        skyblue: "#87ceeb",
+        gray: "#808080",
+        olive: "#808000",
+        purple: "#800080",
+        maroon: "#800000",
+        aquamarine: "#7fffd4",
+        chartreuse: "#7fff00",
+        lawngreen: "#7cfc00",
+        mediumslateblue: "#7b68ee",
+        lightslategray: "#778899",
+        slategray: "#708090",
+        olivedrab: "#6b8e23",
+        slateblue: "#6a5acd",
+        dimgray: "#696969",
+        mediumaquamarine: "#66cdaa",
+        cornflowerblue: "#6495ed",
+        cadetblue: "#5f9ea0",
+        darkolivegreen: "#556b2f",
+        indigo: "#4b0082",
+        mediumturquoise: "#48d1cc",
+        darkslateblue: "#483d8b",
+        steelblue: "#4682b4",
+        royalblue: "#4169e1",
+        turquoise: "#40e0d0",
+        mediumseagreen: "#3cb371",
+        limegreen: "#32cd32",
+        darkslategray: "#2f4f4f",
+        seagreen: "#2e8b57",
+        forestgreen: "#228b22",
+        lightseagreen: "#20b2aa",
+        dodgerblue: "#1e90ff",
+        midnightblue: "#191970",
+        aqua: "#00ffff",
+        cyan: "#00ffff",
+        springgreen: "#00ff7f",
+        lime: "#00ff00",
+        mediumspringgreen: "#00fa9a",
+        darkturquoise: "#00ced1",
+        deepskyblue: "#00bfff",
+        darkcyan: "#008b8b",
+        teal: "#008080",
+        green: "#008000",
+        darkgreen: "#006400",
+        blue: "#0000ff",
+        mediumblue: "#0000cd",
+        darkblue: "#00008b",
+        navy: "#000080",
+        black: "#000000"
     };
     return TStyle_Color;
 })(TStyle_PropertyInheritable);
@@ -7928,8 +8046,11 @@ var Clipboard = (function (_super) {
                     if (!me.trap.value) {
                         return;
                     }
-                    // the command is inside the trap
-                    me.activeElement.execCommand(11 /* CUT */, false);
+                    me.setContents(me.trap.value, 'text/html', 1 /* CUT */);
+                    setTimeout(function () {
+                        // the command is inside the trap
+                        me.activeElement.execCommand(11 /* CUT */, false);
+                    }, 5);
                 }
             });
             me.on('copy', function (evt) {
@@ -8064,13 +8185,13 @@ window.addEventListener('load', function (e) {
     });
     document.body.addEventListener('cut', function (evt) {
         Clipboard.singleton().fire('cut', evt);
-    }, false);
+    }, true);
     document.body.addEventListener('copy', function (evt) {
         Clipboard.singleton().fire('copy', evt);
-    }, false);
+    }, true);
     document.body.addEventListener('paste', function (evt) {
         Clipboard.singleton().fire('paste', evt);
-    }, false);
+    }, true);
 });
 var Fragment = (function () {
     function Fragment(document) {
@@ -8236,7 +8357,7 @@ var Fragment_CaretLock = (function () {
                     len++;
                 }
             }
-            i = lockIndex + 1;
+            i = lockIndex + (this.fragment.at(lockIndex) == 2 /* EOL */ ? 0 : 1);
             n = this.fragment.length();
             while (i < n) {
                 at = this.fragment.at(i);
@@ -8278,28 +8399,19 @@ var Fragment_CaretLock = (function () {
         if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
             for (i = 0, len = this.fragment.length(); i < len; i++) {
                 at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */ || (at == 2 /* EOL */ && n == chars - 1)) {
-                    if (at == 2 /* EOL */ && n == chars - 1) {
-                        // HACK 1: There is a particular case in which we should not consider this particular case :)) hehe
-                        // HACK 2 (when HACK 1 should not work): Found a 2nd particular case of this particular case when we should not cancel ... :(
-                        if (this.fragment.at(i + 1) == 1 /* NODE_END */ && this.fragment.getNodeAtIndex(i + 1).isBlockTextNode) {
-                            if (this.canCancelEOL)
-                                continue;
-                        }
-                    }
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
                     n++;
                     if (n == chars) {
-                        if (this.startedEOL && at != 2 /* EOL */) {
+                        if (this.startedEOL) {
                             n = i + 1;
                             while (n < len) {
                                 at = this.fragment.at(n);
                                 if (at == 2 /* EOL */) {
+                                    i = n;
                                     break;
                                 }
                                 else {
                                     if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                                        // gotcha
-                                        i = n;
                                         break;
                                     }
                                 }
@@ -9508,11 +9620,14 @@ var DocSelection = (function (_super) {
         var range = this.getRange(), atEnd = false, len = range.length();
         range.save();
         if (range.removeContents()) {
-            this.viewport.document.removeOrphanNodes();
             this.viewport.document.relayout(true);
+            this.viewport.document.removeOrphanNodes();
+            range.restore();
+            if (!range.focusNode() && range.anchorNode() && range.anchorNode().target.nodeType == 1 /* TEXT */) {
+                range.setFocusAndAnchorTo(range.anchorNode());
+            }
+            range.collapse(true);
         }
-        range.restore();
-        range.collapse();
     };
     /* This function is used by the default StatusBar, and *might* not treat
        all the test cases.
@@ -9610,7 +9725,6 @@ var DocSelection = (function (_super) {
                 "element": afterNode.parentNode,
                 "index": afterNode.siblingIndex + 1
             };
-            console.warn('insertion point is: ' + insertionPoint.element.xmlBeginning(), "index:" + insertionPoint.index);
         }
         leftSibling = insertionPoint.element.childNodes[insertionPoint.index - 1] || null;
         rightSibling = insertionPoint.element.childNodes[insertionPoint.index] || null;
@@ -9661,11 +9775,11 @@ var DocSelection = (function (_super) {
     };
     DocSelection.prototype.toString = function () {
         var range = this.getRange();
-        if (range.focusNode()) {
+        if (range.focusNode() && range.anchorNode()) {
             return range.createContextualFragment().toString('text/html', true);
         }
         else {
-            return range.anchorNode().target.outerHTML();
+            return range.anchorNode().target.nodeType == 2 /* ELEMENT */ ? range.anchorNode().target.outerHTML() : '';
         }
     };
     DocSelection.prototype.onchanged = function () {

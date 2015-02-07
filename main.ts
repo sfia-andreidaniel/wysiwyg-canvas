@@ -88,7 +88,10 @@
 /// <reference path="./Selection/EditorState.ts" />
 
 /// <reference path="./HTMLEditor.ts" />
+
+/// <reference path="./UI/Resources.ts" />
 /// <reference path="./UI/Toolbar.ts" />
+
 /// <reference path="./UI/Toolbar/Panel.ts" />
 /// <reference path="./UI/Toolbar/Panel/Style.ts" />
 /// <reference path="./UI/Toolbar/Panel/Formatting.ts" />
@@ -99,3 +102,4 @@
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 
 /// <reference path="./UI/Dialog.ts" />
+/// <reference path="./UI/Dialog/InsertPicture" />

@@ -1,0 +1,58 @@
+var fs = require('fs'),
+    files = fs.readdirSync( __dirname + '/resources' ),
+    out= [
+    	"class UI_Resources {"
+    ],
+    props = [];
+
+for ( var i=0, len = files.length; i<len; i++ ) {
+	( function( fileName ) {
+		var fileData = fs.readFileSync( __dirname + '/resources/' + files[i] ),
+		    fileExt  = fileName.replace( /^(.*)\./g, '' ).toLowerCase();
+
+		if ( ['html','css','txt'].indexOf( fileExt ) == -1 ) {
+			
+			fileData = fileData.toString('base64');
+
+			if ( ['jpg', 'png', 'img', 'gif', 'jpeg' ].indexOf( fileExt ) != 0 ) {
+				fileData = 'data:image/' + ( fileExt == 'img' ? 'png' : fileExt ) + ';base64,' + fileData;
+			}
+
+		}
+
+		out.push( '    public static ' + fileExt + '_' + fileName.replace(/\.(.*)$/, '' ) + " : string = " + JSON.stringify( fileData + '' ) + ';' );
+
+		props.push( fileExt + '_' + fileName.replace(/\.(.*)$/, '' ) );
+
+	} )( files[i] );
+}
+
+out.push( '' );
+
+out.push( [
+
+	'    public static _init_( ) {',
+	'        var props = ' + JSON.stringify( props ) + ';',
+	'        for ( var i=0, len = props.length; i<len; i++ ) {',
+	'            if ( /^html_/.test( props[i] ) ) {',
+	'                UI_Resources._patch_( props[i] );',
+	'            }',
+	'        }',
+	'    }',
+	'    public static _patch_( propertyName ) {',
+	'        var s: string = UI_Resources[propertyName],',
+    '            matches;',
+    '        while ( matches = /(\\{([a-zA-Z\\d\\_]+)\\})/.exec( s ) ) {',
+    '            s = s.replace( matches[1], UI_Resources[matches[2]] || "" );',
+    '        }',
+    '        //console.log( "patched: ", propertyName, ", value: ", s );',
+    '        UI_Resources[ propertyName ] = s;',
+	'    }'
+].join( '\r\n' ) );
+
+out.push( '}' );
+
+out.push( '' );
+out.push( 'UI_Resources._init_();' );
+
+fs.writeFileSync( __dirname + '/UI/Resources.ts', out.join( '\r\n' ) );

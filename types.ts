@@ -175,6 +175,13 @@ interface TClipboardItem {
 	type: string;
 }
 
+interface UI_DialogButtonConfig {
+	name: string;
+	callback: () => void;
+	default?: boolean;
+	cancel?: boolean;
+}
+
 interface UI_DialogConfig {
 
 	x?: number;
@@ -190,6 +197,12 @@ interface UI_DialogConfig {
 	closable?: boolean;
 	resizable?: boolean;
 
-	maxWidth?: number;
-	maxHeight?: number;
+	minWidth?: number;
+	minHeight?: number;
+
+	modal?: boolean;
+
+	innerHTML?: string;
+
+	buttons?: UI_DialogButtonConfig[];
 }

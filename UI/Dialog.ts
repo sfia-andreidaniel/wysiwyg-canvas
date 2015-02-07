@@ -4,9 +4,10 @@ class UI_Dialog extends Events {
 	protected outerNode = document.createElement( 'div' );
 	protected titlebar  = document.createElement( 'div' );
 	protected label     = document.createElement( 'div' );
-	protected buttons   = document.createElement( 'div' );
+	protected btns      = document.createElement( 'div' );
 	protected body      = document.createElement( 'div' );
 	protected resizer   = document.createElement( 'div' );
+	protected footerButtons = document.createElement( 'div' );
 
 	/* Resizing stuff */
 	protected resizerType      : TResizer = null;
@@ -22,39 +23,56 @@ class UI_Dialog extends Events {
 		"minHeight"	: 10,
 		"childOf"   : null,
 		"x"         : 0,
-		"y"         : 0
+		"y"         : 0,
+		"modal"     : false,
+		"buttons"   : []
 	};
 
 	constructor( config: UI_DialogConfig ) {
 		super();
 
 		this.titlebar.appendChild( this.label );
-		this.titlebar.appendChild( this.buttons );
+		this.titlebar.appendChild( this.btns );
 		
 		this.outerNode.appendChild( this.resizer );
 		this.resizer.innerHTML = '<div class="handle n"></div><div class="handle s"></div><div class="handle w"></div><div class="handle e"></div><div class="handle nw"></div><div class="handle ne"></div><div class="handle sw"></div><div class="handle se"></div>';
 
 		this.resizer.appendChild( this.titlebar );
 		this.resizer.appendChild( this.body );
+		this.resizer.appendChild( this.footerButtons );
 
 		DOM.addClass( this.outerNode, 'ui-dialog' );
+
+		DOM.addClass( this.outerNode.appendChild( document.createElement( 'div' ) ), 'modal' );
 
 		DOM.addClass( this.resizer, 'resizer' );
 		
 		DOM.addClass( this.titlebar, 'titlebar' );
 		DOM.addClass( this.label, 'caption' );
-		DOM.addClass( this.buttons, 'buttons' );
+		DOM.addClass( this.btns, 'buttons' );
+		DOM.addClass( this.footerButtons, 'buttons-footer' );
 
 		DOM.addClass( this.body, 'body' );
 
-		this.width = typeof config.width == 'undefined' ? this.settings.width : config.width;
-		this.height = typeof config.height == 'undefined' ? this.settings.height : config.height;
-		this.caption = typeof config.caption == 'undefined' ? this.settings.caption : config.caption;
-		this.closable = typeof config.closable == 'undefined' ? this.settings.closable : config.closable;
+		this.width 		= typeof config.width 	 == 'undefined' ? this.settings.width 		: config.width;
+		this.height 	= typeof config.height 	 == 'undefined' ? this.settings.height 		: config.height;
+		this.caption 	= typeof config.caption  == 'undefined' ? this.settings.caption 	: config.caption;
+		this.closable 	= typeof config.closable == 'undefined' ? this.settings.closable	: config.closable;
+		this.modal 		= typeof config.modal    == 'undefined' ? this.settings.modal 		: config.modal;
+		this.childOf 	= typeof config.childOf  == 'undefined' ? this.settings.childOf 	: config.childOf;
+		this.x          = typeof config.x        == 'undefined' ? this.settings.x           : config.x;
+		this.y          = typeof config.y        == 'undefined' ? this.settings.y           : config.y;
+		this.minWidth   = typeof config.minWidth == 'undefined' ? this.settings.minWidth    : config.minWidth;
+		this.minHeight  = typeof config.minHeight== 'undefined' ? this.settings.minHeight   : config.minHeight;
+		this.innerHTML  = typeof config.innerHTML== 'undefined' ? this.settings.innerHTML   : config.innerHTML;
+		this.buttons    = typeof config.buttons  == 'undefined' ? this.settings.buttons     : config.buttons;
 
-		this.childOf = typeof config.childOf == 'undefined' ? this.settings.childOf : config.childOf;
+		this.outerNode['dialog'] = this;
 
 		this._initResizer_();
+		this._initKeyboard_();
+
+		this.outerNode.tabIndex = 0;
 
 	}
 
@@ -62,13 +80,13 @@ class UI_Dialog extends Events {
 		return this.settings.x;
 	}
 
-	get y(): number {
-		return this.settings.y;
-	}
-
 	set x( num: number ){
 		this.settings.x = ~~num;
 		this.outerNode.style.left = this.settings.x + "px";
+	}
+
+	get y(): number {
+		return this.settings.y;
 	}
 
 	set y( num: number ) {
@@ -91,7 +109,8 @@ class UI_Dialog extends Events {
 
 	set height( v: number ) {
 		this.settings.height = ~~v;
-		this.outerNode.style.height = v + 30 + "px";
+		this.outerNode.style.height = v + 30 + ( this.settings.buttons ? 50 : 0 ) + "px";
+		this.resizer.style.height = v + 30 + ( this.settings.buttons ? 50 : 0 ) + "px";
 		this.body.style.height = v + "px";
 	}
 
@@ -138,9 +157,9 @@ class UI_Dialog extends Events {
 	set closable( v: boolean ) {
 		this.settings.closable = !!v;
 		
-		var rm = this.buttons.querySelector( 'div.close' );
+		var rm = this.btns.querySelector( 'div.close' );
 		if ( rm ) {
-			this.buttons.removeChild( rm );
+			this.btns.removeChild( rm );
 		}
 
 		if ( v ) {
@@ -150,7 +169,7 @@ class UI_Dialog extends Events {
 			var btnClose = document.createElement('div');
 			DOM.addClass( btnClose, 'close' );
 
-			this.buttons.appendChild( btnClose );
+			this.btns.appendChild( btnClose );
 
 			( function( me ) {
 
@@ -164,6 +183,41 @@ class UI_Dialog extends Events {
 
 			DOM.removeClass( this.titlebar, 'closable' );
 
+		}
+	}
+
+	get modal(): boolean {
+		return this.settings.modal;
+	}
+
+	set modal( b: boolean ) {
+		this.settings.modal = !!b;
+		if ( this.settings.modal ) {
+			DOM.addClass( this.outerNode, 'modal' );
+		} else {
+			DOM.removeClass( this.outerNode, 'modal' );
+		}
+	}
+
+	get minWidth(): number {
+		return this.settings.minWidth;
+	}
+
+	set minWidth( v: number ) {
+		this.settings.minWidth = ~~v;
+		if ( this.width < this.settings.minWidth ) {
+			this.width = this.settings.minWidth;
+		}
+	}
+
+	get minHeight(): number {
+		return this.settings.minHeight;
+	}
+
+	set minHeight( v: number ) {
+		this.settings.minHeight = ~~v;
+		if ( this.height < this.settings.minHeight ) {
+			this.height = this.settings.minHeight;
 		}
 	}
 
@@ -187,8 +241,166 @@ class UI_Dialog extends Events {
 
 	}
 
+	get buttons(): UI_DialogButtonConfig[] {
+		return this.settings.buttons;
+	}
+
+	set buttons( cfg: UI_DialogButtonConfig[] ) {
+		
+		this.footerButtons.innerHTML = '';
+
+		if ( cfg && cfg.length ) {
+
+			for ( var i=0, len = cfg.length; i<len; i++ ) {
+				( function( btn, container, me ) {
+
+					var button = document.createElement('button' );
+					button.appendChild( document.createTextNode( btn.name ) );
+
+					if ( btn.default ) {
+						DOM.addClass( button, 'default' );
+					}
+
+					container.appendChild( button );
+
+					button.addEventListener( 'click', function() {
+
+						btn.callback.call( me );
+
+					}, true );
+
+				} )( cfg[i], this.footerButtons, this );
+			}
+
+			DOM.addClass( this.outerNode, 'footer-buttons' );
+			this.settings.buttons = cfg;
+
+		} else {
+
+			DOM.removeClass( this.outerNode, 'footer-buttons' );
+			this.settings.buttons = null;
+		}
+		this.height = this.height;
+	}
+
+	private runDefaultAction() {
+		if ( this.settings.buttons && this.settings.buttons.length ) {
+			for ( var i=0, len = this.settings.buttons.length; i<len; i++ ) {
+				if ( this.settings.buttons[i].default ) {
+					this.settings.buttons[i].callback.call( this );
+					break;
+				}
+			}
+		}
+	}
+
+	private runCancelAction() {
+		for ( var i=0, len = this.settings.buttons.length; i<len; i++ ) {
+			if ( this.settings.buttons[i].cancel ) {
+				this.settings.buttons[i].callback.call( this );
+				break;
+			}
+		}
+	}
+
+	private _initKeyboard_() {
+
+		( function( me ) {
+
+			me.outerNode.addEventListener( 'keyup', function(evt) {
+
+				var key = evt.keyCode;
+
+				switch ( key ) {
+					case 13: // enter
+						if ( document.activeElement && document.activeElement.nodeName.toLowerCase() == 'textarea' ) {
+							break;
+						}
+						me.runDefaultAction();
+						evt.preventDefault();
+						evt.stopPropagation();
+						break;
+
+					case 27: // esc
+
+						me.runCancelAction();
+						evt.preventDefault();
+						evt.stopPropagation();
+						break;
+				}
+
+			} );
+
+			me.outerNode.addEventListener( 'keydown', function( evt ) {
+
+				var key = evt.keyCode,
+				    nodes: any[],
+				    focused: any = document.activeElement,
+				    fIndex: number = null;
+
+				if ( key == 9 ) {
+
+					nodes = Array.prototype.slice.call( me.outerNode.querySelectorAll( 'input:not(:disabled),textarea:not(:disabled),select:not(:disabled),button:not(:disabled)' ), 0 );
+
+					for ( var i=0, len = nodes.length; i<len; i++ ) {
+						if ( focused == nodes[i] ) {
+							fIndex = i;
+							break;
+						}
+					}
+
+					if ( fIndex === null ) {
+						return;
+					}
+
+					if ( evt.shiftKey ) {
+						// focus previous
+						if ( fIndex > 0 ) {
+							nodes[ fIndex - 1 ].focus();
+						} else {
+							nodes[ nodes.length - 1 ].focus();
+						}
+					} else {
+
+						//console.log( fIndex, nodes.length, nodes );
+
+						// focus next
+						if ( fIndex < ( nodes.length - 1 ) ) {
+							nodes[ fIndex + 1 ].focus();
+						} else {
+							nodes[0].focus();
+						}
+					}
+
+					evt.preventDefault();
+					evt.stopPropagation();
+				}
+
+			} );
+
+		} )( this );
+
+	}
+
 	private _initResizer_() {
 		( function( me ) {
+
+			me.outerNode.querySelector( '.modal' ).addEventListener( 'click', function() {
+				
+				me.x -= 10;
+
+				setTimeout( function() {
+					me.x += 20;
+				}, 50 );
+				setTimeout( function() {
+					me.x -= 20;
+				}, 100 );
+				setTimeout( function() {
+					me.x += 10;
+					me.outerNode.focus();
+				}, 150 );
+
+			} );
 
 			function onresizer_mousemove( evt ) {
 
@@ -246,21 +458,26 @@ class UI_Dialog extends Events {
 						break;
 				}
 
-				if ( rect.width >= me.settings.minWidth && rect.height >= me.settings.minHeight ) {
+				if ( rect.width >= me.settings.minWidth) {
 					if ( rect.x != me.x ) {
 						me.x = rect.x;
 					}
-					if ( rect.y != me.y ) {
-						me.y = rect.y;
-					}
 					if ( rect.width != me.width ) {
 						me.width = rect.width;
+					}
+
+					me.resizerLastPoint.x = currentPoint.x;
+
+				}
+
+				if ( rect.height >= me.settings.minHeight ) {
+					if ( rect.y != me.y ) {
+						me.y = rect.y;
 					}
 					if ( rect.height != me.height ) {
 						me.height = rect.height;
 					}
 
-					me.resizerLastPoint.x = currentPoint.x;
 					me.resizerLastPoint.y = currentPoint.y;
 
 				}
@@ -273,6 +490,7 @@ class UI_Dialog extends Events {
 				evt.stopPropagation();
 
 				me.resizerType = null;
+				
 				document.body.removeEventListener( 'mousemove', onresizer_mousemove, true );
 				document.body.removeEventListener( 'mouseup',   onresizer_mouseup,   true );
 			}
@@ -318,8 +536,6 @@ class UI_Dialog extends Events {
 						"y": evt.clientY
 					};
 
-					console.warn( me.resizerLastPoint );
-
 					document.body.addEventListener( 'mousemove', onresizer_mousemove, true );
 					document.body.addEventListener( 'mouseup',   onresizer_mouseup,   true );
 
@@ -327,11 +543,50 @@ class UI_Dialog extends Events {
 
 			}, true );
 
+			function ondrag_mousemove( evt ) {
+
+				evt.preventDefault();
+				evt.stopPropagation();
+
+				var currentPoint: TPoint = {
+					"x": evt.clientX,
+					"y": evt.clientY
+				}, delta: TPoint = {
+					"x": me.resizerLastPoint.x - currentPoint.x,
+					"y": me.resizerLastPoint.y - currentPoint.y
+				};
+
+				me.x -= delta.x;
+				me.y -= delta.y;
+
+				me.resizerLastPoint.x = currentPoint.x;
+				me.resizerLastPoint.y = currentPoint.y;
+
+			}
+
+			function ondrag_mouseup( evt ) {
+
+				document.body.removeEventListener( 'mousemove', ondrag_mousemove, true );
+				document.body.removeEventListener( 'mouseup', ondrag_mouseup, true );
+			
+			}
+
+			me.label.addEventListener( 'mousedown', function( evt ) {
+
+				document.body.addEventListener( 'mousemove', ondrag_mousemove, true );
+				document.body.addEventListener( 'mouseup', ondrag_mouseup, true );
+
+				me.resizerLastPoint = {
+					"x": evt.clientX,
+					"y": evt.clientY
+				};
+
+				evt.preventDefault();
+				evt.stopPropagation();
+
+			}, true );
+
 		} )( this );
-	}
-
-	static onWinResize() {
-
 	}
 
 }

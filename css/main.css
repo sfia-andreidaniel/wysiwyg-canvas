@@ -427,6 +427,7 @@ div.ui-dialog > div.resizer {
 	display: block;
 	padding: 0;
 	margin: 0;
+	z-index: 2;
 }
 
 div.ui-dialog > div.resizer > div.titlebar {
@@ -570,6 +571,123 @@ div.ui-dialog > div.resizer > div.handle.se {
 	cursor: se-resize;
 }
 
+div.ui-dialog > div.resizer > div.buttons-footer {
+	display: none;
+	height: 28px;
+	padding: 10px;
+	background-color: white;
+	border-top: 2px solid #ddd;
+	margin: -2px 2px 0px 2px;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+div.ui-dialog > div.resizer > div.buttons-footer > button {
+	height: 28px;
+	margin-right: 10px;
+	padding: 0 10px;
+}
+
+div.ui-dialog > div.resizer > div.buttons-footer > button.default {
+	font-weight: bold;
+}
+
+div.ui-dialog.footer-buttons > div.resizer > div.buttons-footer {
+	display: block;
+}
+
+div.ui-dialog > div.modal {
+	display: none;
+	position: fixed;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	background-color: rgba( 0,0,0,.5);
+	z-index: 1;
+}
+
+div.ui-dialog.modal > div.modal {
+	display: block;
+}
+
 html, body {
 	height: 100%;
+}
+
+div.ui-dialog div.body > div.dialog-body {
+	display: block;
+	padding: 10px;
+	font-family: Arial;
+	font-size: 14px;
+}
+
+div.ui-dialog div.dialog-body > fieldset {
+	border-width: 1px;
+	border-color: black;
+	margin: 5px 0px;
+}
+
+div.ui-dialog div.dialog-body > fieldset * {
+	margin: 0;
+	padding: 0;
+}
+
+div.ui-dialog div.dialog-body label.one-line {
+	height: 18px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+div.ui-dialog div.dialog-body label.two-lines {
+	height: 36px;
+	overflow: hidden;
+}
+
+div.ui-dialog div.dialog-body  label {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	margin-top: 5px;
+	margin-bottom: 5px;
+	cursor: default;
+	outline: 1px dashed #ddd;
+}
+
+div.ui-dialog div.dialog-body  label > span {
+	order: 1;
+	width: 150px;
+	padding-right: 5px;
+	font-size: 12px;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	overflow: hidden;
+
+}
+
+div.ui-dialog div.dialog-body  label > input {
+	order: 2;
+	width: 100%;
+}
+
+div.ui-dialog div.dialog-body label.checkbox > span {
+	order: 2;
+	width: 100%;
+	vertical-align: middle;
+}
+
+div.ui-dialog div.dialog-body label.checkbox > input[type=checkbox] {
+	order: 1;
+	width: 20px;
+	vertical-align: middle;
+}
+
+div.ui-dialog div.dialog-body div.horizontal-flex {
+	display: flex;
+	width: 100%;
+}
+
+div.ui-dialog div.dialog-body div.horizontal-flex.two-kids > div {
+	width: 50%;
+	margin: 0px 10px;
 }

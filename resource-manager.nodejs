@@ -1,5 +1,5 @@
 var fs = require('fs'),
-    files = fs.readdirSync( __dirname + '/resources' ),
+    files = fs.readdirSync( __dirname + '/UI/resources' ),
     out= [
     	"class UI_Resources {"
     ],
@@ -7,7 +7,7 @@ var fs = require('fs'),
 
 for ( var i=0, len = files.length; i<len; i++ ) {
 	( function( fileName ) {
-		var fileData = fs.readFileSync( __dirname + '/resources/' + files[i] ),
+		var fileData = fs.readFileSync( __dirname + '/UI/resources/' + files[i] ),
 		    fileExt  = fileName.replace( /^(.*)\./g, '' ).toLowerCase();
 
 		if ( ['html','css','txt'].indexOf( fileExt ) == -1 ) {

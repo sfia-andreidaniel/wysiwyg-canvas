@@ -859,6 +859,12 @@ class Viewport_CommandRouter extends Events {
 	// @param alignment: string = enum( 'left', 'right', 'center', 'justified' ).
 	// any other values will be considered "left".
 	public align( alignment: string = 'left' ) {
+		
+		if ( this.viewport.selection.getRange().anchorNode().target.is() == 'body' &&
+		     !this.viewport.selection.getRange().focusNode() ) {
+			return;
+		}
+
 		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
 		        i: number,
 		      len: number;
@@ -869,6 +875,9 @@ class Viewport_CommandRouter extends Events {
 
 		if ( nodes.length )
 			this.viewport.selection.editorState.compute();
+
+		this.viewport.document.changeThrottler.run();
+
 	}
 
 	// copies the selection into the clipboard.

@@ -7,10 +7,13 @@ class HTML_Image extends TNode_Element {
 	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
 	public  isResizable: boolean = true;
 
+	protected _alt: string = null;
+
 	constructor( src: string = null ) {
 		super();
 		this.nodeName = 'img';
 		this.style.display( 'block' );
+		this.style.margin( '5' );
 
 		( function( me ) {
 			
@@ -43,13 +46,27 @@ class HTML_Image extends TNode_Element {
 			// getter
 			return this.node.getAttribute( 'src' ) || '';
 		} else {
-			// setter
-			this.loaded = false;
-			this.error = false;
-			this.node.setAttribute( 'src', String( source || '' ) );
-			this.requestRelayout();
+
+			if ( source !== this.node.getAttribute( 'src' ) ) {
+				// setter
+				this.loaded = false;
+				this.error = false;
+				this.node.setAttribute( 'src', String( source || '' ) );
+				this.requestRelayout();
+			}
 		}
 
+	}
+
+	public alt( str: string = null ): string {
+		if ( str === null ) {
+			return this._alt;
+		} else {
+			this._alt = String( str ) || null;
+			if ( this.documentElement ) {
+				this.documentElement.changeThrottler.run();
+			}
+		}
 	}
 
 	public setAttribute( attributeName: string, attributeValue: string ) {
@@ -59,6 +76,9 @@ class HTML_Image extends TNode_Element {
 				break;
 			case 'align':
 				this.style.float( attributeValue || '' );
+				break;
+			case 'alt':
+				this.alt( attributeValue || '' );
 				break;
 			default:
 				super.setAttribute( attributeName, attributeValue );
@@ -149,6 +169,10 @@ class HTML_Image extends TNode_Element {
 
 		if ( this.style._float.isSet ) {
 			attrs.push( 'align="' + this.style.float() + '"' );
+		}
+
+		if ( this._alt ) {
+			attrs.push( 'alt="' + this._alt + '"' );
 		}
 
 		return '<img ' + attrs.join( ' ' ) + ' />';

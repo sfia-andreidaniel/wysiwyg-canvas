@@ -127,6 +127,25 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 
 	public insertPicture() {
 
+		var selection = this.toolbar.router.viewport.selection,
+		    rng       = selection.getRange(),
+		    picture: HTML_Image = null;
+
+		if ( !rng.focusNode() ) {
+			if ( rng.anchorNode().target.is() != 'img' ) {
+				UI_Dialog_Manager.alert( 'The editor is not in a state which allows inserting pictures. Try selecting a picture or a text first.', function() {
+					selection.viewport.canvas.focus();
+				}, selection.viewport.canvas );
+				return;
+			} else {
+				picture = <HTML_Image>rng.anchorNode().target;
+			}
+		} else {
+			picture = null;
+		}
+
+		UI_Dialog_Manager.singleton( 'InsertPicture' ).setup( picture, this.toolbar.router.viewport.document ).centerTo( selection.viewport.canvas ).open();
+
 	}
 
 	public insertVideo() {

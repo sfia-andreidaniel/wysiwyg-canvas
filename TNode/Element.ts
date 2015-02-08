@@ -393,7 +393,7 @@ class TNode_Element extends TNode {
 	public xmlAttributes(): string {
 		var out: string[] = [];
 
-		if ( this.style._textAlign.isSet )
+		if ( this.style._textAlign.isSet && this.style._textAlign.value != 'left' && this.style.display() == 'block' )
 			out.push( 'align="' + this.style.textAlign() + '"' );
 		
 		if ( this.style._color.isSet )

@@ -494,7 +494,7 @@ div.ui-dialog > div.resizer > div.titlebar.closable > div.caption {
 }
 
 div.ui-dialog > div.resizer > div.body {
-	background-color: white;
+	background-color: #ddd;
 	position: relative;
 	margin: 2px;
 }
@@ -665,7 +665,8 @@ div.ui-dialog div.dialog-body  label > span {
 
 }
 
-div.ui-dialog div.dialog-body  label > input {
+div.ui-dialog div.dialog-body  label > input,
+div.ui-dialog div.dialog-body  label > select {
 	order: 2;
 	width: 100%;
 }

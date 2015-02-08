@@ -93,6 +93,40 @@ class Fragment_Contextual {
 
 	}
 
+	public affectedInlineElements(): TNode_Element[] {
+		var out: TNode_Element[] = [],
+		      i: number,
+		      len: number,
+		      node: TNode_Element;
+
+		this.compute();
+
+		for ( i=0, len = this.parts.length; i<len; i++ ) {
+			switch ( this.parts[i].type ) {
+				case FragmentCItem.NODE_END:
+					node = (<TNode_Element>(<Fragment_Contextual_NodeEnd>this.parts[i]).node);
+					break;
+				case FragmentCItem.NODE_START:
+					node = (<TNode_Element>(<Fragment_Contextual_NodeStart>this.parts[i]).node);
+					break;
+				case FragmentCItem.TEXT:
+					node = (<TNode_Text>(<Fragment_Contextual_TextNode>this.parts[i]).node).parentNode;
+					break;
+			}
+
+			if ( out.indexOf( node ) == -1 && node.style.display() == 'inline' ) {
+				out.push( node );
+			}
+		}
+
+		out.sort( function(a,b) {
+			return a.FRAGMENT_START - b.FRAGMENT_START;
+		});
+
+		return out;
+
+	}
+
 	public affectedBlockNodes(): TNode_Element[] {
 		var out: TNode_Element[] = [],
 		      i: number,

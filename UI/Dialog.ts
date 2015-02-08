@@ -237,6 +237,8 @@ class UI_Dialog extends Events {
 
 		this.fire( 'open' );
 
+		this.outerNode.focus();
+
 		return this;
 
 	}
@@ -301,6 +303,11 @@ class UI_Dialog extends Events {
 				break;
 			}
 		}
+	}
+
+	// this method should be implemented by ancestors.
+	public setup( ...args: any[] ): UI_Dialog {
+		return this;
 	}
 
 	private _initKeyboard_() {
@@ -587,6 +594,37 @@ class UI_Dialog extends Events {
 			}, true );
 
 		} )( this );
+	}
+
+	get offsetHeight(): number {
+		return this.settings.height + 30 + ( this.settings.buttons ? 50 : 0 );
+	}
+
+	get offsetWidth(): number {
+		return this.settings.width + 4;
+	}
+
+	public centerTo( node: any ): UI_Dialog {
+
+		var nodeRect = node.getBoundingClientRect(),
+		    bodyLeft = document.body.scrollLeft,
+		    bodyTop  = document.body.scrollTop,
+
+		    y = nodeRect.top + ( nodeRect.height / 2 ) - ( this.offsetHeight / 2 ),
+		    x = nodeRect.left + ( nodeRect.width / 2 ) - ( this.offsetWidth / 2 );
+
+		    if ( y < bodyTop ) {
+		    	y = bodyTop;
+		    }
+
+		    if ( x < bodyLeft ) {
+		    	x = bodyLeft;
+		    }
+
+		    this.x = ~~x;
+		    this.y = ~~y;
+		
+		return this;
 	}
 
 }

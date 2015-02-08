@@ -409,7 +409,7 @@ class TNode_Collection {
 
 	}
 
-	public wrapInElement( nodeName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ) {
+	public wrapInElement( nodeName: string, elAttributeName: any = null, elAttributeValue: any = null, ifFunc: ( ) => boolean = null ) {
 
 		if ( this.parentNode && ifFunc !== null && !(ifFunc.call( this.parentNode ) ) ) {
 			return;
@@ -417,10 +417,22 @@ class TNode_Collection {
 
 		var node: TNode_Element = this.parentNode.documentElement.createElement( nodeName ),
 		       i: number = 0,
-		     len: number = this.nodes.length;
+		     len: number = this.nodes.length,
+		       j: number = 0,
+		       k: number = 0;
 
 		if ( elAttributeName !== null ) {
-			node.setAttribute( elAttributeName, elAttributeValue || '' );
+
+			if ( typeof elAttributeName == 'string' ) {
+				node.setAttribute( elAttributeName, elAttributeValue || '' );	
+			} else {
+				if ( elAttributeName && elAttributeValue && elAttributeName.length == elAttributeValue.length ) {
+					for ( j=0, k = elAttributeName.length; j<k; j++ ) {
+						node.setAttribute( elAttributeName[j], elAttributeValue[j] );
+					}
+				}
+			}
+			
 		}
 
 		for ( i=0; i<len; i++ ) {

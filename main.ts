@@ -102,4 +102,8 @@
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
 
 /// <reference path="./UI/Dialog.ts" />
-/// <reference path="./UI/Dialog/InsertPicture" />
+/// <reference path="./UI/Dialog/Manager.ts" />
+/// <reference path="./UI/Dialog/Alert.ts" />
+/// <reference path="./UI/Dialog/InsertPicture.ts" />
+/// <reference path="./UI/Dialog/InsertLink.ts" />
+/// <reference path="./UI/Dialog/EditLink.ts" />

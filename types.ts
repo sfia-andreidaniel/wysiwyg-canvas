@@ -87,7 +87,10 @@ enum EditorCommand {
 	SIZE,			// sets the font size
 
 	BLOCK_LEVEL,	// sets the block level of the elements ( normal, h1, h2, h3, h4, h5, and h6 )
-	LIST  			// sets the list level of the elements ( UL or LI )
+	LIST,  			// sets the list level of the elements ( UL or LI )
+
+	INSERT_LINK,
+	REMOVE_LINK
 
 }
 

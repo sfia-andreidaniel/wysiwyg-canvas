@@ -10,7 +10,10 @@ class Fragment_Batch {
 
 	}
 
-	public wrapInElement( elementName: string, elAttributeName: string = null, elAttributeValue: string = null, ifFunc: ( ) => boolean = null ): Fragment_Batch {
+	/* @param elAttributeName can be string[] or string
+	   @param elAttributeValue can be string[] or string
+	 */
+	public wrapInElement( elementName: string, elAttributeName: any = null, elAttributeValue: any = null, ifFunc: ( ) => boolean = null ): Fragment_Batch {
 		if ( this.ended ) {
 			throw "ERR_BATCH_ENDED";
 		}

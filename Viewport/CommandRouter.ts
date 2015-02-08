@@ -40,6 +40,8 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.BLOCK_LEVEL: return 'setBlockLevel'; break;
 			case EditorCommand.LIST:        return 'list';       break;
 			case EditorCommand.CLEAR_FORMATTING: return 'clearFormatting'; break;
+			case EditorCommand.INSERT_LINK: return 'link';       break;
+			case EditorCommand.REMOVE_LINK: return 'unlink';     break;
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
 				break;
@@ -225,6 +227,20 @@ class Viewport_CommandRouter extends Events {
 					throw "Command: " + commandName + " don't have any arguments.";
 				} else {
 					this.clearFormatting();
+				}
+				break;
+			case EditorCommand.INSERT_LINK:
+				if ( !this.ensureArgs( args, 1, 3 ) ) {
+					throw "Command: " + commandName + " requires 1 argument.";
+				} else {
+					this.link( String( args[0] ), args[1] === null ? null : String( args[1] || '' ), String(args[2]) || null );
+				}
+				break;
+			case EditorCommand.REMOVE_LINK:
+				if ( !this.ensureArgs( args, 0, 0 ) ) {
+					throw "Command: " + commandName + " requires no arguments.";
+				} else {
+					this.unlink();
 				}
 				break;
 
@@ -1149,6 +1165,85 @@ class Viewport_CommandRouter extends Events {
 
 		this.viewport.selection.editorState.compute();
 
+	}
+
+	public link( href: string, text: string = null, target: string = null ) {
+		
+		/* If text is NULL, we create a batch, unwrap it from A, and wrap it in a[href=href][target=target]
+		   Otherwise we insert HTML string @cursor position */
+
+		if ( text === null ) {
+
+			this.viewport.selection.getRange().affectedRanges()
+				.unwrapFromElement('a')
+				.unwrapFromElement('u')
+				.unwrapFromElement('!u')
+				.unwrapFromElement('strike')
+				.unwrapFromElement('!strike')
+				.wrapInElement( 'a', ['href','target'], [ href || '', target || '' ] )
+				.end();
+
+		} else {
+
+			var a = this.viewport.document.createElement( 'a' );
+			a.setAttribute( 'href', href );
+			a.setAttribute( 'target', target );
+			a.appendChild( this.viewport.document.createTextNode( text || ' ' ) );
+
+			this.viewport.selection.insertHTML( a.outerHTML() );
+
+
+
+		}
+
+		this.viewport.selection.editorState.compute();
+
+	}
+
+	public unlink() {
+		var selection = this.viewport.selection,
+		    rng = selection.getRange(),
+		    nodes: TNode_Element[],
+		    aNodes: HTML_Anchor[] = [],
+		    i: number =0,
+		    len: number = 0,
+		    node: TNode,
+		    block: TNode_Element;
+
+		rng.save();
+
+		if ( rng.length() ) {
+			nodes = rng.createContextualFragment().affectedInlineElements();
+			for ( i=0, len = nodes.length; i<len; i++ ) {
+				if ( nodes[i].is() == 'a' ) {
+					aNodes.push( <HTML_Anchor>nodes[i] );
+				}
+			}
+		} else {
+			// check if the element under cursor is an "A".
+			if ( rng.focusNode() ) {
+				node = rng.focusNode().target;
+				block = node.ownerBlockElement();
+				while ( node != block ) {
+					if ( node.is() == 'a' ) {
+						aNodes.push( <HTML_Anchor>node );
+						break;
+					}
+					node = node.parentNode;
+				}
+			}
+		}
+
+		for ( i=0, len = aNodes.length; i<len; i++ ) {
+			aNodes[i].unwrap();
+		}
+
+		selection.viewport.document.removeOrphanNodes();
+		selection.viewport.document.defragment();
+
+		this.viewport.selection.editorState.compute();
+
+		rng.restore();
 	}
 
 }

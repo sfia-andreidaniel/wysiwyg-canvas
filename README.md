@@ -4,6 +4,10 @@ The purpose of this project is to implement a HTML Editor who is using
 a canvas to render it's contents, without using the standard contenteditable
 feature of the web browsers that is used at this moment.
 
+# Usage
+
+See index.html file in the root of the repo for embedding example.
+
 ## Goals
 
 1. The INPUT should act as a standard HTML input, supporting the following

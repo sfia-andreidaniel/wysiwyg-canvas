@@ -512,7 +512,16 @@ div.ui-dialog > div.resizer {
 }
 
 div.ui-dialog > div.resizer > div.titlebar {
-	background-color: blue;
+	background: #02027a; /* Old browsers */
+	background: -moz-linear-gradient(left,  #02027a 0%, #0d87cf 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#02027a), color-stop(100%,#0d87cf)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(left,  #02027a 0%,#0d87cf 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(left,  #02027a 0%,#0d87cf 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(left,  #02027a 0%,#0d87cf 100%); /* IE10+ */
+	background: linear-gradient(to right,  #02027a 0%,#0d87cf 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#02027a', endColorstr='#0d87cf',GradientType=1 ); /* IE6-9 */
+
+
 	display: block;
 	margin: 2px;
 	padding: 2px;
@@ -684,7 +693,6 @@ div.ui-dialog > div.modal {
 	right: 0px;
 	top: 0px;
 	bottom: 0px;
-	background-color: rgba( 0,0,0,.5);
 	z-index: 1;
 }
 

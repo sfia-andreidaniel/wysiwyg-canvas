@@ -219,3 +219,19 @@ interface TEditorInputConfig {
 	readOnly?  : boolean;
 	disabled?  : boolean;
 }
+
+enum FSItem {
+	FILE,
+	FOLDER
+}
+
+interface FS_Entry {
+	
+	name   : string;
+	type   : FSItem;
+	
+	url?   : string;
+	size?  : number;
+	thimb? : string;
+
+}

@@ -743,13 +743,17 @@ div.ui-dialog div.dialog-body  label > span {
 	white-space: nowrap;
 	text-overflow: ellipsis;
 	overflow: hidden;
-
 }
 
 div.ui-dialog div.dialog-body  label > input,
 div.ui-dialog div.dialog-body  label > select {
 	order: 2;
 	width: 100%;
+}
+
+div.ui-dialog div.dialog-body label > button.browse {
+	order: 3;
+	width: 30px;
 }
 
 div.ui-dialog div.dialog-body label.checkbox > span {
@@ -769,7 +773,104 @@ div.ui-dialog div.dialog-body div.horizontal-flex {
 	width: 100%;
 }
 
+div.ui-dialog div.dialog-body div.horizontal-flex > div {
+	margin: 0px 10px;
+}
+
 div.ui-dialog div.dialog-body div.horizontal-flex.two-kids > div {
 	width: 50%;
-	margin: 0px 10px;
+}
+
+div.ui-dialog div.dialog-body div.horizontal-flex.one-kid > div {
+	width: 100%;
+}
+
+div.ui-dialog .htmleditor-fs {
+	display: block;
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar {
+	position: absolute;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	height: 30px;
+	border-bottom: 1px solid #666;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.location {
+	position: absolute;
+	left: 5px;
+	right: 160px;
+	height: 30px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.location > label {
+	display: flex;
+	width: 100%;
+	padding: 0;
+	margin: 0;
+	font-family: Arial;
+	vertical-align: middle;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.location > label > span {
+	display: inline-block;
+	width: 90px;
+	font-size: 14px;
+	line-height: 14px;
+	vertical-align: middle;
+	padding-top: 6px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.location > label > input[type=text] {
+	display: inline-block;
+	width: 100%;
+	vertical-align: middle;
+	margin-top: 3px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons {
+	border-left: 1px groove #ddd;
+	position: absolute;
+	right: 5px;
+	width: 140px;
+	height: 30px;
+	white-space: nowrap;
+	padding: 0px 0px 0px 5px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button {
+	display: inline-block;
+	width: 20px;
+	height: 20px;
+	margin: 4px 0px;
+	border: 1px solid transparent;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button:hover {
+	border: 1px outset #ddd;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button:active {
+	border: 1px inset #ddd;
+}
+
+div.ui-dialog .htmleditor-fs > div.files {
+	border-top: 1px solid white;
+	position: absolute;
+	left: 0px;
+	top: 31px;
+	right: 0px;
+	bottom: 0px;
+	background-color: white;
+	overflow-x: hidden;
+	overflow-y: scroll;
 }

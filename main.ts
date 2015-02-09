@@ -102,3 +102,6 @@
 /// <reference path="./UI/Dialog/InsertPicture.ts" />
 /// <reference path="./UI/Dialog/InsertLink.ts" />
 /// <reference path="./UI/Dialog/EditLink.ts" />
+/// <reference path="./UI/Dialog/FileBrowser.ts" />
+
+/// <reference path="./FS/Navigator.ts" />

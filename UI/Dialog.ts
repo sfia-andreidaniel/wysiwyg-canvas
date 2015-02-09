@@ -237,7 +237,12 @@ class UI_Dialog extends Events {
 
 		this.fire( 'open' );
 
-		this.outerNode.focus();
+		try {
+			this.body.querySelector( '.focus-first' )['focus']();
+		} catch (e) {
+			this.outerNode.focus();	
+		}
+
 
 		return this;
 

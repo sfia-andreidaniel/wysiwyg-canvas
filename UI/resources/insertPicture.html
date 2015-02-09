@@ -4,12 +4,17 @@
 
 		<legend>Source</legend>
 
-		<label class="two-lines">Specify a picture source, or upload a picture from your comuter:</label>
+		<label class="two-lines">Specify a picture source, or browse for a picture:</label>
 
-		<label>
-			<span>Source:</span> 
-			<input type="text" class="txt-src" />
-		</label>
+		<div class="horizontal-flex one-kid">
+			<div class="cell">
+				<label>
+					<span>Source:</span> 
+					<input type="text" class="txt-src focus-first" />
+					<button class="browse">...</button>
+				</label>
+			</div>
+		</div>
 
 	</fieldset>
 	<fieldset>
@@ -20,8 +25,6 @@
 		<div class="horizontal-flex two-kids">
 
 			<div class="cell">
-
-				<label class="one-line">Specify picture settings:</label>
 
 				<label>
 					<span>Width:</span>
@@ -35,21 +38,26 @@
 					<span>Maintain propoportions:</span>
 					<input type="checkbox" class="bool-proportions" disabled />
 				</label>
-				<label>
-					<span>Alternate text:</span>
-					<input type="text" class="txt-alt" />
-				</label>
-
 			</div>
-			<div class="cell">
+			<div class="cell" style="text-align: right">
 			
-				<label class="one-line" style="text-align: center; display: block">Preview:</label>
-
-				<img class="img-preview" style="display: block; margin: 10px auto; max-width: 150px; max-height: 150px" src="{img_insertPicture}" />
+				<img class="img-preview" style="display: inline-block; margin: 10px 0px 10px 10px; max-width: 150px; max-height: 150px" src="{img_insertPicture}" />
 
 			</div>
 
 		</div>
+
+		<div class="horizontal-flex one-kid">
+
+			<div class="cell">
+				<label>
+					<span>Alternate text:</span>
+					<input type="text" class="txt-alt" />
+				</label>
+			</div>
+
+		</div>
+
 
 	</fieldset>
 

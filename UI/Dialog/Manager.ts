@@ -40,6 +40,11 @@ class UI_Dialog_Manager {
 				UI_Dialog_Manager.dialogs.push( add );
 				return add.dialog;
 				break;
+			case 'FileBrowser':
+				add.dialog = new UI_Dialog_FileBrowser();
+				UI_Dialog_Manager.dialogs.push( add );
+				return add.dialog;
+				break;
 			default:
 				throw "Unknown dialog type: " + dialogType;
 				break;

@@ -13,8 +13,8 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 	    $EVENTS_ENABLED: boolean         = true,
 
 	    settings: TEditorInputConfig     = {
-			width     : config.width     == void 0 	? 100                : ~~config.width,
-			height    : config.height    == void 0 	? 100                : ~~config.height,
+			width     : config.width     == void 0 	? 128                : ~~config.width,
+			height    : config.height    == void 0 	? 128                : ~~config.height,
 			toolbars  : config.toolbars  == void 0 	? !!config.toolbars  : true,
 			statusbar : config.statusbar == void 0 	? !!config.statusbar : true,
 			resizable : config.resizable == void 0 	? !!config.resizable : true,
@@ -30,6 +30,14 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 	    resizer    : Throttler           = new Throttler( function() { resize( settings.width, settings.height );	}, 10 ),
 	    viewport   : Viewport            = new Viewport();
 
+
+	if ( settings.width < 128 ) {
+		settings.width = 128;
+	}
+
+	if ( settings.height < 128 ) {
+		settings.height = 128;
+	}
 
 	DOM.addClass( element,   'html-editor' );
 	DOM.addClass( toolbar,   'toolbar'     );
@@ -95,6 +103,11 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 		},
 		"set": function( value ) {
 			value = ~~value;
+			
+			if ( value < 128 ) {
+				value = 128;
+			}
+
 			settings.width = value;
 			resizer.run();
 		}
@@ -106,6 +119,11 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 		},
 		"set": function( value ) {
 			value = ~~value;
+
+			if ( value < 128 ) {
+				value = 128;
+			}
+
 			settings.height = value;
 			resizer.run();
 		}
@@ -346,6 +364,7 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 
 			viewport.document.canRelayout = true;
 			viewport.document.relayout( true );
+			viewport.paintScrollbars();
 
 			document.body.removeEventListener( 'mousemove', onresize_run, true );
 			document.body.removeEventListener( 'mouseup',   onresize_end, true );

@@ -25,8 +25,33 @@ class UI_Toolbar extends Events {
 			<HTMLDivElement>this.node.querySelector( '.toolbar-row.index-2' )
 		];
 	
-		this.panels.push( new UI_Toolbar_Panel_Multimedia ( this, this.rows[0] ) );
-		this.panels.push( new UI_Toolbar_Panel_Formatting ( this, this.rows[1] ) );
+		this.panels.push( new UI_Toolbar_Panel_Multimedia ( this, this.rows[0], 1 ) );
+		this.panels.push( new UI_Toolbar_Panel_Formatting ( this, this.rows[1], 1 ) );
+
+		for ( var i=0, len = this.rows.length; i<len; i++ ) {
+			
+			( function( row, toolbar ) {
+
+				row.addEventListener( 'click', function( evt ) {
+					
+					if ( evt.srcElement != row && evt.target != row ) {
+						return;
+					}
+
+					toolbar.closeExpandedSheets();
+
+				}, true );
+
+			} )( this.rows[i], this );
+		}
+
+	}
+
+	protected closeExpandedSheets() {
+
+		for ( var i=0, len = this.panels.length; i<len; i++ ) {
+			DOM.removeClass( this.panels[i].showMore, 'opened' );
+		}
 
 	}
 

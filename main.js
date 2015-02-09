@@ -10257,8 +10257,8 @@ function HTMLEditor(value, config) {
     config = config || {};
     /* Custom eventing system */
     var $EVENTS_QUEUE, $EVENTS_ENABLED = true, settings = {
-        width: config.width == void 0 ? 100 : ~~config.width,
-        height: config.height == void 0 ? 100 : ~~config.height,
+        width: config.width == void 0 ? 128 : ~~config.width,
+        height: config.height == void 0 ? 128 : ~~config.height,
         toolbars: config.toolbars == void 0 ? !!config.toolbars : true,
         statusbar: config.statusbar == void 0 ? !!config.statusbar : true,
         resizable: config.resizable == void 0 ? !!config.resizable : true,
@@ -10267,6 +10267,12 @@ function HTMLEditor(value, config) {
     }, element = document.createElement('div'), toolbar = element.appendChild(document.createElement('div')), body = element.appendChild(document.createElement('div')), statusbar = element.appendChild(document.createElement('div')), resizediv = element.appendChild(document.createElement('div')), ui_toolbar, resizer = new Throttler(function () {
         resize(settings.width, settings.height);
     }, 10), viewport = new Viewport();
+    if (settings.width < 128) {
+        settings.width = 128;
+    }
+    if (settings.height < 128) {
+        settings.height = 128;
+    }
     DOM.addClass(element, 'html-editor');
     DOM.addClass(toolbar, 'toolbar');
     DOM.addClass(statusbar, 'statusbar');
@@ -10319,6 +10325,9 @@ function HTMLEditor(value, config) {
         },
         "set": function (value) {
             value = ~~value;
+            if (value < 128) {
+                value = 128;
+            }
             settings.width = value;
             resizer.run();
         }
@@ -10329,6 +10338,9 @@ function HTMLEditor(value, config) {
         },
         "set": function (value) {
             value = ~~value;
+            if (value < 128) {
+                value = 128;
+            }
             settings.height = value;
             resizer.run();
         }
@@ -10504,6 +10516,7 @@ function HTMLEditor(value, config) {
             evt.stopPropagation();
             viewport.document.canRelayout = true;
             viewport.document.relayout(true);
+            viewport.paintScrollbars();
             document.body.removeEventListener('mousemove', onresize_run, true);
             document.body.removeEventListener('mouseup', onresize_end, true);
         }
@@ -10567,9 +10580,24 @@ var UI_Toolbar = (function (_super) {
             this.node.querySelector('.toolbar-row.index-1'),
             this.node.querySelector('.toolbar-row.index-2')
         ];
-        this.panels.push(new UI_Toolbar_Panel_Multimedia(this, this.rows[0]));
-        this.panels.push(new UI_Toolbar_Panel_Formatting(this, this.rows[1]));
+        this.panels.push(new UI_Toolbar_Panel_Multimedia(this, this.rows[0], 1));
+        this.panels.push(new UI_Toolbar_Panel_Formatting(this, this.rows[1], 1));
+        for (var i = 0, len = this.rows.length; i < len; i++) {
+            (function (row, toolbar) {
+                row.addEventListener('click', function (evt) {
+                    if (evt.srcElement != row && evt.target != row) {
+                        return;
+                    }
+                    toolbar.closeExpandedSheets();
+                }, true);
+            })(this.rows[i], this);
+        }
     }
+    UI_Toolbar.prototype.closeExpandedSheets = function () {
+        for (var i = 0, len = this.panels.length; i < len; i++) {
+            DOM.removeClass(this.panels[i].showMore, 'opened');
+        }
+    };
     // forward the document state changes to the panels.
     UI_Toolbar.prototype.updateDocumentState = function (propertiesList) {
         for (var i = 0, len = this.panels.length; i < len; i++) {
@@ -10586,20 +10614,112 @@ var UI_Toolbar = (function (_super) {
 })(Events);
 var UI_Toolbar_Panel = (function (_super) {
     __extends(UI_Toolbar_Panel, _super);
-    function UI_Toolbar_Panel(toolbar, name, appendIn) {
+    function UI_Toolbar_Panel(toolbar, name, appendIn, maxPercentualWidth) {
         _super.call(this);
         this.toolbar = toolbar;
         this.name = name;
-        this.width = 0; // the minWidth of the toolbar, without being resized.
         this.node = document.createElement('div');
+        this.percentualWidth = 0; // the percentualWidth of the toolbar. value is a float between 0 and 1.
+        this.items = null;
+        this.itemWidths = null;
+        this.showMore = null;
+        this.showMorePanel = null;
         DOM.addClass(this.node, 'ui-panel');
         appendIn.appendChild(this.node);
         this.node.title = name || 'Toolbar';
-        this.width = 10;
+        this.percentualWidth = maxPercentualWidth;
     }
     UI_Toolbar_Panel.prototype.updateDocumentState = function (propertiesList) {
     };
     UI_Toolbar_Panel.prototype.resizeByParentWidth = function (width) {
+        DOM.removeClass(this.showMore, 'opened');
+        var i = 0, j = 0, len = 0;
+        if (this.items === null && this.node.offsetWidth) {
+            this.items = (Array.prototype.slice.call(this.node.querySelectorAll('div.item'), 0));
+            this.itemWidths = [];
+            for (i = 0, len = this.items.length; i < len; i++) {
+                this.itemWidths.push(this.items[i].offsetWidth);
+            }
+        }
+        if (this.items === null) {
+            // postponed initialization
+            (function (me) {
+                setTimeout(function () {
+                    me.resizeByParentWidth(width);
+                }, 10);
+            })(this);
+            return;
+        }
+        var maxPanelWidth = Math.round(width * this.percentualWidth), itemsSumWidths = 0;
+        for (i = 0, len = this.itemWidths.length; i < len; i++) {
+            itemsSumWidths += this.itemWidths[i];
+        }
+        if (itemsSumWidths < maxPanelWidth) {
+            DOM.removeClass(this.node, 'resized-panel');
+            for (i = 0, len = this.items.length; i < len; i++) {
+                this.node.insertBefore(this.items[i], this.showMore);
+            }
+        }
+        else {
+            DOM.addClass(this.node, 'resized-panel');
+            // some panel items will be appended in the showMore part of the toolbar,
+            // and some panel items will be appended in the toolbar root.
+            var left = maxPanelWidth - 10;
+            for (i = 0, len = this.items.length; i < len; i++) {
+                if (left - this.itemWidths[i] >= 0) {
+                    this.node.insertBefore(this.items[i], this.showMore);
+                    left -= this.itemWidths[i];
+                }
+                else {
+                    this.showMorePanel.appendChild(this.items[i]);
+                }
+            }
+        }
+    };
+    /* After all the content is initialized in the panel DOM node, this function should be
+       called, in order to initialize the resizer mechanism.
+     */
+    UI_Toolbar_Panel.prototype.on_afterload = function () {
+        this.showMore = document.createElement('div');
+        DOM.addClass(this.showMore, 'more');
+        this.node.appendChild(this.showMore);
+        this.showMorePanel = document.createElement('div');
+        this.showMorePanel.tabIndex = 1;
+        DOM.addClass(this.showMorePanel, 'panel');
+        this.showMore.appendChild(this.showMorePanel);
+        (function (me) {
+            me.showMore.addEventListener('click', function (evt) {
+                if (evt.srcElement != me.showMore && evt.target != me.showMore) {
+                    return;
+                }
+                if (DOM.hasClass(me.showMore, 'opened')) {
+                    DOM.removeClass(me.showMore, 'opened');
+                }
+                else {
+                    DOM.removeClass(me.showMorePanel, 'right-aligned');
+                    DOM.addClass(me.showMore, 'opened');
+                    var rect = me.showMorePanel.getBoundingClientRect();
+                    if (rect.left < 0) {
+                        DOM.addClass(me.showMorePanel, 'right-aligned');
+                    }
+                    me.showMorePanel.focus();
+                }
+            }, true);
+            me.showMorePanel.addEventListener('keyup', function (evt) {
+                if (evt.keyCode == 27) {
+                    DOM.removeClass(me.showMore, 'opened');
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                }
+            }, true);
+            me.showMorePanel.addEventListener('blur', function (evt) {
+                setTimeout(function () {
+                    if (!me.showMorePanel.contains(document.activeElement)) {
+                        DOM.removeClass(me.showMore, 'opened');
+                    }
+                }, 2);
+            }, true);
+        })(this);
     };
     /* Transforms an item of the toolbar into an input[type=color] dropdown */
     UI_Toolbar_Panel.prototype.makeColorDropdown = function (element, onchange, initialColor) {
@@ -10894,8 +11014,8 @@ var UI_Toolbar_Panel = (function (_super) {
 })(Events);
 var UI_Toolbar_Panel_Formatting = (function (_super) {
     __extends(UI_Toolbar_Panel_Formatting, _super);
-    function UI_Toolbar_Panel_Formatting(toolbar, appendIn) {
-        _super.call(this, toolbar, 'Formatting', appendIn);
+    function UI_Toolbar_Panel_Formatting(toolbar, appendIn, maxPercentualWidth) {
+        _super.call(this, toolbar, 'Formatting', appendIn, maxPercentualWidth);
         this.blockLevel = null;
         this.fontFamily = null;
         this.fontSize = null;
@@ -11016,6 +11136,7 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
                 me.setColor(color);
             }, '');
         })(this);
+        this.on_afterload();
     }
     UI_Toolbar_Panel_Formatting.prototype.setBlockLevel = function (nodeName) {
         this.toolbar.router.dispatchCommand(20 /* BLOCK_LEVEL */, [nodeName]);
@@ -11200,8 +11321,8 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
 })(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Multimedia = (function (_super) {
     __extends(UI_Toolbar_Panel_Multimedia, _super);
-    function UI_Toolbar_Panel_Multimedia(toolbar, appendIn) {
-        _super.call(this, toolbar, 'Multimedia', appendIn);
+    function UI_Toolbar_Panel_Multimedia(toolbar, appendIn, maxPercentualWidth) {
+        _super.call(this, toolbar, 'Multimedia', appendIn, maxPercentualWidth);
         this.buttonLink = null;
         this.buttonPicture = null;
         this.buttonVideo = null;
@@ -11221,6 +11342,7 @@ var UI_Toolbar_Panel_Multimedia = (function (_super) {
                 me.insertVideo();
             }, true);
         })(this);
+        this.on_afterload();
     }
     UI_Toolbar_Panel_Multimedia.prototype.insertLink = function () {
         var selection = this.toolbar.router.viewport.selection, rng = selection.getRange(), dialog = null, fragment, elements, cursor, cursorBlock, aText = null, aTarget = null, aHref = null, i = 0, len;

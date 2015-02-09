@@ -1,19 +1,22 @@
 class UI_Toolbar_Panel extends Events {
 
-	public width: number = 0; // the minWidth of the toolbar, without being resized.
-	
 	public node : HTMLElement = document.createElement( 'div' );
 
-	constructor( public toolbar: UI_Toolbar, public name: string, appendIn: HTMLDivElement ) {
+	protected percentualWidth : number           = 0; // the percentualWidth of the toolbar. value is a float between 0 and 1.
+	private   items           : HTMLDivElement[] = null;
+	private   itemWidths      : number[]         = null;
+
+	public    showMore        : HTMLDivElement   = null;
+	private   showMorePanel   : HTMLDivElement   = null;
+
+	constructor( public toolbar: UI_Toolbar, public name: string, appendIn: HTMLDivElement, maxPercentualWidth: number ) {
 		super();
 
 		DOM.addClass( this.node, 'ui-panel' );
-		
 		appendIn.appendChild( this.node );
-		
 		this.node.title = name || 'Toolbar';
 
-		this.width = 10;
+		this.percentualWidth = maxPercentualWidth;
 	}
 
 	public updateDocumentState( propertiesList: string [] ) {
@@ -21,6 +24,138 @@ class UI_Toolbar_Panel extends Events {
 	}
 
 	public resizeByParentWidth( width: number ) {
+
+		DOM.removeClass( this.showMore, 'opened' );
+
+		var i: number = 0,
+			j: number = 0,
+		    len: number = 0;
+
+		if ( this.items === null && this.node.offsetWidth ) {
+			
+			this.items = <HTMLDivElement[]>( Array.prototype.slice.call( this.node.querySelectorAll( 'div.item' ), 0 ) );
+			this.itemWidths = [];
+
+			for ( i=0, len = this.items.length; i<len; i++ ) {
+				this.itemWidths.push( this.items[i].offsetWidth );
+			}
+
+		}
+
+		if ( this.items === null ) {
+			// postponed initialization
+			( function( me ) {
+				setTimeout( function() {
+					me.resizeByParentWidth( width );
+				}, 10 );
+			} )( this );
+
+			return;
+		}
+
+		var maxPanelWidth: number = Math.round( width * this.percentualWidth ),
+		    itemsSumWidths: number = 0;
+
+		for ( i=0, len = this.itemWidths.length; i<len; i++ ) {
+			itemsSumWidths += this.itemWidths[i];
+		}
+
+		if ( itemsSumWidths < maxPanelWidth ) {
+			
+			DOM.removeClass( this.node, 'resized-panel' );
+
+			for ( i=0, len = this.items.length; i<len; i++ ) {
+				this.node.insertBefore( this.items[i], this.showMore );
+			}
+
+		} else {
+			
+			DOM.addClass( this.node, 'resized-panel' );
+			
+			// some panel items will be appended in the showMore part of the toolbar,
+			// and some panel items will be appended in the toolbar root.
+
+			var left = maxPanelWidth - 10;
+
+
+			for ( i=0, len = this.items.length; i<len; i++ ) {
+				
+				if ( left - this.itemWidths[i] >= 0 ) {
+					this.node.insertBefore( this.items[i], this.showMore );
+					left -= this.itemWidths[i];
+				} else {
+					this.showMorePanel.appendChild( this.items[i] );
+				}
+			
+			}
+
+		}
+
+	}
+
+	/* After all the content is initialized in the panel DOM node, this function should be
+	   called, in order to initialize the resizer mechanism.
+	 */
+	protected on_afterload() {
+
+		this.showMore = document.createElement( 'div' );
+		DOM.addClass( this.showMore, 'more' );
+
+		this.node.appendChild( this.showMore );
+		
+		this.showMorePanel = document.createElement( 'div' );
+		this.showMorePanel.tabIndex = 1;
+
+		DOM.addClass( this.showMorePanel, 'panel' );
+
+		this.showMore.appendChild( this.showMorePanel );
+
+		( function(me) {
+
+			me.showMore.addEventListener( 'click', function(evt){
+
+				if ( evt.srcElement != me.showMore && evt.target != me.showMore ) {
+					return;
+				}
+
+				if ( DOM.hasClass( me.showMore, 'opened' ) ) {
+					DOM.removeClass( me.showMore, 'opened' );
+				} else {
+					DOM.removeClass( me.showMorePanel, 'right-aligned' );
+
+					DOM.addClass( me.showMore, 'opened' );
+
+					var rect = me.showMorePanel.getBoundingClientRect();
+
+					if ( rect.left < 0 ) {
+						DOM.addClass( me.showMorePanel, 'right-aligned' );
+					}
+
+					me.showMorePanel.focus();
+				}
+			}, true );
+
+			me.showMorePanel.addEventListener( 'keyup', function( evt ) {
+				if ( evt.keyCode == 27 ) {
+					DOM.removeClass( me.showMore, 'opened' );
+					evt.preventDefault();
+					evt.stopPropagation();
+				}
+			}, true );
+
+			me.showMorePanel.addEventListener( 'blur', function( evt ) {
+
+				setTimeout( function() {
+
+					if ( !me.showMorePanel.contains( document.activeElement ) ) {
+						DOM.removeClass( me.showMore, 'opened' );	
+					}
+
+				}, 2);
+				
+			}, true );
+
+		} )( this );
 
 	}
 

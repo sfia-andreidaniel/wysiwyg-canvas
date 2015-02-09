@@ -23,9 +23,9 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 	public btnBackgroundColor : HTMLDivElement     = null;
 	public btnColor           : HTMLDivElement     = null;
 
-	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement ) {
+	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualWidth: number ) {
 		
-		super( toolbar, 'Formatting', appendIn );
+		super( toolbar, 'Formatting', appendIn, maxPercentualWidth );
 
 		DOM.addClass( this.node, 'ui-panel-style')
 
@@ -158,6 +158,8 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 			}, '');
 
 		})( this );
+
+		this.on_afterload();
 
 	}
 

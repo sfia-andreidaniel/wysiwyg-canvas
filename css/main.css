@@ -16,7 +16,7 @@ div.html-editor > div.statusbar {
 div.html-editor {
 	display: block;
 	padding: 0 !important;
-	margin : 0 !important;
+	margin : 0;
 	background-color: white;
 	border: 1px inset #666;
 }
@@ -103,6 +103,9 @@ div.html-editor > div.statusbar {
 	user-select: none;
 
 	border: 1px inset #ddd;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 
 }
 
@@ -134,6 +137,40 @@ div.html-editor > div.toolbar div.ui-panel {
 	height: 18px;
 	padding: 1px 1px 1px 0px;
 	margin: 0px 2px 0px 0px;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.more {
+	display: none;
+	width: 10px;
+	height: 20px;
+	position: relative;
+	background-color: #666;
+	background-image: url(icons.png);
+	background-repeat: no-repeat;
+	background-position: 0px -99px;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.more > div.panel {
+	display: none;
+	position: absolute;
+	right: -1px;
+	padding: 5px;
+	background-color: #ddd;
+	top: 21px;
+	border: 1px outset #666;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.more > div.panel.right-aligned {
+	right: auto;
+	left: -1px;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.more.opened > div.panel {
+	display: block;
+}
+
+div.html-editor > div.toolbar div.ui-panel.resized-panel > div.more {
+	display: inline-block;
 }
 
 div.html-editor > div.toolbar > div.toolbar-row {

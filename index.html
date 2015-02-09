@@ -2,9 +2,10 @@
 <html>
 	<head>
 
-		<link rel="stylesheet" type="text/css" href="css/main.css" />
-
-		<script type="text/javascript" src="main.js"></script>
+		<!-- BEGIN: EDITOR DEPENDENCIES -->
+			<link rel="stylesheet" type="text/css" href="css/main.css" />
+			<script type="text/javascript" src="main.js"></script>
+		<!-- END: EDITOR DEPENDENCIES -->
 
 		<script type="text/javascript">
 
@@ -36,8 +37,9 @@
 			    	'</table>'
 			    ].join( '\n' );
 
-				window.htmlEditor = document.getElementById('placeholder').appendChild( 
-					new HTMLEditor( niceHTML, {
+				document.body.appendChild( 
+					
+					window.htmlEditor = new HTMLEditor( niceHTML, {
 						width: 500,
 						height: 500,
 						toolbars: true,
@@ -46,14 +48,18 @@
 						disabled: false,
 						resizable: true
 					} )
+
 				);
 
+				htmlEditor.style.margin = '30px auto';
+
 		});
+
 		</script>
 	</head>
 	<body style="padding: 0; margin: 0;">
-		<div id="placeholder">
-			
-		</div>
+		
+		<h1 align="center">HTML5 Canvas Editor WYSYWIG Demo</h1>
+
 	</body>
 </html>

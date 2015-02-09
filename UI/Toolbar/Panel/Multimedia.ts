@@ -4,18 +4,13 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 	public buttonPicture: HTMLDivElement = null;
 	public buttonVideo: HTMLDivElement = null;
 
-	constructor( toolbar: UI_Toolbar ) {
-		super( toolbar, 'Multimedia' );
+	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement ) {
+		
+		super( toolbar, 'Multimedia', appendIn );
 
 		DOM.addClass( this.node, 'ui-panel-multimedia');
 
-		this.node.innerHTML = [
-			'<div class="item index-0">',
-				'<div class="ui-button link" title="Link"></div>',
-				'<div class="ui-button picture" title="Picture"></div>',
-				'<div class="ui-button video" title="Video"></div>',
-			'</div>',
-		].join( '' );
+		this.node.innerHTML = UI_Resources.html_multimediaToolbar;
 
 		this.buttonLink = <HTMLDivElement>this.node.querySelector( '.ui-button.link' );
 		this.buttonPicture= <HTMLDivElement>this.node.querySelector( '.ui-button.picture' );

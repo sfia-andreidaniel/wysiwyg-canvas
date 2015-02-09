@@ -1,32 +1,44 @@
 /* We prefere to create a function instead of a class, because we want to parasitate
    a HTMLDivElement.
 */
-function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: boolean = true, initialWidth: number = null, initialHeight: number = null ): Node {
+function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
+
+	config = config || {};
 
 	/* Custom eventing system */
-	var $EVENTS_QUEUE : {},
-	    $EVENTS_ENABLED: boolean = true;
+
+	var 
+
+		$EVENTS_QUEUE : {},
+	    $EVENTS_ENABLED: boolean         = true,
+
+	    settings: TEditorInputConfig     = {
+			width     : config.width     == void 0 	? 100                : ~~config.width,
+			height    : config.height    == void 0 	? 100                : ~~config.height,
+			toolbars  : config.toolbars  == void 0 	? !!config.toolbars  : true,
+			statusbar : config.statusbar == void 0 	? !!config.statusbar : true,
+			resizable : config.resizable == void 0 	? !!config.resizable : true,
+			readOnly  : config.readOnly  == void 0 	? !!config.readOnly  : true,
+			disabled  : config.disabled  == void 0 	? !!config.disabled  : true
+		},
+		element    : HTMLDivElement      = <HTMLDivElement> document.createElement( 'div' ),
+	    toolbar    : HTMLDivElement      = <HTMLDivElement> element.appendChild( document.createElement( 'div' ) ),
+	    body       : HTMLDivElement      = <HTMLDivElement> element.appendChild( document.createElement( 'div' ) ),
+	    statusbar  : HTMLDivElement      = <HTMLDivElement> element.appendChild( document.createElement( 'div' ) ),
+	    resizediv  : HTMLDivElement      = <HTMLDivElement> element.appendChild( document.createElement( 'div' ) ),
+	    ui_toolbar : UI_Toolbar,
+	    resizer    : Throttler           = new Throttler( function() { resize( settings.width, settings.height );	}, 10 ),
+	    viewport   : Viewport            = new Viewport();
 
 
-	/* End of custom eventing system */
+	DOM.addClass( element,   'html-editor' );
+	DOM.addClass( toolbar,   'toolbar'     );
+	DOM.addClass( statusbar, 'statusbar'   );
+	DOM.addClass( body,      'body'        );
+	DOM.addClass( resizediv, 'resizer'     );
 
 
-	var element   = document.createElement( 'div' ),
-	    toolbar   = element.appendChild( document.createElement( 'div' ) ),
-	    body      = element.appendChild( document.createElement( 'div' ) ),
-	    statusbar = element.appendChild( document.createElement( 'div' ) ),
-	    disabled : boolean = false,
-	    readOnly : boolean = false,
-	    width    : number = initialWidth || 100,
-	    height   : number = initialHeight || 100,
-	    toolbars : boolean = true,
-	    ui_toolbar: UI_Toolbar,
-	    resizer  : Throttler = new Throttler( function() {
-		    	resize( width, height );
-		    }, 10 ),
-	    viewport : Viewport = new Viewport();
-
-
+	/* Event handlers. */
 	element['on'] = function( eventName: string, callback: ( ...args ) => void ) {
 			
 		$EVENTS_QUEUE = $EVENTS_QUEUE || {};
@@ -57,65 +69,60 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 		}
 	}
 
+	/* Viewport initialization */
+
 	viewport.document.on('change', function() {
 		(<any>element).fire('change');
 	});
 
-
-	element['cssText'] = toolbar['cssText'] = statusbar['cssText'] = body['cssText'] = viewport.canvas['cssText'] 
-		= "-webkit-user-select: none; -moz-user-select: none; -ms-user-select: none";
-
-	DOM.addClass( element,   'html-editor' );
-	DOM.addClass( toolbar,   'toolbar' );
-	DOM.addClass( statusbar, 'statusbar' );
-	DOM.addClass( body,      'body' );
 
 	ui_toolbar = new UI_Toolbar( <HTMLElement>toolbar, viewport.router, viewport.selection.editorState );
 
 	// append the canvas in the body element of the editor
 	body.appendChild( viewport.canvas );
 
-	if ( hasToolbars ) {
+	if ( settings.toolbars ) {
 		DOM.addClass( element, 'has-toolbar' );
 	}
 
-	if ( hasStatusbar ) {
+	if ( settings.statusbar ) {
 		DOM.addClass( element, 'has-statusbar' );
 	}
 
 	Object.defineProperty( element, "width", {
 		"get": function() {
-			return width;
+			return settings.width;
 		},
 		"set": function( value ) {
 			value = ~~value;
-			width = value;
+			settings.width = value;
 			resizer.run();
 		}
 	} );
 
 	Object.defineProperty( element, "height", {
 		"get": function() {
-			return height;
+			return settings.height;
 		},
 		"set": function( value ) {
 			value = ~~value;
-			height = value;
+			settings.height = value;
 			resizer.run();
 		}
 	} );
 
 	Object.defineProperty( element, "toolbars", {
 		"get": function() {
-			return hasToolbars;
+			return settings.toolbars;
 		},
 		"set": function( value ) {
-			hasToolbars = !!value;
+			
+			settings.toolbars = !!value;
 
-			if ( hasToolbars ) {
-				DOM.addClass( element, 'has-toolbars' );
+			if ( settings.toolbars ) {
+				DOM.addClass( element, 'has-toolbar' );
 			} else {
-				DOM.removeClass( element, 'has-toolbars' );
+				DOM.removeClass( element, 'has-toolbar' );
 			}
 
 			resizer.run();
@@ -124,17 +131,31 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 
 	Object.defineProperty( element, "statusbar", {
 		"get": function() {
-			return hasStatusbar;
+			return settings.statusbar;
 		},
 		"set": function( value ) {
-			hasStatusbar = !!value;
-			if ( hasStatusbar ) {
+			settings.statusbar = !!value;
+			if ( settings.statusbar ) {
 				DOM.addClass( element, 'has-statusbar' );
+				viewport.selection.fire( 'changed' );
 			} else {
 				DOM.removeClass( element, 'has-statusbar' );
 			}
-
 			resizer.run();
+		}
+	} );
+
+	Object.defineProperty( element, "resizable", {
+		"get": function() {
+			return settings.resizable;
+		},
+		"set": function( bool ) {
+			settings.resizable = !!bool;
+			if ( settings.resizable ) {
+				DOM.addClass( element, 'is-resizable' );
+			} else {
+				DOM.removeClass( element, 'is-resizable' );
+			}
 		}
 	} );
 
@@ -188,24 +209,24 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 		element.style.width = newWidth + "px";
 		element.style.height = newHeight + "px";
 
-		var left: number = height;
+		var left: number = settings.height;
 		
-		if ( hasToolbars ) {
-			left -= 40;
+		if ( settings.toolbars ) {
+			left -= 46;
 		}
 		
-		if ( hasStatusbar ) {
-			left -= 20;
+		if ( settings.statusbar ) {
+			left -= 22;
 		}
 
 		body['style'].height = left + "px";
 
 		viewport.height( left );
-		viewport.width( width );
+		viewport.width( settings.width );
 
-		ui_toolbar.resize( width );
+		ui_toolbar.resize( settings.width );
 
-		element.style.width = width + "px";
+		element.style.width = settings.width + "px";
 
 	}
 
@@ -245,6 +266,9 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 
 		viewport.selection.on( 'changed', function() {
 
+			if ( !settings.statusbar ) {
+				return;
+			}
 
 			var rng: TRange = viewport.selection.getRange(),
 			    focus: TRange_Target = rng.focusNode(),
@@ -287,9 +311,67 @@ function HTMLEditor( value: string, hasToolbars: boolean = true, hasStatusbar: b
 
 	} )( this );
 
+	( function() {
+
+		var delta: TPoint = {
+			"x": 0,
+			"y": 0
+		}, previousPoint: TPoint = {
+			"x": 0,
+			"y": 0
+		};
+
+		function onresize_run( evt ) {
+
+			delta.x = evt.clientX - previousPoint.x;
+			delta.y = evt.clientY - previousPoint.y;
+
+			if ( delta.x || delta.y ) {
+				element['width'] += delta.x;
+				element['height'] += delta.y;
+			}
+
+			previousPoint.x = evt.clientX;
+			previousPoint.y = evt.clientY;
+
+			evt.preventDefault();
+			evt.stopPropagation();
+
+		}
+
+		function onresize_end( evt ) {
+
+			evt.preventDefault();
+			evt.stopPropagation();
+
+			viewport.document.canRelayout = true;
+			viewport.document.relayout( true );
+
+			document.body.removeEventListener( 'mousemove', onresize_run, true );
+			document.body.removeEventListener( 'mouseup',   onresize_end, true );
+		}
+
+		resizediv.addEventListener( 'mousedown', function( evt ) {
+
+			previousPoint.x = evt.clientX;
+			previousPoint.y = evt.clientY;
+
+			evt.preventDefault();
+			evt.stopPropagation();
+
+			viewport.document.canRelayout = false;
+
+			document.body.addEventListener( 'mousemove', onresize_run, true );
+			document.body.addEventListener( 'mouseup'  , onresize_end, true );
+		}, true );
+
+	} )();
+
 	element['value'] = value;
 
-	resize( width, height );
+	element[ 'resizable' ] = settings.resizable;
+
+	resize( settings.width, settings.height );
 
 	return element;
 

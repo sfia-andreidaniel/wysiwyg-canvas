@@ -1,43 +1,86 @@
 class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 	
-	public btnBold        : HTMLDivElement = null;
-	public btnItalic      : HTMLDivElement = null;
-	public btnUnderline   : HTMLDivElement = null;
-	public btnStrike      : HTMLDivElement = null;
+	public blockLevel         : HTMLInputElement   = null;
+	public fontFamily 		  : HTMLInputElement   = null;
+	public fontSize 		  : HTMLInputElement   = null;
+	public btnClearFormatting : HTMLDivElement     = null;
+	public btnBold        	  : HTMLDivElement 	   = null;
+	public btnItalic          : HTMLDivElement 	   = null;
+	public btnUnderline       : HTMLDivElement     = null;
+	public btnStrike          : HTMLDivElement     = null;
+	public btnSubscript       : HTMLDivElement     = null;
+	public btnSuperscript     : HTMLDivElement     = null;
+	public btnLeft      	  : HTMLDivElement     = null;
+	public btnRight     	  : HTMLDivElement     = null;
+	public btnCenter    	  : HTMLDivElement     = null;
+	public btnJustified 	  : HTMLDivElement     = null;
+	public btnUL 			  : HTMLDivElement 	   = null;
+	public btnOL 			  : HTMLDivElement     = null;
+	public btnIndent  		  : HTMLDivElement     = null;
+	public btnUnindent 		  : HTMLDivElement     = null;
 
-	public btnSubscript   : HTMLDivElement = null;
-	public btnSuperscript : HTMLDivElement = null;
+	public btnBorderColor	  : HTMLDivElement	   = null;
+	public btnBackgroundColor : HTMLDivElement     = null;
+	public btnColor           : HTMLDivElement     = null;
 
+	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement ) {
+		
+		super( toolbar, 'Formatting', appendIn );
 
-	constructor( public toolbar: UI_Toolbar ) {
-		super( toolbar, 'Style' );
+		DOM.addClass( this.node, 'ui-panel-style')
 
-		DOM.addClass( this.node, 'ui-panel-formatting')
+		this.node.innerHTML = UI_Resources.html_formattingToolbar;
 
-		this.node.innerHTML = [
-			'<div class="item index-0">',
-				'<div class="ui-button bold state" title="Bold (Ctrl+B)"></div>',
-				'<div class="ui-button italic" title="Italic (Ctrl+I)"></div>',
-				'<div class="ui-button underline" title="Underline (Ctrl+U)"></div>',
-				'<div class="ui-button strike" title="Strike"></div>',
-			'</div>',
-			'<div class="item index-1">',
-				'<div class="ui-button subscript"   title="Subscript"></div>',
-				'<div class="ui-button superscript" title="Superscript"></div>',
-			'</div>',
+		this.blockLevel         = <HTMLInputElement>this.node.querySelector( 'input.nodeName' );
+		this.fontFamily         = <HTMLInputElement>this.node.querySelector( 'input.fontFamily' );
 
-		].join( '' );
+		this.fontFamily.setAttribute( 'data-suggestions', TStyle.$FontFamily.join(',') );
 
-		this.btnBold = <HTMLDivElement>this.node.querySelector( '.ui-button.bold' );
-		this.btnItalic = <HTMLDivElement>this.node.querySelector( '.ui-button.italic' );
-		this.btnUnderline = <HTMLDivElement>this.node.querySelector( '.ui-button.underline' );
-		this.btnStrike = <HTMLDivElement>this.node.querySelector( '.ui-button.strike' );
+		this.fontSize           = <HTMLInputElement>this.node.querySelector( 'input.fontSize' );
+		this.btnClearFormatting = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.remove-formatting' );
 
-		this.btnSubscript   = <HTMLDivElement>this.node.querySelector( '.ui-button.subscript' );
-		this.btnSuperscript = <HTMLDivElement>this.node.querySelector( '.ui-button.superscript' );
+		this.btnBold 		    = <HTMLDivElement>  this.node.querySelector( '.ui-button.bold' );
+		this.btnItalic          = <HTMLDivElement>  this.node.querySelector( '.ui-button.italic' );
+		this.btnUnderline       = <HTMLDivElement>  this.node.querySelector( '.ui-button.underline' );
+		this.btnStrike          = <HTMLDivElement>  this.node.querySelector( '.ui-button.strike' );
+
+		this.btnSubscript       = <HTMLDivElement>  this.node.querySelector( '.ui-button.subscript' );
+		this.btnSuperscript     = <HTMLDivElement>  this.node.querySelector( '.ui-button.superscript' );
+
+		this.btnLeft      		= <HTMLDivElement>  this.node.querySelector( '.ui-button.left' );
+		this.btnRight     		= <HTMLDivElement>  this.node.querySelector( '.ui-button.right' );
+		this.btnCenter    		= <HTMLDivElement>  this.node.querySelector( '.ui-button.center' );
+		this.btnJustified 		= <HTMLDivElement>  this.node.querySelector( '.ui-button.justified' );
+
+		this.btnUL 			    = <HTMLDivElement>  this.node.querySelector( '.ui-button.ul' );
+		this.btnOL 				= <HTMLDivElement>  this.node.querySelector( '.ui-button.ol' );
+
+		this.btnIndent  		= <HTMLDivElement>  this.node.querySelector( '.ui-button.increase' );
+		this.btnUnindent 		= <HTMLDivElement>  this.node.querySelector( '.ui-button.decrease' );
+
+		this.btnBorderColor     = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.borderColor' );
+		this.btnBackgroundColor = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.backgroundColor' );
+		this.btnColor           = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.color' );
+
 
 		( function( me ) {
+
+			me.btnClearFormatting.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.CLEAR_FORMATTING, [] );
+			}, true );
+
+			me.dropdownize( me.blockLevel , function( v: string ) {
+				me.setBlockLevel( v );
+			}, true );
 			
+			me.dropdownize( me.fontFamily , function( v: string ) {
+				me.setFontFamily( v );
+			}, false );
+			
+			me.dropdownize( me.fontSize , function( v: string ) {
+				me.setFontSize( v );
+			}, false );
+
 			me.btnBold.addEventListener( 'click', function() {
 				me.toolbar.router.dispatchCommand( EditorCommand.BOLD, [] );
 			}, true );
@@ -70,7 +113,87 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 				}
 			}, true );
 
-		} )( this );
+			me.btnLeft.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'left' ] );
+			}, true );
+
+			me.btnRight.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'right' ] );
+			}, true );
+
+			me.btnCenter.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'center' ] );
+			}, true );
+
+			me.btnJustified.addEventListener( 'click', function(DOMEvent) {
+				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'justified' ] );
+			}, true );
+
+			me.btnUL.addEventListener( 'click', function( DOMEvent ) {
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ul' ] );
+			}, true );
+
+			me.btnOL.addEventListener( 'click', function( DOMEvent ) {
+				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ol' ] );
+			}, true );
+
+			me.btnIndent.addEventListener( 'click', function( DOMEvent ) {
+				me.toolbar.router.dispatchCommand( EditorCommand.INDENT, [] );
+			}, true );
+			
+			me.btnUnindent.addEventListener( 'click', function( DOMEvent ) {
+				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT, [] );
+			}, true );
+
+			me.makeColorDropdown( me.btnBorderColor, function( color: string ) {
+				me.setBorderColor( color );
+			}, '' );
+
+			me.makeColorDropdown( me.btnBackgroundColor, function( color: string ) {
+				me.setBackgroundColor( color );
+			}, '' );
+
+			me.makeColorDropdown( me.btnColor, function( color: string ) {
+				me.setColor( color );
+			}, '');
+
+		})( this );
+
+	}
+
+	protected setBlockLevel( nodeName: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.BLOCK_LEVEL, [ nodeName ] )
+	}
+
+	private setFontFamily( fontFamily: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.FONT, [ fontFamily ] );
+	}
+
+	private setFontSize( fontSize: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.SIZE, [ fontSize ] );
+	}
+
+	private updateBlockLevel() {
+		var level: string = String( this.toolbar.state.state.blockLevel || '' ),
+		    strs = {
+		    	"normal": "Normal",
+		    	"h1": "Heading 1",
+		    	"h2": "Heading 2",
+		    	"h3": "Heading 3",
+		    	"h4": "Heading 4",
+		    	"h5": "Heading 5"
+		    };
+		this.blockLevel.value = strs[ level ] || '';
+	}
+
+	private updateFontFamily() {
+		var family: string = String( this.toolbar.state.state.fontFamily || '' );
+		this.fontFamily.value = family;
+	}
+
+	private updateFontSize() {
+		var size: string = String( this.toolbar.state.state.fontSize || '' );
+		this.fontSize.value = size;
 	}
 
 	private updateScriptState() {
@@ -91,7 +214,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 				break;
 		}
 	}
-
 
 	private updateBoldState() {
 		
@@ -160,9 +282,78 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 		}
 	}
 
+	private updateAlignmentState() {
+		var state: string = this.toolbar.state.state.textAlign,
+		    btns: HTMLDivElement[] = [
+		    	this.btnLeft,
+		    	this.btnRight,
+		    	this.btnCenter,
+		    	this.btnJustified
+		    ],
+		    i: number;
+		
+		for ( i=0; i<4; i++ ) {
+			DOM.removeClass( btns[i], 'state-pressed' );
+		}
+
+		switch ( state ) {
+			case 'left':
+				DOM.addClass( this.btnLeft, 'state-pressed' );
+				break;
+			case 'right':
+				DOM.addClass( this.btnRight, 'state-pressed' );
+				break;
+			case 'center':
+				DOM.addClass( this.btnCenter, 'state-pressed' );
+				break;
+			case 'justified':
+				DOM.addClass( this.btnJustified, 'state-pressed' );
+				break;
+		}
+	}
+
+	private updateListState() {
+		var state = this.toolbar.state.state.listType;
+
+		DOM.removeClass( this.btnUL, 'state-pressed' );
+		DOM.removeClass( this.btnOL, 'state-pressed' );
+
+		switch ( state ) {
+			case 'ul':
+				DOM.addClass( this.btnUL, 'state-pressed' );
+				break;
+			case 'ol':
+				DOM.addClass( this.btnOL, 'state-pressed' );
+				break;
+			default:
+				break;
+		}
+	}
+
+	private setBorderColor( color: string ) {
+		console.info( 'setBorderColor: ' + color );
+	}
+
+	private setBackgroundColor( color: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.BGCOLOR, [ color ] );
+	}
+
+	private setColor( color: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.COLOR, [ color ] );
+	}
+
 	public updateDocumentState( propertiesList: string[] ) {
 		for ( var i=0, len = propertiesList.length; i<len; i++ ) {
 			switch ( propertiesList[i] ) {
+				case 'blockLevel':
+					this.updateBlockLevel();
+					break;
+				case 'fontFamily':
+					this.updateFontFamily();
+					break;
+				case 'fontSize':
+					this.updateFontSize();
+					break;
 				case 'verticalAlign':
 					this.updateScriptState();
 					break;
@@ -177,6 +368,12 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 					break;
 				case 'strike':
 					this.updateStrikeState();
+					break;
+				case 'textAlign':
+					this.updateAlignmentState();
+					break;
+				case 'listType':
+					this.updateListState();
 					break;
 			}
 		}

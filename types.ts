@@ -209,3 +209,13 @@ interface UI_DialogConfig {
 
 	buttons?: UI_DialogButtonConfig[];
 }
+
+interface TEditorInputConfig {
+	width?     : number;
+	height?    : number;
+	toolbars?  : boolean;
+	statusbar? : boolean;
+	resizable? : boolean;
+	readOnly?  : boolean;
+	disabled?  : boolean;
+}

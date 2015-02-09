@@ -65,6 +65,7 @@ class Layout_Block extends Layout {
 			topPlacement += this.node.style.marginTop();
 
 			this.offsetTop = topPlacement;
+
 			this.innerTop = this.offsetTop + this.node.style.paddingTop() + this.node.style.borderWidth();
 
 			contentHeight = this.node.style.height();
@@ -77,7 +78,7 @@ class Layout_Block extends Layout {
 			throw "unexpected children!";
 		}
 
-		// a blockNode doesn't contain children anymore...
+		// a block Node doesn't contain children anymore...
 		topPlacement += contentHeight;
 		this.innerHeight = contentHeight;
 		this.offsetHeight = contentHeight;
@@ -85,9 +86,9 @@ class Layout_Block extends Layout {
 
 		if ( this.node ) {
 
-			this.offsetHeight += ( this.node.style.paddingBottom() + this.node.style.borderWidth() );
+			this.offsetHeight += ( this.node.style.paddingBottom() + ( 2 * this.node.style.borderWidth() ) );
 
-			topPlacement += ( this.node.style.paddingBottom() + this.node.style.borderWidth() + this.node.style.marginBottom() );
+			topPlacement += ( this.node.style.paddingBottom() + ( 2 * this.node.style.borderWidth() ) + this.node.style.marginBottom() );
 
 		} else {
 			throw "invalid block scenario";

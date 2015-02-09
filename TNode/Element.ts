@@ -42,28 +42,49 @@ class TNode_Element extends TNode {
 	 */
 
 	public appendChild( node: TNode, index: number = null ): TNode {
-		if ( index === null ) {
-			node.remove();
-			index = this.childNodes.length;
-			this.childNodes.push( node.remove() );
-		} else {
-			if ( index < 0 ) {
-				index = 0;
-			} else if ( index > this.childNodes.length ) {
-				index = this.childNodes.length;
-			}
-			node.remove();
-			this.childNodes.splice( index, 0, node );
-		}
-		node.parentNode = this;
-
-		for ( var i=index, len = this.childNodes.length; i<len; i++ ) {
-			this.childNodes[i].siblingIndex = i;
-		}
-
-		this.requestRelayout();
 		
-		return node;
+		var ownerBlockElement: TNode_Element;
+
+		/* If the node has style.float left || right, we append the node @ beginning
+		   of our ownerBlockElement()
+		 */
+
+		if ( 
+				node.nodeType == TNode_Type.ELEMENT && 
+			 	[ 'left', 'right', 'center' ].indexOf( (<TNode_Element>node).style.float() ) >= 0 && 
+			 	( ownerBlockElement = this.ownerBlockElement() ) &&
+			 	this != ownerBlockElement &&
+			 	ownerBlockElement.is() != 'body'
+		) {
+
+			return ownerBlockElement.appendChild( node, 0 );
+
+		} else {
+
+			if ( index === null ) {
+				node.remove();
+				index = this.childNodes.length;
+				this.childNodes.push( node.remove() );
+			} else {
+				if ( index < 0 ) {
+					index = 0;
+				} else if ( index > this.childNodes.length ) {
+					index = this.childNodes.length;
+				}
+				node.remove();
+				this.childNodes.splice( index, 0, node );
+			}
+			node.parentNode = this;
+
+			for ( var i=index, len = this.childNodes.length; i<len; i++ ) {
+				this.childNodes[i].siblingIndex = i;
+			}
+
+			this.requestRelayout();
+			
+			return node;
+
+		}
 	}
 
 	/* Appends a collection of elements. If argument @siblingIndex is mentioned ( not null ),

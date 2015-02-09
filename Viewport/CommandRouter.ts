@@ -865,16 +865,26 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
-		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
-		        i: number,
-		      len: number;
-		
-		for ( i=0, len = nodes.length; i<len; i++ ) {
-			nodes[i].style.textAlign( alignment );
-		}
+		if ( ['img','table'].indexOf( this.viewport.selection.getRange().anchorNode().target.is() ) >= 0 && !this.viewport.selection.getRange().focusNode() ) {
 
-		if ( nodes.length )
-			this.viewport.selection.editorState.compute();
+			if ( alignment == 'left' || alignment == 'right' || alignment == 'center' ) {
+				(<TNode_Element>this.viewport.selection.getRange().anchorNode().target).style.float( alignment );
+			}
+
+		} else {
+
+			var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
+			        i: number,
+			      len: number;
+			
+			for ( i=0, len = nodes.length; i<len; i++ ) {
+				nodes[i].style.textAlign( alignment );
+			}
+
+			if ( nodes.length )
+				this.viewport.selection.editorState.compute();
+
+		}
 
 		this.viewport.document.changeThrottler.run();
 

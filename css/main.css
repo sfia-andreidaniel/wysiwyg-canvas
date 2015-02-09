@@ -1,8 +1,39 @@
+div.html-editor canvas[data-object-type=html-viewport]:focus {
+	outline: none;
+}
+
+div.html-editor,
+div.html-editor > div.toolbar,
+div.html-editor > div.body,
+div.html-editor > div.statusbar {
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	-o-user-select: none;
+	-moz-user-select: none;
+	user-select: none;
+}
+
 div.html-editor {
 	display: block;
 	padding: 0 !important;
 	margin : 0 !important;
 	background-color: white;
+	border: 1px inset #666;
+}
+
+div.html-editor > div.resizer {
+	position: relative;
+	width: 15px;
+	height: 15px;
+	float: right;
+	margin-top: -15px;
+	background-image: url(data:image/gif;base64,R0lGODlhEAAQAKIAAP///+Dg4bi0o7i1obi0oQAAAAAAAAAAACH5BAEAAAAALAAAAAAQABAAAAMmCLrc/jDKKQWhSoyAQeBddQFWtZFn9Clr2JTkCDMaV6Mg0+55lwAAOw==);
+	cursor: se-resize;
+	display: none;
+}
+
+div.html-editor.is-resizable > div.resizer {
+	display: block;
 }
 
 div.html-editor > div.toolbar {
@@ -12,7 +43,7 @@ div.html-editor > div.toolbar {
 	margin: 0 !important;
 	display: none;
 	background-color: #ddd;
-	height: 41px;
+	height: 46px;
 
 	-webkit-user-select: none;
 	-ms-user-select: none;
@@ -98,26 +129,39 @@ div.html-editor.has-statusbar > div.statusbar {
 }
 
 /* Toolbars styling */
-div.html-editor > div.toolbar > div.ui-panel {
+div.html-editor > div.toolbar div.ui-panel {
 	display: inline-block;
-	float: left;
 	height: 18px;
 	padding: 1px 1px 1px 0px;
 	margin: 0px 2px 0px 0px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel > div.item {
+div.html-editor > div.toolbar > div.toolbar-row {
+	display: block;
+	padding: 0;
+	margin: 0;
+	position: relative;
+	width: 100%;
+	height: 21px;
+	border-top: 1px solid white;
+	border-bottom: 1px solid #666;
+	white-space: nowrap;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.item {
 	display: inline-block;
-	margin: 0px 1px;
+	margin: 0px;
 	height: 20px;
 	vertical-align: top;
+	border-left: 1px solid white;
+	border-right: 1px solid #666;
 }
 
 div.html-editor > div.toolbar *:focus {
 	outline: none;
 }
 
-div.html-editor > div.toolbar > div.ui-panel input[type=text] {
+div.html-editor > div.toolbar div.ui-panel input[type=text] {
 	padding: 0;
 	width: 20px;
 	margin: 0;
@@ -128,7 +172,7 @@ div.html-editor > div.toolbar > div.ui-panel input[type=text] {
 	font-family: Arial;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-button {
+div.html-editor > div.toolbar div.ui-panel div.ui-button {
 	display: inline-block;
 	width: 18px;
 	height: 18px;
@@ -139,12 +183,12 @@ div.html-editor > div.toolbar > div.ui-panel div.ui-button {
 	background-position: 0px 0px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown {
 	display: inline-block;
 	position: relative;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > .overlay {
 	display: none;
 	position: absolute;
 	top: 100%;
@@ -158,11 +202,11 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay {
 	z-index: 100;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown.focused > .overlay {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown.focused > .overlay {
 	display: block;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > .overlay > .option {
 	display: block;
 	overflow: hidden;
 	white-space: nowrap;
@@ -171,17 +215,17 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .opt
 	cursor: default;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option.hidden {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > .overlay > .option.hidden {
 	display: none;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option:hover,
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > .overlay > .option.on {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > .overlay > .option:hover,
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > .overlay > .option.on {
 	background-color: blue;
 	color: white;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > div.expander {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown > div.expander {
 	display: inline-block;
 	width: 10px;
 	height: 14px;
@@ -193,13 +237,13 @@ div.html-editor > div.toolbar > div.ui-panel div.text-dropdown > div.expander {
 }
 
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button {
 	padding-right: 30px;
 	position: relative;
 	background-image: none !important;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.icon {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.icon {
 	display: block;
 	width: 20px;
 	height: 20px;
@@ -210,7 +254,7 @@ div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.icon {
 	background-repeat: no-repeat;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.color {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.color {
 	display: block;
 	margin-left: 20px;
 	width: 11px;
@@ -221,34 +265,36 @@ div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.color {
 	border: 1px solid transparent;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.color.none {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.color.none {
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: -65px -103px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay > div.c.none {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.overlay > div.c.none {
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: -63px -102px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.overlay {
 	position: absolute;
 	z-index: 100;
 	background-color: #ddd;
-	width: 170px;
+	width: 165px;
 	padding: 2px;
 	line-height: 10px;
 	display: none;
+	white-space: normal;
+	right: 0px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.overlay > div.c {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.overlay > div.c {
 	display: inline-block;
 	width: 15px; height: 15px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.expander {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.expander {
 	display: block;
 	width: 10px;
 	height: 14px;
@@ -262,50 +308,50 @@ div.html-editor > div.toolbar > div.ui-panel div.ui-color-button > div.expander 
 	left: 35px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-button:hover,
-div.html-editor > div.toolbar > div.ui-panel div.expander:hover,
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button:hover > div.color {
+div.html-editor > div.toolbar div.ui-panel div.ui-button:hover,
+div.html-editor > div.toolbar div.ui-panel div.expander:hover,
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button:hover > div.color {
 	border: 1px outset #ddd !important;
 }
 
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-color-button:active > div.color {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button:active > div.color {
 	border: 1px inset #ddd;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-button:active,
-div.html-editor > div.toolbar > div.ui-panel div.expander:active {
+div.html-editor > div.toolbar div.ui-panel div.ui-button:active,
+div.html-editor > div.toolbar div.ui-panel div.expander:active {
 	background-color: #bbb !important;
 	border: 1px inset #ddd;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-mixed {
+div.html-editor > div.toolbar div.ui-panel div.ui-button.state-mixed {
 	background-color: #c3c3c3;
 }
 
-div.html-editor > div.toolbar > div.ui-panel div.ui-button.state-pressed,
-div.html-editor > div.toolbar > div.ui-panel div.expander.state-pressed {
+div.html-editor > div.toolbar div.ui-panel div.ui-button.state-pressed,
+div.html-editor > div.toolbar div.ui-panel div.expander.state-pressed {
 	background-color: #efefef;
 	border: 1px inset #ddd;
 }
 
 
-div.html-editor > div.toolbar > div.ui-panel div.text-dropdown {
+div.html-editor > div.toolbar div.ui-panel div.text-dropdown {
 	padding: 0px 0px 0px 2px;
 	background-color: white;
 	border: 1px inset #ddd;
 	height: 16px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel input.nodeName {
+div.html-editor > div.toolbar div.ui-panel input.nodeName {
 	width: 80px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel input.fontFamily {
+div.html-editor > div.toolbar div.ui-panel input.fontFamily {
 	width: 100px;
 }
 
-div.html-editor > div.toolbar > div.ui-panel input.fontSize {
+div.html-editor > div.toolbar div.ui-panel input.fontSize {
 	width: 25px;
 }
 
@@ -313,73 +359,71 @@ div.html-editor .ui-panel-style .ui-button.remove-formatting {
 	background-position: -1px -119px !important;
 }
 
-
-div.html-editor .ui-panel-formatting .ui-button.bold {
+div.html-editor .ui-panel-style .ui-button.bold {
 	background-position: -1px -81px !important;
 }
 
-div.html-editor .ui-panel-formatting .ui-button.italic {
+div.html-editor .ui-panel-style .ui-button.italic {
 	background-position: -21px -81px !important;
 }
 
-div.html-editor .ui-panel-formatting .ui-button.underline {
+div.html-editor .ui-panel-style .ui-button.underline {
 	background-position: -41px -81px !important;
 }
 
-div.html-editor .ui-panel-formatting .ui-button.strike {
+div.html-editor .ui-panel-style .ui-button.strike {
 	background-position: -21px -121px !important;
 }
 
-div.html-editor .ui-panel-formatting .ui-button.subscript {
+div.html-editor .ui-panel-style .ui-button.subscript {
 	background-position: -21px -101px !important;
 }
 
-div.html-editor .ui-panel-formatting .ui-button.superscript {
+div.html-editor .ui-panel-style .ui-button.superscript {
 	background-position: -41px -101px !important;
 }
 
-
-div.html-editor .ui-panel-alignment .ui-button.left {
+div.html-editor .ui-panel-style .ui-button.left {
 	background-position: -1px -61px !important;
 }
 
-div.html-editor .ui-panel-alignment .ui-button.center {
+div.html-editor .ui-panel-style .ui-button.center {
 	background-position: -41px -61px !important;
 }
 
-div.html-editor .ui-panel-alignment .ui-button.right {
+div.html-editor .ui-panel-style .ui-button.right {
 	background-position: -21px -61px !important;
 }
 
-div.html-editor .ui-panel-alignment .ui-button.justified {
+div.html-editor .ui-panel-style .ui-button.justified {
 	background-position: -61px -61px !important;
 }
 
-div.html-editor .ui-panel-bullets-and-numbering .ui-button.ol {
+div.html-editor .ui-panel-style .ui-button.ol {
 	background-position: -1px -41px !important;
 }
 
-div.html-editor .ui-panel-bullets-and-numbering .ui-button.ul {
+div.html-editor .ui-panel-style .ui-button.ul {
 	background-position: -21px -41px !important;
 }
 
-div.html-editor .ui-panel-indentation .ui-button.increase {
+div.html-editor .ui-panel-style .ui-button.increase {
 	background-position: -61px -41px !important;
 }
 
-div.html-editor .ui-panel-indentation .ui-button.decrease {
+div.html-editor .ui-panel-style .ui-button.decrease {
 	background-position: -41px -41px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.borderColor > .icon {
+div.html-editor .ui-panel-style .ui-button.borderColor > .icon {
 	background-position: -61px -81px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.backgroundColor > .icon {
+div.html-editor .ui-panel-style .ui-button.backgroundColor > .icon {
 	background-position: -1px -21px !important;
 }
 
-div.html-editor .ui-panel-borders-and-colors .ui-button.color > .icon {
+div.html-editor .ui-panel-style .ui-button.color > .icon {
 	background-position: -21px -21px !important;
 }
 

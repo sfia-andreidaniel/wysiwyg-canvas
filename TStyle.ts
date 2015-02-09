@@ -396,6 +396,17 @@ class TStyle extends Events {
 
 			this._float.set( v );
 			this.node.requestRelayout();
+			
+			if ( [ 'left', 'right', 'center' ].indexOf( v ) >= 0 ) {
+
+				var blockElement = this.node.ownerBlockElement();
+
+				if ( blockElement && blockElement.is() != 'body' ) {
+					blockElement.appendChild( this.node, v == 'center' ? null : 0 );
+				}
+
+			}
+
 			this.fire( 'changed', "float" );
 
 			return v;

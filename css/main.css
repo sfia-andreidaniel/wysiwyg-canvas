@@ -859,8 +859,30 @@ div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button:hover {
 	border: 1px outset #ddd;
 }
 
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button.up {
+	background-position: 0px -140px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button.refresh {
+	background-position: -21px -140px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button.asc {
+	background-position: -41px -140px;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button.desc {
+	background-position: -61px -140px;
+}
+
+
 div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button:active {
 	border: 1px inset #ddd;
+}
+
+div.ui-dialog .htmleditor-fs > div.toolbar > div.buttons > div.button.pressed {
+	border: 1px inset #ddd;
+	background-color: #bbb;
 }
 
 div.ui-dialog .htmleditor-fs > div.files {
@@ -873,4 +895,88 @@ div.ui-dialog .htmleditor-fs > div.files {
 	background-color: white;
 	overflow-x: hidden;
 	overflow-y: scroll;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > span.loading,
+div.ui-dialog .htmleditor-fs > div.files > span.empty {
+	text-align: center;
+	display: block;
+	margin: 10px auto;
+	font-family: Arial;
+	font-size: 12px;
+	color: #666;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > span.error {
+	text-align: center;
+	display: block;
+	margin: 10px auto;
+	font-family: Arial;
+	font-size: 12px;
+	color: red;
+}
+
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs {
+	display: inline-block;
+	width: 128px;
+	height: 32px;
+	margin: 10px;
+	font-size: 12px;
+	font-family: Arial;
+	vertical-align: top;
+	position: relative;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime {
+	width: 32px;
+	height: 32px;
+	background-image: url(mime.png);
+	display: inline-block;
+	position: absolute;
+	left: 0px;
+	top: 0px;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > label {
+	font-size: 12px;
+	text-align: left;
+	display: inline-block;
+	right: 0px;
+	height: 14px;
+	position: absolute;
+	left: 37px;
+	top: 9px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs.focused > label {
+	height: auto;
+	background-color: blue;
+	color: white;
+	white-space: normal;
+	right: auto;
+	max-width: 88;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.folder {
+	background-position: 0px 0px;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.picture {
+	background-position: -64px 0px;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.video {
+	background-position: -96px 0px;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.audio {
+	background-position: -128px 0px;
+}
+
+div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.unknown {
+	background-position: -32px 0px;
 }

@@ -225,13 +225,20 @@ enum FSItem {
 	FOLDER
 }
 
+enum FS_Navigator_Status {
+	LOADED,
+	LOADING,
+	ERROR
+}
+
 interface FS_Entry {
 	
 	name   : string;
 	type   : FSItem;
+	mime   : string;
 	
 	url?   : string;
 	size?  : number;
-	thimb? : string;
+	thumb? : string;
 
 }

@@ -13,7 +13,7 @@
    height="1052.3622047"
    id="svg2"
    version="1.1"
-   inkscape:version="0.91pre3 r13670"
+   inkscape:version="0.48.4 r9939"
    sodipodi:docname="icons.svg">
   <defs
      id="defs4" />
@@ -24,14 +24,14 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="16.000001"
-     inkscape:cx="30.189703"
-     inkscape:cy="12.397569"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="4.0865847"
+     inkscape:cy="76.1828"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1018"
+     inkscape:window-width="1366"
+     inkscape:window-height="706"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
@@ -122,7 +122,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -443,7 +443,8 @@
        id="g4215"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90"
-       transform="translate(0,-20)">
+       transform="translate(0,-20)"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png">
       <path
          style="fill:#000000;stroke:none"
          d="m 45.30642,1018.793 3.48029,3.4803 -3.45819,3.4583 1.02751,1.0274 3.49134,-3.4914 3.49134,3.4914 1.03856,-1.0386 -3.54658,-3.5466 3.46924,-3.4692 -1.03856,-1.0386 -3.49134,3.4914 -3.414,-3.414 c -0.34994,0.3498 -0.69975,0.6997 -1.04961,1.0496 z"
@@ -486,7 +487,8 @@
        id="path3265"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90"
-       inkscape:connector-curvature="0" />
+       inkscape:connector-curvature="0"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png" />
     <g
        id="text4226"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.64247131px;line-height:125%;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -496,7 +498,8 @@
        id="text4243"
        transform="matrix(0.38289087,0,0,0.38289087,46.36921,610.11795)"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90">
+       inkscape:export-ydpi="90"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png">
       <path
          d="m -37.897181,985.26453 -0.214843,0.72265 -12.637976,0 0.273438,-0.72265 c 1.09375,-0.0261 1.816406,-0.11721 2.167968,-0.27344 0.572917,-0.22135 0.996094,-0.52734 1.269532,-0.91797 0.429687,-0.61198 0.872396,-1.70573 1.328125,-3.28125 l 4.609375,-15.97656 c 0.390625,-1.32813 0.585937,-2.33073 0.585937,-3.00781 0,-0.33855 -0.08463,-0.62501 -0.253906,-0.85938 -0.169271,-0.23437 -0.429687,-0.41015 -0.78125,-0.52734 -0.338542,-0.13021 -1.009115,-0.19532 -2.011719,-0.19532 l 0.234375,-0.72265 11.973913,0 -0.214844,0.72265 c -0.833333,-0.013 -1.451822,0.0782 -1.855468,0.27344 -0.585938,0.26042 -1.035157,0.63151 -1.347657,1.11328 -0.299478,0.48177 -0.690103,1.54948 -1.171875,3.20313 l -4.589843,15.97656 c -0.416666,1.47135 -0.625,2.40885 -0.625,2.8125 0,0.32552 0.07813,0.60547 0.234375,0.83984 0.169271,0.22136 0.429688,0.39714 0.78125,0.52735 0.364584,0.11719 1.113281,0.21484 2.246093,0.29297 z"
          id="path4248"
@@ -511,13 +514,15 @@
        id="path3259"
        inkscape:connector-curvature="0"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
+       inkscape:export-ydpi="90"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png" />
     <g
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:14.92488289px;line-height:125%;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        id="text4250"
        inkscape:export-xdpi="90"
        inkscape:export-ydpi="90"
-       transform="translate(0,-20)">
+       transform="translate(0,-20)"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png">
       <path
          inkscape:connector-curvature="0"
          d="m 45.062498,997.50268 5.101278,0 0,0.26964 -0.255064,0 c -0.38381,0 -0.64859,0.0413 -0.794341,0.12388 -0.140893,0.0777 -0.242918,0.18705 -0.306077,0.32794 -0.0583,0.14089 -0.08745,0.49313 -0.08745,1.0567 l 0,4.83896 c 0,0.8842 0.06559,1.4696 0.196764,1.7563 0.674983,0.955 2.848301,0.6753 3.12376,-0.3571 0.189476,-0.4227 0.284214,-1.1587 0.284214,-2.2082 l 0,-4.02996 c 0,-0.44211 -0.04615,-0.75791 -0.138463,-0.94738 -0.09231,-0.18948 -0.20891,-0.32066 -0.349802,-0.39353 -0.218627,-0.11174 -0.527133,-0.16761 -0.925518,-0.16761 l 0,-0.26964 4.324107,0 0,0.26964 -0.204052,0 c -0.276926,0 -0.507698,0.0559 -0.692316,0.16761 -0.184617,0.11174 -0.318222,0.27935 -0.400815,0.50284 -0.06316,0.15547 -0.09474,0.43482 -0.09474,0.83807 l 0,3.75306 c 0,1.1611 -0.07773,1.9992 -0.233201,2.5142 -0.150609,0.515 -0.522274,0.9887 -1.114994,1.4211 -0.59272,0.4324 -1.401637,0.6486 -2.426751,0.6486 -0.855071,0 -1.515808,-0.1142 -1.982211,-0.3425 -0.636445,-0.3109 -1.085843,-0.7093 -1.348195,-1.1952 -0.262351,-0.4858 -0.393527,-1.1392 -0.393527,-1.9603 l 0,-4.83896 c 0,-0.56843 -0.03158,-0.92066 -0.09474,-1.0567 -0.06316,-0.14089 -0.172473,-0.25263 -0.327939,-0.33522 -0.155468,-0.0826 -0.442111,-0.12146 -0.85993,-0.1166 z"
@@ -534,12 +539,92 @@
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccccccccccc"
        inkscape:export-xdpi="90"
-       inkscape:export-ydpi="90" />
+       inkscape:export-ydpi="90"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png" />
     <path
-       style="fill:#000000;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 5.5806891,1035.5028 -1.0487839,1.859 -1.2173424,0 -1.5469847,1.7387 0,7.9723 2.8222657,2.8105 11.3183592,0 2.248047,-2.1015 0,-8.4532 -2.248047,-1.9668 -6.6235406,0 -0.8478111,-1.8624 z m 4.2179468,4.7866 2.3125001,2.375 -1.604167,0 0,4.5 -1.4791664,0 0,-4.5 -1.6666667,0 z"
-       id="path4211"
+       style="fill:#000000;stroke:none"
+       d="m 4.6875013,1036.6875 0,1.625 3.6875,0 0,-1.625 -3.6875,0 z m 9.4687497,2.25 -9.4062497,0.062 -1.09375,1.125 0,5.875 1.1875,1.2188 9.1874997,0 1.25,-1.2813 0,-5.875 -1.125,-1.125 z m -4.7499997,2.4063 1.7812497,2.8437 -3.4374997,0 1.65625,-2.8437 z"
+       id="path3083"
        inkscape:connector-curvature="0"
-       sodipodi:nodetypes="ccccccccccccccccccccc" />
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90" />
+    <g
+       id="g3101"
+       transform="matrix(1.6211226,0,0,1.6211226,110.37579,-612.517)"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <path
+         sodipodi:nodetypes="ccccccccc"
+         inkscape:connector-curvature="0"
+         id="path3095"
+         d="m -52.325898,1020.2773 1.399354,-3.0394 0.532206,1.3002 c 0.64359,-0.9041 1.479416,-1.3178 2.181826,-1.2808 1.221505,0.2465 1.661078,1.3122 1.647182,2.853 l -0.91676,0.1025 c -0.348492,-2.185 -0.632917,-2.7356 -2.341498,-1.0048 l 0.909889,1.0034 z"
+         style="fill:#000000;stroke:none" />
+      <path
+         style="fill:#000000;stroke:none"
+         d="m -46.432429,1020.8397 -1.399354,3.0394 -0.532206,-1.3002 c -0.64359,0.9041 -1.479416,1.3178 -2.181826,1.2808 -1.221505,-0.2465 -1.661078,-1.3122 -1.647182,-2.853 l 0.91676,-0.1025 c 0.348492,2.185 0.632917,2.7356 2.341498,1.0048 l -0.909889,-1.0034 z"
+         id="path3099"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="ccccccccc" />
+    </g>
+    <g
+       id="text3105"
+       style="font-size:8.74215698px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans" />
+    <g
+       id="g3136"
+       transform="translate(-18.687499,-0.18749999)"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:connector-curvature="0"
+         d="m 69.029153,1041.7372 -1.374499,0 -0.546385,-1.4215 -2.501418,0 -0.516505,1.4215 -1.34035,0 2.437389,-6.2578 1.336081,0 z m -2.326404,-2.4758 -0.862264,-2.3222 -0.845189,2.3222 z"
+         style="font-size:8.74215698px;font-style:normal;font-weight:bold;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         id="path3130" />
+      <g
+         style="font-size:8.74215698px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         id="text3109">
+        <path
+           inkscape:connector-curvature="0"
+           d="m 63.218906,1048.7372 0,-1.1397 3.286846,-4.0595 -2.915475,0 0,-1.0586 4.580241,0 0,0.9818 -3.427711,4.2216 3.560039,0 0,1.0544 z"
+           style="font-weight:bold"
+           id="path3133" />
+      </g>
+      <path
+         style="fill:#000000;stroke:none"
+         d="m 72.049014,1047.6714 -2.593169,-4.7644 2.205395,0.5687 -0.03907,-4.7959 1.588015,0.034 -0.125225,4.6698 2.185845,-0.2098 z"
+         id="path3115"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="cccccccc" />
+    </g>
+    <g
+       transform="translate(59.562497,-21.249998)"
+       id="g3156"
+       inkscape:export-filename="C:\Users\andrei\Desktop\htmledd\css\icons.png"
+       inkscape:export-xdpi="90"
+       inkscape:export-ydpi="90">
+      <path
+         inkscape:connector-curvature="0"
+         id="path3144"
+         style="font-size:8.74215698px;font-style:normal;font-weight:bold;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         d="m 10.235741,1069.5343 -1.374499,0 -0.546385,-1.4215 -2.501418,0 -0.516505,1.4215 -1.34035,0 2.437389,-6.2578 1.336081,0 z m -2.326404,-2.4758 -0.862264,-2.3222 -0.845189,2.3222 z" />
+      <g
+         id="g3146"
+         style="font-size:8.74215698px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+         transform="translate(-58.668412,13.797149)">
+        <path
+           inkscape:connector-curvature="0"
+           id="path3148"
+           style="font-weight:bold"
+           d="m 63.218906,1048.7372 0,-1.1397 3.286846,-4.0595 -2.915475,0 0,-1.0586 4.580241,0 0,0.9818 -3.427711,4.2216 3.560039,0 0,1.0544 z" />
+      </g>
+      <path
+         sodipodi:nodetypes="cccccccc"
+         inkscape:connector-curvature="0"
+         id="path3150"
+         d="m 13.005602,1068.531 -2.593169,-4.7644 2.205395,0.5687 -0.03907,-4.7959 1.588015,0.034 -0.125225,4.6698 2.185845,-0.2098 z"
+         style="fill:#000000;stroke:none" />
+    </g>
   </g>
 </svg>

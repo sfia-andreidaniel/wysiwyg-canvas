@@ -5,6 +5,7 @@ class UI_Dialog_InsertPicture extends UI_Dialog {
 	public    iConstrainProportions : HTMLInputElement = null;
 	public    iAlternateText        : HTMLInputElement = null;
 	public    iSource               : HTMLInputElement = null;
+	public    btnBrowse             : HTMLButtonElement = null;
 
 	public    iPreview              : HTMLImageElement = null;
 	public    iLoaded               : boolean = false;
@@ -56,7 +57,17 @@ class UI_Dialog_InsertPicture extends UI_Dialog {
 		this.iPreview              = <HTMLImageElement>this.body.querySelector( 'img.img-preview' );
 		this.emptySrc              = this.iPreview.src;
 
+		this.btnBrowse             = <HTMLButtonElement>this.body.querySelector( 'button.browse' );
+
 		this._setupPreview_();
+
+		( function( me ) {
+
+			me.btnBrowse.addEventListener( 'click', function() {
+				me.on_browse();
+			} );
+
+		} )( this );
 
 	}
 
@@ -83,8 +94,7 @@ class UI_Dialog_InsertPicture extends UI_Dialog {
 
 					if ( me.iInitialWidth ) {
 						me.iWidth.value = String( me.iInitialWidth );
-						me.iHeight.value = String( Math.round( me.iInitialWidth / this.aspectRatio ) );
-						me.iWidth.focus();
+						me.iHeight.value = String( Math.round( me.iInitialWidth / me.aspectRatio ) );
 					}
 
 					me.iPreview.style.maxWidth = '150px';
@@ -93,17 +103,12 @@ class UI_Dialog_InsertPicture extends UI_Dialog {
 				} else {
 					me.iLoaded = false;
 				}
+
 				me.onLoadStateChanged();
 			}, true );
 
 			me.iSource.addEventListener( 'input', function() {
-				console.warn( 'setup input' );
-
-				if ( me.iSource.value ) {
-					me.iPreview.src = me.iSource.value;
-				} else {
-					me.iPreview.src = me.emptySrc;
-				}
+				me.on_source_changed();
 			} );
 
 			me.iWidth.addEventListener( 'wheel', function(evt) {
@@ -278,4 +283,27 @@ class UI_Dialog_InsertPicture extends UI_Dialog {
 
 		this.close();
 	}
+
+	public on_browse() {
+
+		( function( me ) {
+			UI_Dialog_Manager.singleton( 'FileBrowser' ).centerTo( me.body ).setup('image', function( href: string ) {
+
+				me.iSource.value = href;
+				me.on_source_changed();
+
+			} ).open();
+		} )( this );
+	}
+
+	public on_source_changed() {
+
+		if ( this.iSource.value ) {
+			this.iPreview.src = this.iSource.value;
+		} else {
+			this.iPreview.src = this.emptySrc;
+		}
+
+	}
+
 }

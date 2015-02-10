@@ -1565,12 +1565,13 @@ var TNode_Element = (function (_super) {
             }
             this.parentNode.appendChild(rParent, this.siblingIndex + 1);
             if (rParent.innerHTML() == '') {
-                rParent.appendChild(this.documentElement.createTextNode(whiteSpace));
+                rParent.removeAllChildNodes();
+                if (whiteSpace)
+                    rParent.appendChild(this.documentElement.createTextNode(whiteSpace));
             }
         }
         else {
             rightCol = new TNode_Collection(rParent.childNodes);
-            //console.log( rightCol.innerHTML() );
             // append all the contents of the rParent to myself
             rightCol.wrapIn(this);
             this.documentElement.relayout(true);
@@ -1582,8 +1583,9 @@ var TNode_Element = (function (_super) {
             }
         }
         if (this.innerHTML() == '') {
-            this.innerHTML('');
-            this.appendChild(this.documentElement.createTextNode(whiteSpace));
+            this.removeAllChildNodes();
+            if (whiteSpace)
+                this.appendChild(this.documentElement.createTextNode(whiteSpace));
         }
         // force a document relayout, mandatory!
         this.documentElement.relayout(true);
@@ -2180,7 +2182,6 @@ var TNode_Collection_Dettached = (function (_super) {
     TNode_Collection_Dettached.prototype.createSlices = function () {
         this.parentNode.createSurgery(this.surgeryEnd, false, null, 2 /* RIGHT */);
         this.parentNode.createSurgery(this.surgeryStart, false, null, 1 /* LEFT */);
-        //console.log( this.fragLTR, this.fragRTL, this.parentNode.xmlBeginning() );
     };
     TNode_Collection_Dettached.prototype.createRanges = function () {
         var at = null, fragment = this.parentNode.documentElement.fragment, i = 0, len = 0, computeLeftSibling = false, node;
@@ -2204,17 +2205,6 @@ var TNode_Collection_Dettached = (function (_super) {
             i++;
         }
         this.surgeryEnd -= i;
-        /*
-        while ( this.surgeryStart > this.parentNode.FRAGMENT_START && [FragmentItem.NODE_START, FragmentItem.EOL].indexOf( fragment.at( this.surgeryStart ) ) > -1 ) {
-            this.surgeryStart--;
-            console.log( '<' );
-        }
-
-        while ( this.surgeryEnd < this.parentNode.FRAGMENT_END && [FragmentItem.NODE_END, FragmentItem.EOL].indexOf( fragment.at( this.surgeryEnd + 1 ) ) > -1 ) {
-            this.surgeryEnd++;
-            console.log( '>' );
-        }
-        */
         computeLeftSibling = true;
         for (i = 0, len = this.parentNode.childNodes.length; i < len; i++) {
             if (this.parentNode.childNodes[i].FRAGMENT_START >= this.surgeryStart && this.parentNode.childNodes[i].FRAGMENT_END <= this.surgeryEnd) {
@@ -2225,7 +2215,6 @@ var TNode_Collection_Dettached = (function (_super) {
                 computeLeftSibling = false;
             }
         }
-        //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
     };
     TNode_Collection_Dettached.prototype.reInsert = function () {
         this.parentNode.appendCollection(this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0);
@@ -3803,9 +3792,6 @@ var HTML_Table = (function (_super) {
     // ignore other elements other than table row
     HTML_Table.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
-        if (this.documentElement && this.documentElement._tablesLocked) {
-            return node;
-        }
         var returnValue;
         if (node.nodeType == 2 /* ELEMENT */ && node.nodeName == 'tr') {
             returnValue = (_super.prototype.appendChild.call(this, node, index));
@@ -3819,9 +3805,6 @@ var HTML_Table = (function (_super) {
         }
     };
     HTML_Table.prototype.removeChild = function (node) {
-        if (this.documentElement && this.documentElement._tablesLocked) {
-            return node;
-        }
         var returnValue = _super.prototype.removeChild.call(this, node);
         this.requestCompile();
         return returnValue;
@@ -4183,16 +4166,18 @@ var HTML_Table_EdgesCollection = (function () {
                 this.edges[i].scaledValue = this.edges[i].value;
             }
         }
-        this.edges[0].indexStart = shiftLeft + spacing;
-        this.edges[0].offsetIndexStart = shiftLeft + spacing;
-        for (i = 0, len = this.edges.length; i < (len - 1); i++) {
-            this.edges[i].indexEnd = this.edges[i].indexStart + this.edges[i].scaledValue + (2 * (padding + border)) + (spacing * .5);
-            this.edges[i].offsetIndexEnd = this.edges[i].offsetIndexStart + 2 * border + 2 * padding + this.edges[i].scaledValue;
-            this.edges[i + 1].indexStart = this.edges[i].indexEnd;
-            this.edges[i + 1].offsetIndexStart = this.edges[i].indexEnd + spacing * .5;
+        if (this.edges.length) {
+            this.edges[0].indexStart = shiftLeft + spacing;
+            this.edges[0].offsetIndexStart = shiftLeft + spacing;
+            for (i = 0, len = this.edges.length; i < (len - 1); i++) {
+                this.edges[i].indexEnd = this.edges[i].indexStart + this.edges[i].scaledValue + (2 * (padding + border)) + (spacing * .5);
+                this.edges[i].offsetIndexEnd = this.edges[i].offsetIndexStart + 2 * border + 2 * padding + this.edges[i].scaledValue;
+                this.edges[i + 1].indexStart = this.edges[i].indexEnd;
+                this.edges[i + 1].offsetIndexStart = this.edges[i].indexEnd + spacing * .5;
+            }
+            this.edges[lastEdgeIndex].indexEnd = this.edges[lastEdgeIndex].indexStart + this.edges[lastEdgeIndex].scaledValue + padding * 2 + 2 * border + spacing * 1.5;
+            this.edges[lastEdgeIndex].offsetIndexEnd = this.edges[lastEdgeIndex].indexEnd - spacing;
         }
-        this.edges[lastEdgeIndex].indexEnd = this.edges[lastEdgeIndex].indexStart + this.edges[lastEdgeIndex].scaledValue + padding * 2 + 2 * border + spacing * 1.5;
-        this.edges[lastEdgeIndex].offsetIndexEnd = this.edges[lastEdgeIndex].indexEnd - spacing;
     };
     return HTML_Table_EdgesCollection;
 })();
@@ -4229,9 +4214,6 @@ var HTML_TableRow = (function (_super) {
     // ignore other elements other than table cell
     HTML_TableRow.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
-        if (this.documentElement && this.documentElement._tablesLocked) {
-            return node;
-        }
         var returnValue;
         if (node.nodeType == 2 /* ELEMENT */ && node.nodeName == 'td') {
             returnValue = (_super.prototype.appendChild.call(this, node, index));
@@ -4247,9 +4229,6 @@ var HTML_TableRow = (function (_super) {
         }
     };
     HTML_TableRow.prototype.removeChild = function (node) {
-        if (this.documentElement && this.documentElement._tablesLocked) {
-            return node;
-        }
         var returnValue = _super.prototype.removeChild.call(this, node);
         this.ownerTable.requestCompile();
         return returnValue;
@@ -4345,7 +4324,11 @@ var HTML_TableCell = (function (_super) {
     HTML_TableCell.prototype.removeChild = function (node) {
         var returnValue = _super.prototype.removeChild.call(this, node);
         if (this.childNodes.length == 0) {
-            this.appendChild(this.documentElement.createTextNode(' '));
+            if (this.documentElement && this.documentElement._tablesLocked) {
+            }
+            else {
+                this.appendChild(this.documentElement.createTextNode(' '));
+            }
         }
         return returnValue;
     };
@@ -6629,9 +6612,11 @@ var Layout_Block_Table = (function (_super) {
             this.children[i].increaseYBy(this.children[i].node.edgeTop.offsetIndexStart);
             this.children[i].increaseHeightBy((this.children[i].node.edgeBottom.offsetIndexEnd - this.children[i].node.edgeTop.offsetIndexStart) - this.children[i].offsetHeight);
         }
-        this.innerHeight = this.matrix.yEdges.edges[this.matrix.yEdges.edges.length - 1].offsetIndexEnd;
-        topPlacement += this.innerHeight;
-        this.offsetHeight += this.innerHeight;
+        if (this.matrix.yEdges.edges.length) {
+            this.innerHeight = this.matrix.yEdges.edges[this.matrix.yEdges.edges.length - 1].offsetIndexEnd;
+            topPlacement += this.innerHeight;
+            this.offsetHeight += this.innerHeight;
+        }
         this.offsetHeight += (this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing);
         topPlacement += (this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing);
         topPlacement += this.node.style.marginBottom();
@@ -8314,9 +8299,7 @@ var Viewport_CommandRouter = (function (_super) {
         if (!len) {
             return;
         }
-        this.viewport.document.lockTables();
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('strike').unwrapFromElement('!strike').unwrapFromElement('color').end();
-        this.viewport.document.unlockTables();
         this.viewport.selection.editorState.compute();
     };
     Viewport_CommandRouter.prototype.link = function (href, text, target) {
@@ -8683,6 +8666,7 @@ var Fragment_CaretLock = (function () {
         this.chars = 0;
         this.lockIndex = 0;
         this.startedEOL = false;
+        console.warn('create lock: ' + lockName + ', direction: ' + (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? ' start ' : ' end '));
         var at, i = 0, len = 0, n = 0;
         this.fragment = fragment;
         this.lockIndex = lockIndex;
@@ -8735,6 +8719,7 @@ var Fragment_CaretLock = (function () {
             return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
         }
         else {
+            console.warn('restoring from ' + this.chars + ', ' + this.startedEOL);
             if (this.chars != 0) {
                 for (i = foundIndex; i >= 0; i--) {
                     at = this.fragment.at(i);
@@ -8990,10 +8975,13 @@ var Fragment_Contextual = (function () {
                 for (k = i; k < i + subLength; k++) {
                     currentSet.push(this.parts[k]);
                 }
-                ranges.push({
-                    "parent": currentBlockNode,
-                    "set": currentSet
-                });
+                // This IF FUCKING ATE MY SOUL BECAUSE THE TR ELEMENTS SHOULD BE TREATED SPECIAL!!!
+                if (!(currentSet.length == 2 && currentSet[0].node.is() == 'tr')) {
+                    ranges.push({
+                        "parent": currentBlockNode,
+                        "set": currentSet
+                    });
+                }
                 i += subLength - 1;
                 previousBlockNode = currentBlockNode;
             }
@@ -9262,6 +9250,7 @@ var Fragment_Batch = (function () {
             this.items[i].reInsert();
             this.items[i].parentNode.defragment();
         }
+        this.range.anchorNode().target.documentElement.unlockTables();
         this.range.restore();
         return this;
     };
@@ -9439,8 +9428,8 @@ var TRange = (function (_super) {
     TRange.prototype.save = function () {
         var fragment = this._anchorNode.target.documentElement.fragment;
         if (this._focusNode) {
-            this._focusLock = new Fragment_CaretLock(fragment, this._focusNode.fragPos + (this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 : -1), this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 /* FROM_BEGINNING_OF_DOCUMENT */ : 1 /* FROM_ENDING_OF_DOCUMENT */, 'Focus');
-            this._anchorLock = new Fragment_CaretLock(fragment, this._anchorNode.fragPos + (this.length() < 0 ? -1 : 0), !this.length() ? this._focusLock.direction : (this._focusLock.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 1 /* FROM_ENDING_OF_DOCUMENT */ : 0 /* FROM_BEGINNING_OF_DOCUMENT */), 'Anchor');
+            this._focusLock = new Fragment_CaretLock(fragment, this._focusNode.fragPos, this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 /* FROM_BEGINNING_OF_DOCUMENT */ : 1 /* FROM_ENDING_OF_DOCUMENT */, 'Focus');
+            this._anchorLock = new Fragment_CaretLock(fragment, this._anchorNode.fragPos, !this.length() ? this._focusLock.direction : (this._focusLock.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 1 /* FROM_ENDING_OF_DOCUMENT */ : 0 /* FROM_BEGINNING_OF_DOCUMENT */), 'Anchor');
         }
         else {
             this._anchorLock = new Fragment_CaretLock(fragment, this._anchorNode.fragPos, 0 /* FROM_BEGINNING_OF_DOCUMENT */, 'Anchor');
@@ -9479,6 +9468,7 @@ var TRange = (function (_super) {
     };
     TRange.prototype.affectedRanges = function () {
         this.save();
+        this._anchorNode.target.documentElement.lockTables();
         if (!this._focusNode || !this.length()) {
             return new Fragment_Batch(this, []);
         }

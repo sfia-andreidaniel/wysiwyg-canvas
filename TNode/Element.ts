@@ -1089,26 +1089,24 @@ class TNode_Element extends TNode {
 		if ( createNodeAfter ) {
 
 			if ( nodeNameAfter === null || nodeNameAfter == this.nodeName ) {
-				// nothing, rParent is good.
-				//console.log( 'rNOTHING!' + rParent.innerHTML() );
 			} else {
 				( rightCol = new TNode_Collection( rParent.childNodes ) ).wrapIn( rParent = this.documentElement.createElement( nodeNameAfter ) );
 				rightCol.wrapIn( rParent );
-				//console.warn( 'rightCol: ' + rightCol.innerHTML() );
-
 			}
 
 			this.parentNode.appendChild( rParent, this.siblingIndex + 1 );
 
 			if ( rParent.innerHTML() == '' ) {
-				rParent.appendChild( this.documentElement.createTextNode( whiteSpace ) );
+				
+				rParent.removeAllChildNodes();
+				
+				if ( whiteSpace )
+					rParent.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 			}
 
 		} else {
 
 			rightCol = new TNode_Collection( rParent.childNodes );
-
-			//console.log( rightCol.innerHTML() );
 
 			// append all the contents of the rParent to myself
 			rightCol.wrapIn( this );
@@ -1125,8 +1123,10 @@ class TNode_Element extends TNode {
 
 		if ( this.innerHTML() == '' ) {
 
-			this.innerHTML('');
-			this.appendChild( this.documentElement.createTextNode( whiteSpace ) );
+			this.removeAllChildNodes();
+
+			if ( whiteSpace )
+				this.appendChild( this.documentElement.createTextNode( whiteSpace ) );
 
 		}
 

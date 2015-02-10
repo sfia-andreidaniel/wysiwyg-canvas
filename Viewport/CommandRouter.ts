@@ -1169,8 +1169,6 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
-		this.viewport.document.lockTables();
-
 		this.viewport.selection.getRange().affectedRanges()
 			.unwrapFromElement( 'size' )
 			.unwrapFromElement( 'font' )
@@ -1184,8 +1182,6 @@ class Viewport_CommandRouter extends Events {
 			.unwrapFromElement( '!strike' )
 			.unwrapFromElement( 'color' )
 			.end();
-
-		this.viewport.document.unlockTables();
 
 
 		this.viewport.selection.editorState.compute();

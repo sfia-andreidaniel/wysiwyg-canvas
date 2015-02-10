@@ -197,26 +197,29 @@ class HTML_Table_EdgesCollection {
 
 		}
 
+		if ( this.edges.length ) {
 
-		this.edges[0].indexStart = shiftLeft + spacing;
-		this.edges[0].offsetIndexStart = shiftLeft + spacing;
+			this.edges[0].indexStart = shiftLeft + spacing;
+			this.edges[0].offsetIndexStart = shiftLeft + spacing;
 
-		for ( i=0, len = this.edges.length; i <( len-1); i++ ) {
-			this.edges[i].indexEnd = this.edges[i].indexStart + this.edges[i].scaledValue + ( 2 * ( padding + border ) ) + ( spacing * .5 );
-			this.edges[i].offsetIndexEnd = this.edges[i].offsetIndexStart + 2 * border + 2 * padding + this.edges[i].scaledValue;
+			for ( i=0, len = this.edges.length; i <( len-1); i++ ) {
+				this.edges[i].indexEnd = this.edges[i].indexStart + this.edges[i].scaledValue + ( 2 * ( padding + border ) ) + ( spacing * .5 );
+				this.edges[i].offsetIndexEnd = this.edges[i].offsetIndexStart + 2 * border + 2 * padding + this.edges[i].scaledValue;
 
-			this.edges[ i + 1 ].indexStart = this.edges[i].indexEnd;
-			this.edges[ i + 1 ].offsetIndexStart = this.edges[i].indexEnd + spacing * .5;
+				this.edges[ i + 1 ].indexStart = this.edges[i].indexEnd;
+				this.edges[ i + 1 ].offsetIndexStart = this.edges[i].indexEnd + spacing * .5;
+			}
+
+			this.edges[ lastEdgeIndex ].indexEnd = 
+				this.edges[ lastEdgeIndex ].indexStart +
+				this.edges[ lastEdgeIndex ].scaledValue +
+				padding * 2 +
+				2 * border +
+				spacing * 1.5;
+
+			this.edges[ lastEdgeIndex ].offsetIndexEnd = this.edges[ lastEdgeIndex ].indexEnd - spacing;
+
 		}
-
-		this.edges[ lastEdgeIndex ].indexEnd = 
-			this.edges[ lastEdgeIndex ].indexStart +
-			this.edges[ lastEdgeIndex ].scaledValue +
-			padding * 2 +
-			2 * border +
-			spacing * 1.5;
-
-		this.edges[ lastEdgeIndex ].offsetIndexEnd = this.edges[ lastEdgeIndex ].indexEnd - spacing;
 
 	}
 

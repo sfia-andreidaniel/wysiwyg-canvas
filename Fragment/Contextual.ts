@@ -278,7 +278,9 @@ class Fragment_Contextual {
 
 				case FragmentCItem.NODE_START:
 					node = <TNode_Element>(<Fragment_Contextual_NodeStart>this.parts[i]).node;
+
 					currentBlockNode = node.ownerBlockElement();
+					
 					break;
 
 				case FragmentCItem.NODE_END:
@@ -287,7 +289,6 @@ class Fragment_Contextual {
 					break;
 			}
 
-			
 			if ( currentBlockNode != previousBlockNode ) {
 
 				currentSet = [];
@@ -322,10 +323,15 @@ class Fragment_Contextual {
 					currentSet.push( this.parts[k] );
 				}
 
-				ranges.push( {
-					"parent": currentBlockNode,
-					"set": currentSet
-				} );
+				// This IF FUCKING ATE MY SOUL BECAUSE THE TR ELEMENTS SHOULD BE TREATED SPECIAL!!!
+				if ( !( <any>currentSet.length == 2 && (<any>currentSet[0]).node.is() == 'tr' ) ) {
+					
+					ranges.push( {
+						"parent": currentBlockNode,
+						"set": currentSet
+					} );
+
+				}
 
 				i += subLength - 1;
 

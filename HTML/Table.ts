@@ -41,10 +41,6 @@ class HTML_Table extends TNode_Element {
 	// ignore other elements other than table row
 	public appendChild( node: TNode, index: number = null ): TNode {
 		
-		if ( this.documentElement && this.documentElement._tablesLocked ) {
-			return node;
-		}
-
 		var returnValue: HTML_TableRow;
 		
 		if ( node.nodeType == TNode_Type.ELEMENT && (<TNode_Element>node).nodeName == 'tr' ) {
@@ -62,10 +58,6 @@ class HTML_Table extends TNode_Element {
 	}
 
 	public removeChild( node: TNode ): TNode {
-
-		if ( this.documentElement && this.documentElement._tablesLocked ) {
-			return node;
-		}
 
 		var returnValue: TNode = super.removeChild( node );
 		this.requestCompile();

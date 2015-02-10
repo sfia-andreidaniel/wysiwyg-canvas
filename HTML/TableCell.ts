@@ -106,7 +106,12 @@ class HTML_TableCell extends TNode_Element {
 	public removeChild( node: TNode ): TNode {
 		var returnValue = super.removeChild( node );
 		if ( this.childNodes.length == 0 ) {
-			this.appendChild( this.documentElement.createTextNode( ' ' ) );
+			
+			if ( this.documentElement && this.documentElement._tablesLocked ) {
+				// we don't want such behaviour while removeFormatting for example.
+			} else {
+				this.appendChild( this.documentElement.createTextNode( ' ' ) );
+			}
 		}
 		return returnValue;
 	}

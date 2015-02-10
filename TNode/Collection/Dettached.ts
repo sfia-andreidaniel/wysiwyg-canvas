@@ -44,8 +44,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 		this.parentNode.createSurgery( this.surgeryEnd, false, null, TSurgeryHint.RIGHT );
 		this.parentNode.createSurgery( this.surgeryStart, false, null, TSurgeryHint.LEFT );
 
-		//console.log( this.fragLTR, this.fragRTL, this.parentNode.xmlBeginning() );
-
 	}
 
 	public createRanges() {
@@ -84,18 +82,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 
 		this.surgeryEnd -= i;
 
-		/*
-		while ( this.surgeryStart > this.parentNode.FRAGMENT_START && [FragmentItem.NODE_START, FragmentItem.EOL].indexOf( fragment.at( this.surgeryStart ) ) > -1 ) {
-			this.surgeryStart--;
-			console.log( '<' );
-		}
-
-		while ( this.surgeryEnd < this.parentNode.FRAGMENT_END && [FragmentItem.NODE_END, FragmentItem.EOL].indexOf( fragment.at( this.surgeryEnd + 1 ) ) > -1 ) {
-			this.surgeryEnd++;
-			console.log( '>' );
-		}
-		*/
-
 		computeLeftSibling = true;
 
 		for ( i=0, len = this.parentNode.childNodes.length; i<len; i++ ) {
@@ -112,7 +98,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 			}
 		}
 
-		//console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
 
 	}
 

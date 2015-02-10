@@ -130,9 +130,13 @@ class Layout_Block_Table extends Layout_Block {
 
 		}
 
-		this.innerHeight = this.matrix.yEdges.edges[ this.matrix.yEdges.edges.length - 1 ].offsetIndexEnd;
-		topPlacement += this.innerHeight;
-		this.offsetHeight += this.innerHeight;
+		if ( this.matrix.yEdges.edges.length ) {
+
+			this.innerHeight = this.matrix.yEdges.edges[ this.matrix.yEdges.edges.length - 1 ].offsetIndexEnd;
+			topPlacement += this.innerHeight;
+			this.offsetHeight += this.innerHeight;
+
+		}
 
 		this.offsetHeight += ( this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing );
 		topPlacement += ( this.node.style.paddingBottom() + table.style.borderWidth() + 2 * cellSpacing );

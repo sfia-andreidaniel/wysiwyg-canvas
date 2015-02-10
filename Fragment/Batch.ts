@@ -46,6 +46,8 @@ class Fragment_Batch {
 			this.items[i].parentNode.defragment();
 		}
 
+		this.range.anchorNode().target.documentElement.unlockTables();
+
 		this.range.restore();
 
 		return this;

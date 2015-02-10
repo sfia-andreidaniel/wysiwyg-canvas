@@ -15,6 +15,8 @@ class Fragment_CaretLock {
 		public lockName = 'Lock'
 	) {
 		
+		console.warn( 'create lock: ' + lockName + ', direction: ' + ( direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ? ' start ' : ' end ' ) );
+
 		var at  : FragmentItem,
 		    i   : number = 0,
 		    len : number = 0,

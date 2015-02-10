@@ -228,7 +228,7 @@ class TRange extends Events {
 
 			this._focusLock  = new Fragment_CaretLock( 
 				fragment, 
-				this._focusNode.fragPos + ( this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 : -1 ), 
+				this._focusNode.fragPos,
 				this._focusNode.fragPos <= this._anchorNode.fragPos 
 					? CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT 
 					: CaretLockDirection.FROM_ENDING_OF_DOCUMENT ,
@@ -238,7 +238,7 @@ class TRange extends Events {
 			this._anchorLock = new Fragment_CaretLock( 
 				fragment, 
 
-				this._anchorNode.fragPos + ( this.length() < 0 ? -1 : 0 ),
+				this._anchorNode.fragPos,
 
 				!this.length()
 					? this._focusLock.direction
@@ -301,6 +301,7 @@ class TRange extends Events {
 	public affectedRanges(): Fragment_Batch {
 
 		this.save();
+		this._anchorNode.target.documentElement.lockTables();
 
 		if ( !this._focusNode || !this.length() ) {
 			return new Fragment_Batch( this, [] );

@@ -138,7 +138,7 @@ class Layout {
 	// paints the node, and after that paints it's sub-children
 	public paint( ctx: any, scrollLeft: number, scrollTop: number, viewport: Viewport ) {
 
-		if ( !this.isPaintable( viewport ) ) {
+		if ( !this.isPaintable( viewport ) || this.offsetWidth <= 0 ) {
 			return;
 		}
 
@@ -154,20 +154,59 @@ class Layout {
 
 	}
 
-	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TRange_Target {
+	get offsetTopOuter(): number {
+		if ( this.node ) {
+			return this.offsetTop - this.node.style.marginTop();
+		} else {
+			return this.offsetTop;
+		}
+	}
 
-		if ( point.y < this.offsetTop || ( point.y > ( this.offsetTop + this.offsetHeight ) && boundsChecking )
+	get offsetLeftOuter(): number {
+		if ( this.node ) {
+			return this.offsetLeft - this.node.style.marginLeft();
+		} else {
+			return this.offsetLeft;
+		}
+	}
+
+	get offsetWidthOuter(): number {
+		if ( this.node ) {
+			return this.offsetWidth + this.node.style.marginLeft() + this.node.style.marginRight();
+		} else {
+			return this.offsetWidth;
+		}
+	}
+
+	get offsetHeightOuter(): number {
+		if ( this.node ) {
+			return this.offsetHeight + this.node.style.marginTop() + this.node.style.marginBottom();
+		} else {
+			return this.offsetHeight;
+		}
+	}
+
+	/* Note that the user should use only the first argument,
+	   the rest of arguments are internally used.
+	 */
+
+	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true, parentTarget: TRange_Target = null ): TRange_Target {
+
+		if ( point.y < this.offsetTopOuter || ( point.y > ( this.offsetTopOuter + this.offsetHeightOuter ) && boundsChecking )
 		     ||
-		     point.x < ( this.offsetLeft ) || ( point.x > ( this.offsetLeft + this.offsetWidth ) && boundsChecking )
+		     point.x < ( this.offsetLeftOuter ) || ( point.x > ( this.offsetLeftOuter + this.offsetWidthOuter ) && boundsChecking )
 		) return null; // click outside the layout.
 
 		var node: TNode = this.ownerNode(),
 			bestTarget: TRange_Target = new TRange_Target( node, node.FRAGMENT_START ),
-			childTarget: TRange_Target;
+			childTarget: TRange_Target,
+			i: number,
+			len: number,
+			lines: Character_LinesCollection;
 
 		if ( this.children && this.children.length ) {
-			for ( var i=this.children.length - 1; i>=0; i-- ) {
-				childTarget = this.children[i].getTargetAtXY( point );
+			for ( i=this.children.length - 1; i>=0; i-- ) {
+				childTarget = this.children[i].getTargetAtXY( point, true, bestTarget );
 				if ( childTarget !== null ) {
 					return childTarget;
 				}
@@ -175,7 +214,6 @@ class Layout {
 		}
 
 		return bestTarget;
-
 	}
 
 }

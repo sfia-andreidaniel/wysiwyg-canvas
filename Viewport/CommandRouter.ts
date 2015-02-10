@@ -378,6 +378,7 @@ class Viewport_CommandRouter extends Events {
 
 		/* Store cursor position */
 		cursorPosition = focus.fragPos;
+
 		sourceBlockElement = focus.target.ownerBlockElement();
 		destinationBlockElement = null;
 
@@ -444,20 +445,18 @@ class Viewport_CommandRouter extends Events {
 		}
 
 		if ( traversedTextNodes.length == 0 ) {
-			Helper.warn( 'no text to be deleted' );
 			//no text to be deleted.
 			return;
 		}
 
 		// create a lock @ new cursor position.
 		if ( amount < 0 ) {
-			lock = fragment.createLockTarget( newCursorPosition, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 'Remove' + amount );
-		} else {
 			lock = fragment.createLockTarget( cursorPosition, CaretLockDirection.FROM_ENDING_OF_DOCUMENT, 'Remove' + amount );
+		} else {
+			lock = fragment.createLockTarget( cursorPosition, CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT, 'Remove' + amount );
 		}
 
-		// HACK 2 on caretLock ...
-		lock.canCancelEOL = false;
+		this.viewport.document.canRelayout = false;
 
 		if ( destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable ) {
 			
@@ -516,6 +515,8 @@ class Viewport_CommandRouter extends Events {
 
 		//remove all the orphan nodes from the document.
 		this.viewport.document.removeOrphanNodes();
+
+		this.viewport.document.canRelayout = true;
 
 		// relayout *RIGHT NOW* the document
 		this.viewport.document.relayout( true );
@@ -664,7 +665,7 @@ class Viewport_CommandRouter extends Events {
 				
 				lineIndex = focus.getLineIndex();
 
-				if ( lineIndex ) {
+				if ( lineIndex >= 0 ) {
 
 					lines = this.viewport.document.lines;
 					line = lines.at( lineIndex );
@@ -1168,6 +1169,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.document.lockTables();
+
 		this.viewport.selection.getRange().affectedRanges()
 			.unwrapFromElement( 'size' )
 			.unwrapFromElement( 'font' )
@@ -1181,6 +1184,9 @@ class Viewport_CommandRouter extends Events {
 			.unwrapFromElement( '!strike' )
 			.unwrapFromElement( 'color' )
 			.end();
+
+		this.viewport.document.unlockTables();
+
 
 		this.viewport.selection.editorState.compute();
 

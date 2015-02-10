@@ -117,7 +117,6 @@ class TNode_Collection_Dettached extends TNode_Collection {
 	}
 
 	public reInsert() {
-		console.warn( this.parentNode.nodeName );
 		this.parentNode.appendCollection( this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0 );
 		this.parentNode.removeOrphanNodes();
 	}

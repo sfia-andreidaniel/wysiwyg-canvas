@@ -182,7 +182,7 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 			return viewport.document.innerHTML();
 		},
 		"set": function( html: string = ' ' ) {
-			viewport.document.innerHTML( html || ' ' );
+			viewport.value( html || ' ' );
 		}
 	});
 

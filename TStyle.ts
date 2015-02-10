@@ -140,7 +140,7 @@ class TStyle extends Events {
 		if ( v === null ) {
 			return this._width.get();
 		} else {
-			this._width.set( v );
+			this._width.set( ~~v < 0 ? '0' : v );
 			this.node.requestRelayout();
 			this.fire( 'changed', "width" );
 			return null;
@@ -151,7 +151,7 @@ class TStyle extends Events {
 		if ( v === null ) {
 			return this._height.get();
 		} else {
-			this._height.set( v );
+			this._height.set( ~~v < 0 ? '0' : v );
 			this.node.requestRelayout();
 			this.fire( 'changed', "height" );
 			return null;

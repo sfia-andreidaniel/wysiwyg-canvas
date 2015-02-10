@@ -1117,6 +1117,13 @@ var TNode_Element = (function (_super) {
     TNode_Element.prototype.paint = function (ctx, layout, scrollLeft, scrollTop) {
         // paint border
         this.layout = layout;
+        /*
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.strokeRect( layout.offsetLeftOuter - scrollLeft, layout.offsetTopOuter - scrollTop, layout.offsetWidthOuter, layout.offsetHeightOuter );
+        ctx.closePath();
+        */
         var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
         if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1) && !this.isSelectionPaintingDisabled)) {
             isSelected = true;
@@ -2098,6 +2105,10 @@ var TNode_Collection = (function () {
         if (this.parentNode)
             this.parentNode.appendChild(node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1);
     };
+    TNode_Collection.prototype.splice = function (indexStart, length) {
+        var out = this.nodes.splice(indexStart, length);
+        return new TNode_Collection(out);
+    };
     TNode_Collection.INLINE_NODES_LIST = [
         "#text",
         "a",
@@ -2116,7 +2127,8 @@ var TNode_Collection = (function () {
         "span",
         "color",
         "font",
-        "size"
+        "size",
+        "br"
     ];
     TNode_Collection.BLOCK_NODES_LIST = [
         "body",
@@ -2216,7 +2228,6 @@ var TNode_Collection_Dettached = (function (_super) {
         //console.warn( 'after create: ' + this.toString() + ', with ' + this.nodes.length + ' nodes.' );
     };
     TNode_Collection_Dettached.prototype.reInsert = function () {
-        console.warn(this.parentNode.nodeName);
         this.parentNode.appendCollection(this, this.leftSibling ? this.leftSibling.siblingIndex + 1 : 0);
         this.parentNode.removeOrphanNodes();
     };
@@ -2510,6 +2521,7 @@ var HTML_Body = (function (_super) {
         this.canRelayout = true; //we can disable relayouting of the document by setting this flag to false.
         this.changeThrottler = null; // a throttler that is executed each time a dom subtree modification occurs.
         this._tabSize = 20;
+        this._tablesLocked = false; // when tables are locked, all tables and tr's won't support the appendChild / removeChild feature.
         this.fragment = new Fragment(this);
         this.viewport = viewport;
         this.lines = new Character_LinesCollection();
@@ -2852,6 +2864,35 @@ var HTML_Body = (function (_super) {
             oldArgIndex = currentArgIndex;
         }
         return currentArgIndex;
+    };
+    HTML_Body.prototype.innerHTML = function (setter) {
+        if (setter === void 0) { setter = null; }
+        if (setter === null) {
+            return _super.prototype.innerHTML.call(this, null);
+        }
+        else {
+            var p, i = 0, len = 0;
+            this.removeAllChildNodes();
+            var collection = this.createCollectionFromHTMLText(setter);
+            collection.normalizeForHost('body', []);
+            if (collection.normalizedInlineStartNodes) {
+                p = this.createElement('p');
+                p.appendCollection(collection.splice(0, collection.normalizedInlineStartNodes));
+                collection.addFirst(p);
+            }
+            if (collection.normalizedInlineEndNodes) {
+                p = this.createElement('p');
+                p.appendCollection(collection.splice(collection.length - 1 - collection.normalizedInlineEndNodes, collection.normalizedInlineEndNodes));
+                collection.add(p);
+            }
+            this.appendCollection(collection);
+        }
+    };
+    HTML_Body.prototype.lockTables = function () {
+        this._tablesLocked = true;
+    };
+    HTML_Body.prototype.unlockTables = function () {
+        this._tablesLocked = false;
     };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
@@ -3762,6 +3803,9 @@ var HTML_Table = (function (_super) {
     // ignore other elements other than table row
     HTML_Table.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
+        if (this.documentElement && this.documentElement._tablesLocked) {
+            return node;
+        }
         var returnValue;
         if (node.nodeType == 2 /* ELEMENT */ && node.nodeName == 'tr') {
             returnValue = (_super.prototype.appendChild.call(this, node, index));
@@ -3775,6 +3819,9 @@ var HTML_Table = (function (_super) {
         }
     };
     HTML_Table.prototype.removeChild = function (node) {
+        if (this.documentElement && this.documentElement._tablesLocked) {
+            return node;
+        }
         var returnValue = _super.prototype.removeChild.call(this, node);
         this.requestCompile();
         return returnValue;
@@ -4182,6 +4229,9 @@ var HTML_TableRow = (function (_super) {
     // ignore other elements other than table cell
     HTML_TableRow.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
+        if (this.documentElement && this.documentElement._tablesLocked) {
+            return node;
+        }
         var returnValue;
         if (node.nodeType == 2 /* ELEMENT */ && node.nodeName == 'td') {
             returnValue = (_super.prototype.appendChild.call(this, node, index));
@@ -4197,6 +4247,9 @@ var HTML_TableRow = (function (_super) {
         }
     };
     HTML_TableRow.prototype.removeChild = function (node) {
+        if (this.documentElement && this.documentElement._tablesLocked) {
+            return node;
+        }
         var returnValue = _super.prototype.removeChild.call(this, node);
         this.ownerTable.requestCompile();
         return returnValue;
@@ -4559,7 +4612,7 @@ var TStyle = (function (_super) {
             return this._width.get();
         }
         else {
-            this._width.set(v);
+            this._width.set(~~v < 0 ? '0' : v);
             this.node.requestRelayout();
             this.fire('changed', "width");
             return null;
@@ -4571,7 +4624,7 @@ var TStyle = (function (_super) {
             return this._height.get();
         }
         else {
-            this._height.set(v);
+            this._height.set(~~v < 0 ? '0' : v);
             this.node.requestRelayout();
             this.fire('changed', "height");
             return null;
@@ -5842,7 +5895,7 @@ var Layout = (function () {
     };
     // paints the node, and after that paints it's sub-children
     Layout.prototype.paint = function (ctx, scrollLeft, scrollTop, viewport) {
-        if (!this.isPaintable(viewport)) {
+        if (!this.isPaintable(viewport) || this.offsetWidth <= 0) {
             return;
         }
         if (this.node) {
@@ -5854,14 +5907,66 @@ var Layout = (function () {
             }
         }
     };
-    Layout.prototype.getTargetAtXY = function (point, boundsChecking) {
+    Object.defineProperty(Layout.prototype, "offsetTopOuter", {
+        get: function () {
+            if (this.node) {
+                return this.offsetTop - this.node.style.marginTop();
+            }
+            else {
+                return this.offsetTop;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Layout.prototype, "offsetLeftOuter", {
+        get: function () {
+            if (this.node) {
+                return this.offsetLeft - this.node.style.marginLeft();
+            }
+            else {
+                return this.offsetLeft;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Layout.prototype, "offsetWidthOuter", {
+        get: function () {
+            if (this.node) {
+                return this.offsetWidth + this.node.style.marginLeft() + this.node.style.marginRight();
+            }
+            else {
+                return this.offsetWidth;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Layout.prototype, "offsetHeightOuter", {
+        get: function () {
+            if (this.node) {
+                return this.offsetHeight + this.node.style.marginTop() + this.node.style.marginBottom();
+            }
+            else {
+                return this.offsetHeight;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    /* Note that the user should use only the first argument,
+       the rest of arguments are internally used.
+     */
+    Layout.prototype.getTargetAtXY = function (point, boundsChecking, parentTarget) {
         if (boundsChecking === void 0) { boundsChecking = true; }
-        if (point.y < this.offsetTop || (point.y > (this.offsetTop + this.offsetHeight) && boundsChecking) || point.x < (this.offsetLeft) || (point.x > (this.offsetLeft + this.offsetWidth) && boundsChecking))
+        if (parentTarget === void 0) { parentTarget = null; }
+        if (point.y < this.offsetTopOuter || (point.y > (this.offsetTopOuter + this.offsetHeightOuter) && boundsChecking) || point.x < (this.offsetLeftOuter) || (point.x > (this.offsetLeftOuter + this.offsetWidthOuter) && boundsChecking))
             return null; // click outside the layout.
-        var node = this.ownerNode(), bestTarget = new TRange_Target(node, node.FRAGMENT_START), childTarget;
+        var node = this.ownerNode(), bestTarget = new TRange_Target(node, node.FRAGMENT_START), childTarget, i, len, lines;
         if (this.children && this.children.length) {
-            for (var i = this.children.length - 1; i >= 0; i--) {
-                childTarget = this.children[i].getTargetAtXY(point);
+            for (i = this.children.length - 1; i >= 0; i--) {
+                childTarget = this.children[i].getTargetAtXY(point, true, bestTarget);
                 if (childTarget !== null) {
                     return childTarget;
                 }
@@ -6288,11 +6393,12 @@ var Layout_BlockChar = (function (_super) {
         if (!this.isPaintable(viewport)) {
             return;
         }
-        /*
-        ctx.fillStyle = '#ddd';
-        ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
-        */
         var i = 0, len = 0, node = this.ownerNode(), align = node.style.textAlign(), j = 0, n = 0, k = 0, l = 0, wordGap = (align == 'justified'), lineHeight = node.style.lineHeight(), lineDiff = 0, startY = this.offsetTop - scrollTop, startX = this.offsetLeft, currentNode = null, isUnderline = false, isStrike = false, underlineWidth = 0.00, size, valign = 'normal', valignShift = 0, fragPos = 0, lastTextNode = null, range = node.documentElement.viewport.selection.getRange(), caret = range.focusNode(), saveColor = '', isPaintedSelected = node.isPaintedSelected, textDecoration;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(this.offsetLeft - scrollLeft - 1, this.offsetTop - scrollTop, this.offsetWidth + 2, this.offsetHeight);
+        ctx.clip();
+        ctx.closePath();
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         for (i = 0, len = this.lines.length; i < len; i++) {
@@ -6386,10 +6492,15 @@ var Layout_BlockChar = (function (_super) {
             startY += this.lines[i].size[1];
             fragPos++; // reached end of line, increment the fragment position
         }
+        ctx.restore();
     };
-    Layout_BlockChar.prototype.getTargetAtXY = function (point, boundsChecking) {
+    /* Note that the user should use only the first argument,
+       the rest of arguments are internally used.
+     */
+    Layout_BlockChar.prototype.getTargetAtXY = function (point, boundsChecking, parentTarget) {
         if (boundsChecking === void 0) { boundsChecking = true; }
-        var target = _super.prototype.getTargetAtXY.call(this, point, false), i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap = false, size, breakFor = false, relative, w, isLastLine = false;
+        if (parentTarget === void 0) { parentTarget = null; }
+        var target = _super.prototype.getTargetAtXY.call(this, point, false) || parentTarget, i = 0, len = 0, j = 0, n = 0, line = 0, lines = 0, bestLine = null, bestLineIndex = 0, startX = 0, startY = 0, bestCharLineIndex = 0, bestCharTargetIndex = 0, bestNode, align, wordGap = false, size, breakFor = false, relative, w, isLastLine = false;
         if (target !== null) {
             relative = {
                 "x": point.x - this.offsetLeft,
@@ -6397,7 +6508,7 @@ var Layout_BlockChar = (function (_super) {
             };
             bestCharTargetIndex = target.fragPos;
             for (line = 0, lines = this.lines.length; line < lines; line++) {
-                if (relative.y >= startY) {
+                if (relative.y >= startY || line == 0) {
                     bestLine = this.lines[line];
                     bestLineIndex = line;
                     isLastLine = line == lines - 1;
@@ -6679,6 +6790,9 @@ var Viewport = (function (_super) {
         }
         else {
             this.document.innerHTML(v);
+            this.document.relayout(true);
+            this.selection.anchorTo(this.document.fragment.createTargetAt(0 /* DOC_BEGIN */));
+            this.selection.editorState.compute();
         }
     };
     Viewport.prototype.getTargetAtXY = function (point) {
@@ -7705,19 +7819,17 @@ var Viewport_CommandRouter = (function (_super) {
                 i += increment;
         }
         if (traversedTextNodes.length == 0) {
-            Helper.warn('no text to be deleted');
             //no text to be deleted.
             return;
         }
         // create a lock @ new cursor position.
         if (amount < 0) {
-            lock = fragment.createLockTarget(newCursorPosition, 0 /* FROM_BEGINNING_OF_DOCUMENT */, 'Remove' + amount);
-        }
-        else {
             lock = fragment.createLockTarget(cursorPosition, 1 /* FROM_ENDING_OF_DOCUMENT */, 'Remove' + amount);
         }
-        // HACK 2 on caretLock ...
-        lock.canCancelEOL = false;
+        else {
+            lock = fragment.createLockTarget(cursorPosition, 0 /* FROM_BEGINNING_OF_DOCUMENT */, 'Remove' + amount);
+        }
+        this.viewport.document.canRelayout = false;
         if (destinationBlockElement != sourceBlockElement && destinationBlockElement !== null && destinationBlockElement.isMergeable && sourceBlockElement.isMergeable) {
             //console.warn( "MERGE BEGIN" );
             if (amount < 0) {
@@ -7757,6 +7869,7 @@ var Viewport_CommandRouter = (function (_super) {
         }
         //remove all the orphan nodes from the document.
         this.viewport.document.removeOrphanNodes();
+        this.viewport.document.canRelayout = true;
         // relayout *RIGHT NOW* the document
         this.viewport.document.relayout(true);
         // finally, move the cursor.
@@ -7849,7 +7962,7 @@ var Viewport_CommandRouter = (function (_super) {
                         throw "Allowed values are -1 or 1.";
                     }
                     lineIndex = focus.getLineIndex();
-                    if (lineIndex) {
+                    if (lineIndex >= 0) {
                         lines = this.viewport.document.lines;
                         line = lines.at(lineIndex);
                         focus.fragPos = line[amount == -1 ? "fragmentIndexStart" : "fragmentIndexEnd"];
@@ -8201,7 +8314,9 @@ var Viewport_CommandRouter = (function (_super) {
         if (!len) {
             return;
         }
+        this.viewport.document.lockTables();
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('strike').unwrapFromElement('!strike').unwrapFromElement('color').end();
+        this.viewport.document.unlockTables();
         this.viewport.selection.editorState.compute();
     };
     Viewport_CommandRouter.prototype.link = function (href, text, target) {
@@ -8568,118 +8683,81 @@ var Fragment_CaretLock = (function () {
         this.chars = 0;
         this.lockIndex = 0;
         this.startedEOL = false;
-        this.canCancelEOL = true;
         var at, i = 0, len = 0, n = 0;
         this.fragment = fragment;
         this.lockIndex = lockIndex;
         this.chars = 0;
         this.direction = direction;
-        if (direction == 1 /* FROM_ENDING_OF_DOCUMENT */) {
-            if (this.lockIndex < this.fragment.length() - 2 && this.fragment.at(this.lockIndex + 1) == 2 /* EOL */) {
-                this.startedEOL = true;
-            }
-        }
+        this.startedEOL = this.fragment.at(lockIndex) == 2 /* EOL */;
         if (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
             for (i = 0; i <= lockIndex; i++) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    len++;
+                    this.chars++;
                 }
             }
-            i = lockIndex + (this.fragment.at(lockIndex) == 2 /* EOL */ ? 0 : 1);
-            n = this.fragment.length();
-            while (i < n) {
-                at = this.fragment.at(i);
-                if (at == 2 /* EOL */) {
-                    this.startedEOL = true;
-                    break;
-                }
-                else {
-                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                        break;
-                    }
-                }
-                i++;
-            }
-            this.chars = len;
         }
         else {
-            for (i = this.fragment.length() - 1; i > lockIndex; i--) {
+            for (i = this.fragment.length() - 1; i >= lockIndex; i--) {
                 at = this.fragment.at(i);
                 if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    len++;
+                    this.chars++;
                 }
             }
-            this.chars = len;
         }
-        /*
-
-        if ( this.startedEOL ) {
-            console.error( this.lockName + ' startedEOL @ ' + this.lockIndex );
-        } else {
-            console.error( this.lockName + ' started NOTEOL @ ' + this.lockIndex + ' ' + this.direction );
-        }
-
-        console.info( this.lockName + ' has ' + this.chars + ' chars' );
-        */
     }
     Fragment_CaretLock.prototype.getTarget = function () {
-        var at, i = 0, len = 0, n = 0, incChars = 0, chars = this.chars;
+        var i = 0, len = 0, chars = 0, at, foundIndex = this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 0 : this.fragment.length() - 1;
         if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
-            for (i = 0, len = this.fragment.length(); i < len; i++) {
-                at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    n++;
-                    if (n == chars) {
-                        if (this.startedEOL) {
-                            n = i + 1;
-                            while (n < len) {
-                                at = this.fragment.at(n);
-                                if (at == 2 /* EOL */) {
-                                    i = n;
-                                    break;
-                                }
-                                else {
-                                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                                        break;
-                                    }
-                                }
-                                n++;
-                            }
+            if (this.chars != 0) {
+                for (i = 0, len = this.fragment.length(); i < len; i++) {
+                    at = this.fragment.at(i);
+                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                        chars++;
+                        if (chars == this.chars) {
+                            foundIndex = i;
+                            break;
                         }
-                        return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
                     }
                 }
             }
-            return this.chars == 0 ? this.fragment.createTargetAt(0 /* DOC_BEGIN */) : this.fragment.createTargetAt(1 /* DOC_END */);
+            if (this.startedEOL) {
+                foundIndex++;
+                len = this.fragment.length();
+                while (foundIndex < len) {
+                    at = this.fragment.at(foundIndex);
+                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
+                        break;
+                    }
+                    foundIndex++;
+                }
+            }
+            return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
         }
         else {
-            for (i = this.fragment.length() - 1; i >= 0; i--) {
-                at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    n++;
-                    if (n == chars) {
-                        if (this.startedEOL) {
-                            n = i - 1;
-                            while (n >= 0) {
-                                at = this.fragment.at(n);
-                                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                                    break;
-                                }
-                                else {
-                                    if (at == 2 /* EOL */) {
-                                        i = n;
-                                        break;
-                                    }
-                                }
-                                n--;
-                            }
+            if (this.chars != 0) {
+                for (i = foundIndex; i >= 0; i--) {
+                    at = this.fragment.at(i);
+                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                        chars++;
+                        if (chars == this.chars) {
+                            foundIndex = i;
+                            break;
                         }
-                        return new TRange_Target(this.fragment.getNodeAtIndex(i), i);
                     }
                 }
             }
-            return this.chars == 0 ? this.fragment.createTargetAt(1 /* DOC_END */) : this.fragment.createTargetAt(0 /* DOC_BEGIN */);
+            if (this.startedEOL) {
+                foundIndex--;
+                while (foundIndex >= 0) {
+                    at = this.fragment.at(foundIndex);
+                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
+                        break;
+                    }
+                    foundIndex--;
+                }
+            }
+            return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
         }
     };
     return Fragment_CaretLock;
@@ -10407,7 +10485,7 @@ function HTMLEditor(value, config) {
         },
         "set": function (html) {
             if (html === void 0) { html = ' '; }
-            viewport.document.innerHTML(html || ' ');
+            viewport.value(html || ' ');
         }
     });
     Object.defineProperty(element, "document", {

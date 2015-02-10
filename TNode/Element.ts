@@ -490,6 +490,14 @@ class TNode_Element extends TNode {
 
 		this.layout = layout;
 
+		/*
+		ctx.strokeStyle = 'black';
+		ctx.lineWidth = 1;
+		ctx.beginPath();
+		ctx.strokeRect( layout.offsetLeftOuter - scrollLeft, layout.offsetTopOuter - scrollTop, layout.offsetWidthOuter, layout.offsetHeightOuter );
+		ctx.closePath();
+		*/
+
 		var borderColor: string,
 		    borderWidth: number,
 		    backgroundColor: string,

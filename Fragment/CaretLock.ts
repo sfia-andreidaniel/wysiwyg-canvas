@@ -6,7 +6,6 @@ class Fragment_CaretLock {
 	public  direction: CaretLockDirection;
 
 	private startedEOL: boolean = false;
-	public  canCancelEOL: boolean = true;
 
 
 	constructor( 
@@ -26,186 +25,109 @@ class Fragment_CaretLock {
 		this.chars     = 0;
 		this.direction = direction;
 
-		if ( direction == CaretLockDirection.FROM_ENDING_OF_DOCUMENT ) {
-			if ( this.lockIndex < this.fragment.length() - 2 && this.fragment.at( this.lockIndex + 1 ) == FragmentItem.EOL ) {
-				this.startedEOL = true;
-			}
-		}
-		
+		this.startedEOL = this.fragment.at( lockIndex ) == FragmentItem.EOL;
 
 		if ( direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
-
-			// count from beginning to cursor pos
-
 			for ( i=0; i<=lockIndex; i++ ) {
-			
 				at = this.fragment.at( i );
-			
 				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-					len++;
+					this.chars++;
 				}
-			
 			}
-
-			i = lockIndex + ( this.fragment.at(lockIndex) == FragmentItem.EOL ? 0 : 1 ); n = this.fragment.length();
-
-			while ( i < n ) {
-
+		} else {
+			for ( i = this.fragment.length() - 1; i>= lockIndex; i-- ) {
 				at = this.fragment.at( i );
-
-				if ( at == FragmentItem.EOL ) {
-
-					this.startedEOL = true;
-
-					break;
-
-				} else {
-
-					if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-						break;
-					}
-				}
-
-				i++;
-			}
-
-			this.chars = len;
-
-		} else {
-
-			// count from ending to cursor pos.
-
-			for ( i = this.fragment.length() - 1; i>lockIndex; i-- ) {
-
-				at = this.fragment.at(i);
-
 				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-					len++;
+					this.chars++;
 				}
-
 			}
-
-			this.chars = len;
-
 		}
-
-		/*
-
-		if ( this.startedEOL ) {
-			console.error( this.lockName + ' startedEOL @ ' + this.lockIndex );
-		} else {
-			console.error( this.lockName + ' started NOTEOL @ ' + this.lockIndex + ' ' + this.direction );
-		}
-
-		console.info( this.lockName + ' has ' + this.chars + ' chars' );
-		*/
 
 	}
 
 	public getTarget(): TRange_Target {
 
-		var at: FragmentItem,
-		     i: number = 0,
-		     len: number = 0,
-		     n: number = 0,
-		     incChars: number = 0,
-		     chars: number = this.chars;
+		var i: number = 0,
+		    len: number = 0,
+		    chars: number = 0,
+		    at: FragmentItem,
+
+		    foundIndex: number = this.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ? 0 : this.fragment.length() - 1;
 
 		if ( this.direction == CaretLockDirection.FROM_BEGINNING_OF_DOCUMENT ) {
 
-			for ( i=0, len = this.fragment.length(); i < len; i++ ) {
-				
-				at = this.fragment.at( i );
-				
-				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-					
-					n++;
+			if ( this.chars != 0 ) {
 
-					if ( n == chars ) {
+				for ( i=0, len = this.fragment.length(); i<len; i++ ) {
 
-						if ( this.startedEOL ) {
-							
-							n = i + 1;
+					at = this.fragment.at( i );
 
-							while ( n < len ) {
-
-								at = this.fragment.at(n);
-
-								if ( at == FragmentItem.EOL ) {
-									i = n;
-									break;
-								} else {
-									if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-										// gotcha
-										
-										break;
-									}
-								}
-
-								n++;
-							}
-
+					if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+						chars++;
+						if ( chars == this.chars ) {
+							foundIndex = i;
+							break;
 						}
-
-						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
-
 					}
-
 				}
 			}
 
-			return this.chars == 0
-				? this.fragment.createTargetAt( FragmentPos.DOC_BEGIN )
-				: this.fragment.createTargetAt( FragmentPos.DOC_END );
+			if ( this.startedEOL ) {
+				
+				foundIndex++;
+				
+				len = this.fragment.length();
+				
+				while ( foundIndex < len ) {
+
+					at = this.fragment.at( foundIndex );
+
+					if ( at == FragmentItem.WHITE_SPACE || at == FragmentItem.CHARACTER || at == FragmentItem.EOL ) {
+						break;
+					}
+
+					foundIndex++;
+				}
+
+			}
+
+			return new TRange_Target( this.fragment.getNodeAtIndex( foundIndex ), foundIndex );
 
 		} else {
 
-			for ( i = this.fragment.length() - 1; i >= 0; i-- ) {
+			if ( this.chars != 0 ) {
 
-				at = this.fragment.at( i );
+				for ( i=foundIndex; i>=0; i-- ) {
 
-				if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-
-					n++;
-
-					if ( n == chars ) {
-
-						if ( this.startedEOL ) {
-							
-							n = i-1;
-
-							while ( n >= 0 ) {
-
-								at = this.fragment.at(n);
-
-								if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
-
-									break;
-
-								} else {
-								
-									if ( at == FragmentItem.EOL ) {
-										i = n;
-										break;
-									}
-								}
-
-								n--;
-
-							}
+					at = this.fragment.at( i );
+					
+					if ( at == FragmentItem.CHARACTER || at == FragmentItem.WHITE_SPACE ) {
+						chars++;
+						if ( chars == this.chars ) {
+							foundIndex = i;
+							break;
 						}
-
-						return new TRange_Target( this.fragment.getNodeAtIndex( i ), i );
-
 					}
-
 				}
-
 			}
 
-			return this.chars == 0
-				? this.fragment.createTargetAt( FragmentPos.DOC_END )
-				: this.fragment.createTargetAt( FragmentPos.DOC_BEGIN );
+			if ( this.startedEOL ) {
+				
+				foundIndex--;
+				
+				while ( foundIndex >= 0 ) {
+					at = this.fragment.at( foundIndex );
+					
+					if ( at == FragmentItem.WHITE_SPACE || at == FragmentItem.CHARACTER || at == FragmentItem.EOL ) {
+						break;
+					}
+
+					foundIndex--;
+
+				}
+			}
+
+			return new TRange_Target( this.fragment.getNodeAtIndex( foundIndex ), foundIndex );
 
 		}
 	}

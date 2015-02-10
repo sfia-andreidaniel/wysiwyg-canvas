@@ -14,6 +14,8 @@ class HTML_Body extends TNode_Element {
 
 	private _tabSize         : number = 20;
 
+	public _tablesLocked      : boolean = false; // when tables are locked, all tables and tr's won't support the appendChild / removeChild feature.
+
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
 		'canvas',
@@ -488,6 +490,53 @@ class HTML_Body extends TNode_Element {
 
 		return currentArgIndex;
 
+	}
+
+	public innerHTML( setter: string = null ): string {
+		if ( setter === null ) {
+			return super.innerHTML( null );
+		} else {
+			
+			var p: HTML_Paragraph,
+			    i: number = 0,
+			    len: number = 0;
+
+			this.removeAllChildNodes();
+
+			var collection = this.createCollectionFromHTMLText( setter );
+
+			collection.normalizeForHost( 'body', [] );
+
+			if ( collection.normalizedInlineStartNodes ) {
+
+				p = this.createElement( 'p' );
+
+				p.appendCollection( collection.splice( 0, collection.normalizedInlineStartNodes ) );
+
+				collection.addFirst( p );
+
+			}
+
+			if ( collection.normalizedInlineEndNodes ) {
+
+				p = this.createElement( 'p' );
+
+				p.appendCollection( collection.splice( collection.length - 1 - collection.normalizedInlineEndNodes, collection.normalizedInlineEndNodes ) );
+
+				collection.add( p );
+
+			}
+
+			this.appendCollection( collection );
+		}
+	}
+
+	public lockTables() {
+		this._tablesLocked = true;
+	}
+
+	public unlockTables() {
+		this._tablesLocked = false;
 	}
 
 }

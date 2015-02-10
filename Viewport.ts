@@ -203,6 +203,9 @@ class Viewport extends Events {
 			return this.document.innerHTML();
 		} else {
 			this.document.innerHTML( v );
+			this.document.relayout( true );
+			this.selection.anchorTo( this.document.fragment.createTargetAt( FragmentPos.DOC_BEGIN ) );
+			this.selection.editorState.compute();
 		}
 	}
 

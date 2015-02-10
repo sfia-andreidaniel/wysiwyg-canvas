@@ -330,13 +330,11 @@ class TRange_Target extends Events {
 		if ( !target ) {
 			throw "ERR_INVALID_TARGET";
 		} else {
-
 			if ( target.target != this.target || this.fragPos != target.fragPos ) {
 				this.target = target.target;
 				this.fragPos = target.fragPos;
 				this.fire( 'changed' );
 			}
-
 		}
 	}
 

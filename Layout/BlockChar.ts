@@ -168,39 +168,39 @@ class Layout_BlockChar extends Layout {
 			return;
 		}
 
-		/*
-		ctx.fillStyle = '#ddd';
-		ctx.fillRect( this.offsetLeft - scrollLeft, this.offsetTop - scrollTop, this.offsetWidth, this.offsetHeight );
-		*/
+		var i 				: number 		= 0,
+			len 			: number 		= 0,
+		    node 			: TNode_Element = this.ownerNode(),
+		    align  			: string 		= node.style.textAlign(),
+		    j 				: number 		= 0,
+		    n  				: number 		= 0,
+		    k				: number 		= 0,
+		    l 				: number 		= 0,
+		    wordGap 		: boolean 		= ( align == 'justified' ),
+		    lineHeight 		: number 		= node.style.lineHeight(),
+		    lineDiff 		: number 		= 0,
+		    startY 			: number 		= this.offsetTop - scrollTop,
+		    startX 			: number 		= this.offsetLeft,
+		    currentNode		: TNode_Element = null,
+		    isUnderline		: boolean 		= false,
+		    isStrike		: boolean 		= false,
+		    underlineWidth	: number 		= 0.00,
+		    size 			: number[],
+		    valign 			: string 		= 'normal',
+		    valignShift 	: number 		= 0,
+		    fragPos 		: number 		= 0,
+		    lastTextNode 	: TNode_Text 	= null,
+		    range 			: TRange 		= node.documentElement.viewport.selection.getRange(),
+		    caret 			: TRange_Target = range.focusNode(),
+		    saveColor 		: string 		= '',
+		    isPaintedSelected: boolean 		= node.isPaintedSelected,
+		    textDecoration	: string;
 
-		var i: number = 0,
-			len: number = 0,
-		    node: TNode_Element = this.ownerNode(),
-		    align: string = node.style.textAlign(),
-		    j: number = 0,
-		    n: number = 0,
-		    k: number = 0,
-		    l: number = 0,
-		    wordGap: boolean = ( align == 'justified' ),
-		    lineHeight: number = node.style.lineHeight(),
-		    lineDiff: number = 0,
-		    startY: number = this.offsetTop - scrollTop,
-		    startX: number = this.offsetLeft,
-		    currentNode: TNode_Element = null,
-		    isUnderline: boolean = false,
-		    isStrike: boolean = false,
-		    underlineWidth: number = 0.00,
-		    size: number[],
-		    valign: string = 'normal',
-		    valignShift: number = 0,
-		    fragPos: number = 0,
-		    lastTextNode: TNode_Text = null,
-		    range: TRange = node.documentElement.viewport.selection.getRange(),
-		    caret: TRange_Target = range.focusNode(),
-		    saveColor: string = '',
-		    isPaintedSelected: boolean = node.isPaintedSelected,
-		    textDecoration: string;
-
+		ctx.save();
+		ctx.beginPath();
+		ctx.rect( this.offsetLeft - scrollLeft - 1, this.offsetTop - scrollTop, this.offsetWidth + 2, this.offsetHeight );
+		ctx.clip();
+		ctx.closePath();
 		ctx.textAlign = 'left';
 		ctx.textBaseline = 'alphabetic';
 
@@ -350,11 +350,17 @@ class Layout_BlockChar extends Layout {
 
 		}
 
+		ctx.restore();
+
 	}
 
-	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true ): TRange_Target {
+	/* Note that the user should use only the first argument,
+	   the rest of arguments are internally used.
+	 */
+
+	public getTargetAtXY( point: TPoint, boundsChecking: boolean = true, parentTarget: TRange_Target = null ): TRange_Target {
 		
-		var target: TRange_Target = super.getTargetAtXY( point, false ),
+		var target: TRange_Target = super.getTargetAtXY( point, false ) || parentTarget,
 		    i: number = 0,
 		    len: number = 0,
 		    j: number = 0,
@@ -386,7 +392,7 @@ class Layout_BlockChar extends Layout {
 			bestCharTargetIndex = target.fragPos;
 
 			for ( line=0, lines = this.lines.length; line<lines; line++ ) {
-				if ( relative.y >= startY ) {
+				if ( relative.y >= startY || line == 0) {
 					bestLine = this.lines[line];
 					bestLineIndex = line;
 					isLastLine = line == lines-1;

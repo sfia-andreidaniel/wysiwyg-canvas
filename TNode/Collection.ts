@@ -12,7 +12,8 @@ class TNode_Collection {
 
 	public static INLINE_NODES_LIST: string[] = [
 		"#text", "a", "b", "!b", "i", "!i", "u", "!u", "strike", "!strike",
-		"sup", "!sup", "sub", "!sub", "span", "color", "font", "size"
+		"sup", "!sup", "sub", "!sub", "span", "color", "font", "size",
+		"br"
 	];
 
 	public static BLOCK_NODES_LIST: string[] = [
@@ -445,6 +446,12 @@ class TNode_Collection {
 			this.parentNode.appendChild( node, this.leftSibling === null ? 0 : this.leftSibling.siblingIndex + 1 );
 	}
 
+	public splice( indexStart: number, length: number ): TNode_Collection {
 
+		var out: TNode[] = this.nodes.splice( indexStart, length );
+
+		return new TNode_Collection( out );
+
+	}
 
 }

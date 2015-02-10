@@ -29,7 +29,7 @@ class TRange_Target extends Events {
 		super();
 
 		if ( !target ) {
-			throw "ERR_BAD_TARGET";
+				throw "ERR_BAD_TARGET";
 		} else {
 			this.target = target;
 			this.fragPos = ~~pos;
@@ -108,7 +108,6 @@ class TRange_Target extends Events {
 			
 		}
 	}
-
 
 	private _moveRight( times: number = 1, ignoreEOL: boolean = false ): boolean {
 

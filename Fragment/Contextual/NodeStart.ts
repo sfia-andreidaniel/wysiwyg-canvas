@@ -11,7 +11,13 @@ class Fragment_Contextual_NodeStart extends Fragment_Contextual_Item {
 	}
 
 	public removeFromDocument() {
-		this.node.remove();
+		if ( this.node.is() != 'td' ) {
+			this.node.remove();
+		} else {
+			if ( this.node.is() == 'td' ) {
+				this.node.removeAllChildNodes();
+			}
+		}
 	}
 
 }

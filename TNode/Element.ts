@@ -565,13 +565,14 @@ class TNode_Element extends TNode {
 
 	public getResizerTypeAtMousePoint( point: TPoint ): TResizer {
 		// set mouse shape, depending on which corer of the element is the mouse over
-		var left 	: number = this.layout.offsetLeft,
-		    top 	: number = this.layout.offsetTop,
-		   	width 	: number = this.layout.offsetWidth,
-		  	height 	: number = this.layout.offsetHeight;
-
-
 		if ( this.isResizable && this.layout ) {
+			
+			var left 	: number = ~~this.layout.offsetLeft,
+			    top 	: number = ~~this.layout.offsetTop,
+			   	width 	: number = ~~this.layout.offsetWidth,
+			  	height 	: number = ~~this.layout.offsetHeight;
+
+
 			switch ( true ) {
 				case point.x >= left && point.x <= left + 4 && point.y >= top && point.y <= top + 4:
 					return TResizer.NW;
@@ -586,10 +587,11 @@ class TNode_Element extends TNode {
 					return TResizer.SE;
 					break;
 				case point.x == left:
-					return TResizer.S;
+					return TResizer.W;
 					break;
 				case point.x == left + width:
-					return TResizer.W;
+					return TResizer.E;
+					break;
 				case point.y == top:
 					return TResizer.N;
 					break;
@@ -600,6 +602,8 @@ class TNode_Element extends TNode {
 					return TResizer.NONE;
 			}
 
+		} else {
+			return TResizer.NONE;
 		}
 
 

@@ -616,6 +616,9 @@ class Viewport_CommandRouter extends Events {
 	// new caret position.
 	public moveCaret( movementType: CaretPos, amount: number, expandSelection: boolean ) {
 		
+		var td: HTML_TableCell,
+		     p: HTML_Paragraph;
+
 		if ( this.caretX && movementType != CaretPos.LINE_VERTICAL ) {
 			this.caretX = null;
 		}
@@ -685,6 +688,22 @@ class Viewport_CommandRouter extends Events {
 
 				if ( Math.abs( amount ) != 1 ) {
 					throw "Allowed values are -1 or 1.";
+				}
+
+				if ( focus.target.ownerBlockElement().is() == 'td' && !expandSelection ) {
+					td = <HTML_TableCell>focus.target.ownerBlockElement();
+					if ( amount == -1 && td.isTheFirstCell() && !td.parentNode.parentNode.previousSibling() ) {
+						p = td.documentElement.createElement('p');
+						p.appendChild( td.documentElement.createTextNode( ' ' ) );
+						td.parentNode.parentNode.parentNode.appendChild( p, 0 );
+						td.documentElement.relayout( true );
+					} else
+					if ( amount == 1 && td.isTheLastCell() && !td.parentNode.parentNode.nextSibling() ) {
+						p = td.documentElement.createElement('p');
+						p.appendChild( td.documentElement.createTextNode( ' ' ) );
+						td.parentNode.parentNode.parentNode.appendChild( p );
+						td.documentElement.relayout( true );
+					}
 				}
 
 				lineIndex = focus.getLineIndex();

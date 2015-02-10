@@ -228,8 +228,6 @@ class Viewport_MouseDriver extends Events {
 
 		}
 
-		this.viewport.canvas.style.cursor = ( target && target.target.nodeType == TNode_Type.TEXT ) ? 'text' : 'default';
-
 		if ( this.mbPressed ) {
 
 			if ( target )
@@ -251,7 +249,19 @@ class Viewport_MouseDriver extends Events {
 		} else {
 
 			if ( target && target.target.nodeType == TNode_Type.ELEMENT ) {
-				(<TNode_Element>target.target).onmousemove( point, 0, this );
+				if ( !(<TNode_Element>target.target).onmousemove( point, 0, this ) ) {
+					this.viewport.canvas.style.cursor = 'default';
+				}
+			} else {
+				if ( target && target.target.nodeType == TNode_Type.TEXT ) {
+
+					if ( !( target.target.ownerBlockElement().onmousemove( point, 0, this ) ) ) {
+						this.viewport.canvas.style.cursor = 'text';
+					}
+
+				} else {
+					this.viewport.canvas.style.cursor = 'default';
+				}
 			}
 
 		}

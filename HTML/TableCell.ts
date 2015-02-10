@@ -14,6 +14,8 @@ class HTML_TableCell extends TNode_Element {
 	public edgeBottom                : HTML_Table_Edge = null;
 
 	public isSelectable              : boolean         = true;
+	public isResizable               : boolean         = true;
+
 	public isBlockTextNode           : boolean         = true;
 
 	public insertLinePolicy          : TNewLinePolicy  = TNewLinePolicy.BR;
@@ -132,4 +134,60 @@ class HTML_TableCell extends TNode_Element {
 		return 0;
 	}
 
+	public isTheFirstCell(): boolean {
+		if ( this.parentNode ) {
+			return !!this.parentNode.previousSibling() == false && !!this.previousSibling() == false;
+		} else {
+			return false;
+		}
+	}
+
+	public isTheLastCell(): boolean {
+		if ( this.parentNode ) {
+			return !!this.parentNode.nextSibling() == false && !!this.nextSibling() == false;
+		} else {
+			return false;
+		}
+	}
+
+	public onmousemove( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
+		
+		if ( button == 0 ) {
+
+			var resizer: TResizer = this.getResizerTypeAtMousePoint( point );
+
+			switch ( resizer ) {
+
+				case TResizer.N:
+					if ( this.edgeTop.index == 0 ) {
+						driver.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorColSelect + ') 6 17, auto';
+						return true;
+						break;
+					}
+				case TResizer.S:
+					driver.viewport.canvas.style.cursor = 'row-resize';
+					return true;
+					break;
+
+				case TResizer.W:
+					if ( this.edgeLeft.index == 0 ) {
+						driver.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorRowSelect + ') 17 6, auto';
+						return true;
+						break;
+					}
+
+				case TResizer.E:
+					driver.viewport.canvas.style.cursor = 'col-resize';
+					return true;
+					break;
+
+				default:
+					return false;
+					break;
+			}
+
+		}
+
+		return false;
+	}
 }

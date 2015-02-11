@@ -15,6 +15,8 @@ class HTML_MultiRange extends TNode_Element {
 	public  isResizable : boolean = true;
 	public  role        : string  = 'generic';
 
+	public  resizerHint : TResizer = null;
+
 	constructor( document: HTML_Body, parentNode: TNode_Element, role: string ) {
 	    super();
 	    this.nodeName = 'multirange';

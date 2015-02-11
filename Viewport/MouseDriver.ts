@@ -491,6 +491,11 @@ class Viewport_MouseDriver extends Events {
 				default:
 					throw "Unexpected resizing method!";
 			}
+			
+			if ( this.resizingLockTarget.is() == 'multirange' ) {
+				(<HTML_MultiRange>this.resizingLockTarget).resizerHint = this.resizingMethod;
+			}
+
 
 			if ( this.resizingAspectRatio === null ) {
 

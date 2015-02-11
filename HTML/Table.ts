@@ -9,6 +9,8 @@ class HTML_Table extends TNode_Element {
 	protected _cellSpacing = 0;
 	protected _border      = 0;
 
+	private   _xEdgesApplied: boolean = false;
+
 	constructor() {
 		super();
 		this.nodeName = 'table';
@@ -86,9 +88,9 @@ class HTML_Table extends TNode_Element {
 
 	// builds the table matrix, needed for initializing the
 	// layout.
-	public compile() {
+	public compile( force: boolean = false ) {
 
-		if ( !this.needCompile ) {
+		if ( !this.needCompile && !force ) {
 			return;
 		}
 
@@ -202,8 +204,7 @@ class HTML_Table extends TNode_Element {
 		
 		attrs.push('cellspacing="' + ~~(this._cellSpacing) + '"' );
 
-		if ( this._cellPadding )
-			attrs.push('cellpadding="' + this._cellPadding + '"' );
+		attrs.push('cellpadding="' + this._cellPadding + '"' );
 
 		if ( this.style._borderColor.isSet )
 			attrs.push( 'bordercolor="' + this.style.borderColor() + '"' );
@@ -300,5 +301,38 @@ class HTML_Table extends TNode_Element {
 
 		return out;
 	}
+
+	public applyXEdges() {
+		// save XEdges values
+		var applyValues: number[] = [],
+		    i: number = 0,
+		    len: number = this.matrix.xEdges.edges.length,
+		    row: number = 0,
+		    col: number = 0,
+		    sum: number = 0;
+
+		for ( i=0; i<len; i++ ) {
+			applyValues.push( this.matrix.xEdges.edges[i].scaledValue );
+			sum += applyValues[i];
+		}
+
+		for ( row = 0; row < this.childNodes.length; row++ ) {
+			for ( col = 0; col < (<HTML_TableRow>this.childNodes[ row ]).childNodes.length; col ++ ) {
+				(<HTML_TableCell>(<HTML_TableRow>this.childNodes[ row ]).childNodes[ col ]).applyXEdges( applyValues );
+			}
+		}
+
+		this.style.width( String( ~~( sum + ( ( this._border + this._cellPadding + this._cellSpacing ) * applyValues.length * 2 ) ) ) );
+
+		this._xEdgesApplied = true;
+	}
+
+	public outerHTML( v: string = null ): string {
+		if ( !this._xEdgesApplied ) {
+			this.applyXEdges();
+		}
+		return super.outerHTML(v);
+	}
+
 
 }

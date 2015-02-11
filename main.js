@@ -3819,6 +3819,7 @@ var HTML_Table = (function (_super) {
         this._cellPadding = 0;
         this._cellSpacing = 0;
         this._border = 0;
+        this._xEdgesApplied = false;
         this.nodeName = 'table';
         this.style.display('block');
         this.style.marginTop('10');
@@ -3878,8 +3879,9 @@ var HTML_Table = (function (_super) {
     };
     // builds the table matrix, needed for initializing the
     // layout.
-    HTML_Table.prototype.compile = function () {
-        if (!this.needCompile) {
+    HTML_Table.prototype.compile = function (force) {
+        if (force === void 0) { force = false; }
+        if (!this.needCompile && !force) {
             return;
         }
         Helper.log('compiling table...');
@@ -3970,8 +3972,7 @@ var HTML_Table = (function (_super) {
         if (this._border)
             attrs.push('border="' + this._border + '"');
         attrs.push('cellspacing="' + ~~(this._cellSpacing) + '"');
-        if (this._cellPadding)
-            attrs.push('cellpadding="' + this._cellPadding + '"');
+        attrs.push('cellpadding="' + this._cellPadding + '"');
         if (this.style._borderColor.isSet)
             attrs.push('bordercolor="' + this.style.borderColor() + '"');
         if (this.style._width.isSet) {
@@ -4034,6 +4035,28 @@ var HTML_Table = (function (_super) {
             }
         }
         return out;
+    };
+    HTML_Table.prototype.applyXEdges = function () {
+        // save XEdges values
+        var applyValues = [], i = 0, len = this.matrix.xEdges.edges.length, row = 0, col = 0, sum = 0;
+        for (i = 0; i < len; i++) {
+            applyValues.push(this.matrix.xEdges.edges[i].scaledValue);
+            sum += applyValues[i];
+        }
+        for (row = 0; row < this.childNodes.length; row++) {
+            for (col = 0; col < this.childNodes[row].childNodes.length; col++) {
+                this.childNodes[row].childNodes[col].applyXEdges(applyValues);
+            }
+        }
+        this.style.width(String(~~(sum + ((this._border + this._cellPadding + this._cellSpacing) * applyValues.length * 2))));
+        this._xEdgesApplied = true;
+    };
+    HTML_Table.prototype.outerHTML = function (v) {
+        if (v === void 0) { v = null; }
+        if (!this._xEdgesApplied) {
+            this.applyXEdges();
+        }
+        return _super.prototype.outerHTML.call(this, v);
     };
     return HTML_Table;
 })(TNode_Element);
@@ -4464,11 +4487,10 @@ var HTML_TableCell = (function (_super) {
                     if (this.edgeTop.index == 0) {
                         driver.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorColSelect + ') 6 17, auto';
                         return true;
-                        break;
                     }
-                case 5 /* S */:
-                    driver.viewport.canvas.style.cursor = 'row-resize';
-                    return true;
+                    else {
+                        return false;
+                    }
                     break;
                 case 6 /* W */:
                     if (this.edgeLeft.index == 0) {
@@ -4496,11 +4518,10 @@ var HTML_TableCell = (function (_super) {
                         // Select all the columns affected by the row
                         this.documentElement.viewport.selection.anchorTo(new TRange_Target(this.ownerTable.createVirtualColumnNode(this.edgeLeft.index, this.edgeRight.index, false), 0));
                         return true;
-                        break;
                     }
-                case 5 /* S */:
-                    driver.lockTargetForResizing(this.ownerTable.createVirtualRowNode(this.edgeTop.index, this.edgeBottom.index, true), resizer, point);
-                    return true;
+                    else {
+                        return false;
+                    }
                     break;
                 case 6 /* W */:
                     if (this.edgeLeft.index == 0) {
@@ -4515,6 +4536,30 @@ var HTML_TableCell = (function (_super) {
             }
         }
         return false;
+    };
+    HTML_TableCell.prototype.applyXEdges = function (edges) {
+        var sum = 0, i = 0;
+        for (i = this.edgeLeft.index; i <= this.edgeRight.index; i++) {
+            sum += edges[i];
+        }
+        this.style.width(String(sum));
+    };
+    HTML_TableCell.prototype.xmlAttributes = function () {
+        var out = [_super.prototype.xmlAttributes.call(this)];
+        if (this.style._width.isSet)
+            out.push('width="' + Math.round(this.style.width()) + '"');
+        if (this._colSpan > 1)
+            out.push('colspan="' + this._colSpan + '"');
+        if (this._rowSpan > 1)
+            out.push('rowspan="' + this._rowSpan + '"');
+        return out.join(' ');
+    };
+    HTML_TableCell.prototype.xmlBeginning = function () {
+        var attrs = this.xmlAttributes();
+        return '<td' + (attrs ? ' ' + attrs : '') + '>';
+    };
+    HTML_TableCell.prototype.xmlEnding = function () {
+        return '</td>';
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -4745,6 +4790,7 @@ var HTML_MultiRange = (function (_super) {
         this.isSelectable = true;
         this.isResizable = true;
         this.role = 'generic';
+        this.resizerHint = null;
         this.nodeName = 'multirange';
         this.documentElement = document;
         this.parentNode = parentNode;
@@ -4912,7 +4958,55 @@ var HTML_MultiRange_TableColumn = (function (_super) {
         configurable: true
     });
     HTML_MultiRange_TableColumn.prototype.setWidth = function (value) {
-        console.warn("Set width: " + value);
+        if (!this.childNodes.length) {
+            return;
+        }
+        var cell = this.childNodes[0], lEdgeIndex = cell.edgeLeft.index, rEdgeIndex = cell.edgeRight.index, i = 0, len = 0, affectedEdges = [], table = cell.ownerTable, actualEdgesWidthSum = 0, delta = 0, leftNeighbour, rightNeighbour;
+        for (i = lEdgeIndex; i <= rEdgeIndex; i++) {
+            affectedEdges.push(table.matrix.xEdges.edges[i]);
+            actualEdgesWidthSum += table.matrix.xEdges.edges[i].scaledValue;
+        }
+        leftNeighbour = lEdgeIndex == 0 ? null : table.matrix.xEdges.edges[lEdgeIndex - 1];
+        rightNeighbour = rEdgeIndex == table.matrix.xEdges.edges.length - 1 ? null : table.matrix.xEdges.edges[rEdgeIndex + 1];
+        actualEdgesWidthSum += 2 * cell.style.paddingLeft() + cell.style.marginLeft() + cell.style.marginRight() + 2 * cell.style.borderWidth();
+        delta = value - actualEdgesWidthSum;
+        if (delta < 0) {
+            switch (this.resizerHint) {
+                case 6 /* W */:
+                    // increse leftNeighbour with delta
+                    // decrease first affected edge with delta
+                    if (leftNeighbour)
+                        leftNeighbour.scaledValue -= delta;
+                    affectedEdges[0].scaledValue += delta;
+                    break;
+                case 7 /* E */:
+                    // increase rightNeighbour with delta
+                    // decrease last affected edge with delta
+                    if (rightNeighbour)
+                        rightNeighbour.scaledValue -= delta;
+                    affectedEdges[affectedEdges.length - 1].scaledValue += delta;
+                    break;
+            }
+        }
+        else {
+            switch (this.resizerHint) {
+                case 6 /* W */:
+                    // decrease leftNeighbour with delta
+                    // increase first affected Edge with delta
+                    if (leftNeighbour)
+                        leftNeighbour.scaledValue -= delta;
+                    affectedEdges[0].scaledValue += delta;
+                    break;
+                case 7 /* E */:
+                    // decrease rightNeigbour with delta
+                    // decrease last affected Edge with delta
+                    if (rightNeighbour)
+                        rightNeighbour.scaledValue -= delta;
+                    affectedEdges[affectedEdges.length - 1].scaledValue += delta;
+                    break;
+            }
+        }
+        table.applyXEdges();
     };
     return HTML_MultiRange_TableColumn;
 })(HTML_MultiRange);
@@ -4920,13 +5014,6 @@ var HTML_MultiRange_TableRow = (function (_super) {
     __extends(HTML_MultiRange_TableRow, _super);
     function HTML_MultiRange_TableRow(document, parentNode) {
         _super.call(this, document, parentNode, 'table-row');
-        (function (me) {
-            me.style.on('changed', function (propertyName) {
-                if (propertyName == 'height') {
-                    me.setHeight(me.style.height());
-                }
-            });
-        })(this);
     }
     HTML_MultiRange_TableRow.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
@@ -4974,9 +5061,6 @@ var HTML_MultiRange_TableRow = (function (_super) {
         enumerable: true,
         configurable: true
     });
-    HTML_MultiRange_TableRow.prototype.setHeight = function (height) {
-        console.warn('set Height: ' + height);
-    };
     return HTML_MultiRange_TableRow;
 })(HTML_MultiRange);
 var TStyle = (function (_super) {
@@ -7559,6 +7643,9 @@ var Viewport_MouseDriver = (function (_super) {
                     break;
                 default:
                     throw "Unexpected resizing method!";
+            }
+            if (this.resizingLockTarget.is() == 'multirange') {
+                this.resizingLockTarget.resizerHint = this.resizingMethod;
             }
             if (this.resizingAspectRatio === null) {
                 if (computeWidth) {

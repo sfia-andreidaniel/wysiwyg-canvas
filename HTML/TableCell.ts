@@ -162,11 +162,9 @@ class HTML_TableCell extends TNode_Element {
 					if ( this.edgeTop.index == 0 ) {
 						driver.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorColSelect + ') 6 17, auto';
 						return true;
-						break;
+					} else {
+						return false;
 					}
-				case TResizer.S:
-					driver.viewport.canvas.style.cursor = 'row-resize';
-					return true;
 					break;
 
 				case TResizer.W:
@@ -212,19 +210,9 @@ class HTML_TableCell extends TNode_Element {
 							)
 						);
 						return true;
-						break;
+					} else {
+						return false;
 					}
-				case TResizer.S:
-					driver.lockTargetForResizing( 
-						this.ownerTable.createVirtualRowNode(
-							this.edgeTop.index,
-							this.edgeBottom.index,
-							true
-						),
-						resizer,
-						point
-					);
-					return true;
 					break;
 
 				case TResizer.W:
@@ -261,5 +249,41 @@ class HTML_TableCell extends TNode_Element {
 		return false;
 	}
 
+	public applyXEdges( edges: number[] ) {
+		var sum: number = 0,
+		      i: number = 0;
+		
+		for ( i = this.edgeLeft.index; i<= this.edgeRight.index; i++ ) {
+			sum += edges[i];
+		}
+
+		this.style.width( String( sum ) );
+
+	}
+
+	public xmlAttributes(): string {
+		var out: string[] = [ super.xmlAttributes() ];
+		
+		if ( this.style._width.isSet )
+			out.push( 'width="' + Math.round( this.style.width() ) + '"' );
+		
+		if ( this._colSpan > 1 )
+			out.push( 'colspan="' + this._colSpan + '"' );
+
+		if ( this._rowSpan > 1 )
+			out.push( 'rowspan="' + this._rowSpan + '"' );
+
+		return out.join( ' ' );
+
+	}
+
+	public xmlBeginning(): string {
+		var attrs: string = this.xmlAttributes();
+		return '<td' + ( attrs ? ' ' + attrs : '' ) + '>';
+	}
+
+	public xmlEnding(): string {
+		return '</td>';
+	}
 
 }

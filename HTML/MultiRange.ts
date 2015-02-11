@@ -131,4 +131,8 @@ class HTML_MultiRange extends TNode_Element {
 		}
 	}
 
+	public createTarget(): TRange_Target {
+		return new TRange_Target( this );
+	}
+
 }

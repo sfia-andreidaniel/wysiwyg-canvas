@@ -286,4 +286,10 @@ class HTML_TableCell extends TNode_Element {
 		return '</td>';
 	}
 
+	public createMultiRangeAnchorNode(): HTML_MultiRange_TableRect {
+		var anchor = new HTML_MultiRange_TableRect( this.documentElement, this.ownerTable );
+		anchor.anchorTo( this );
+		return anchor;
+	}
+
 }

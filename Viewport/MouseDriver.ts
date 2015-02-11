@@ -132,7 +132,11 @@ class Viewport_MouseDriver extends Events {
 
 					this.mbPressed = true;
 
-					this.viewport.selection.anchorTo( target );
+					if ( DOMEvent.ctrlKey && target.target && target.target.ownerBlockElement().is() == 'td' ) {
+						this.viewport.selection.anchorTo( ( ( <HTML_TableCell>( ( target.target ).ownerBlockElement() ) ).createMultiRangeAnchorNode() ).createTarget() );
+					} else {
+						this.viewport.selection.anchorTo( target );
+					}
 
 					this.fire( 'refocus' );
 
@@ -191,7 +195,7 @@ class Viewport_MouseDriver extends Events {
 		var target: TRange_Target,
 		    point : TPoint,
 		    selection = this.viewport.selection,
-		    rng: TRange,
+		    rng: TRange = selection.getRange(),
 		    anchor: TRange_Target,
 		    focus: TRange_Target;
 
@@ -235,8 +239,21 @@ class Viewport_MouseDriver extends Events {
 
 		if ( this.mbPressed ) {
 
-			if ( target )
-				selection.focusTo( target );
+			if ( target ) {
+				if ( rng.isMultiRange() ) {
+					if ( !rng.becomeTableRectRange() ) {
+						return;
+					} else {
+						var targetCell: HTML_TableCell;
+
+						if ( targetCell = ( (<HTML_MultiRange_TableRect>rng.anchorNode().target).acceptNode( target.target.ownerBlockElement() ) ) ) {
+							(<HTML_MultiRange_TableRect>rng.anchorNode().target).focusTo( targetCell );
+						}
+					}
+				} else {
+					selection.focusTo( target );
+				}
+			}
 
 			// scroll up or down if mouse is on top / bottom bound.
 			// make the point absolute on canvas

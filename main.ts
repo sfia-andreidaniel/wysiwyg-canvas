@@ -46,6 +46,7 @@
 /// <reference path="./HTML/MultiRange.ts" />
 /// <reference path="./HTML/MultiRange/TableColumn.ts" />
 /// <reference path="./HTML/MultiRange/TableRow.ts" />
+/// <reference path="./HTML/MultiRange/TableRect.ts" />
 
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Browser/Calculator.ts" />

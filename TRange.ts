@@ -432,5 +432,40 @@ class TRange extends Events {
 		return this._anchorNode && this._anchorNode.target.is() == 'multirange';
 	}
 
+	public becomeTableRectRange(): boolean {
+		if ( this.isMultiRange() ) {
+
+			var newTarget: HTML_MultiRange_TableRect;
+
+			switch ( (<HTML_MultiRange>this._anchorNode.target).role ) {
+				case 'table-selection':
+					return true;
+					break;
+				case 'table-row':
+					newTarget = (<HTML_MultiRange_TableRow>this._anchorNode.target).becomeTableRectRange();
+					if ( newTarget ) {
+						this._anchorNode.target = newTarget;
+						return true;
+					} else {
+						return false;
+					}
+					break;
+				case 'table-column':
+					newTarget = (<HTML_MultiRange_TableColumn>this._anchorNode.target).becomeTableRectRange();
+					if ( newTarget ) {
+						this._anchorNode.target = newTarget;
+						return true;
+					} else {
+						return false;
+					}
+					break;
+				default:
+					return false;
+			}
+
+		} else {
+			return false;
+		}
+	}
 
 }

@@ -4561,6 +4561,11 @@ var HTML_TableCell = (function (_super) {
     HTML_TableCell.prototype.xmlEnding = function () {
         return '</td>';
     };
+    HTML_TableCell.prototype.createMultiRangeAnchorNode = function () {
+        var anchor = new HTML_MultiRange_TableRect(this.documentElement, this.ownerTable);
+        anchor.anchorTo(this);
+        return anchor;
+    };
     return HTML_TableCell;
 })(TNode_Element);
 var HTML_NegationNode = (function (_super) {
@@ -4897,6 +4902,9 @@ var HTML_MultiRange = (function (_super) {
             return this.innerHTML(null);
         }
     };
+    HTML_MultiRange.prototype.createTarget = function () {
+        return new TRange_Target(this);
+    };
     return HTML_MultiRange;
 })(TNode_Element);
 var HTML_MultiRange_TableColumn = (function (_super) {
@@ -5008,6 +5016,16 @@ var HTML_MultiRange_TableColumn = (function (_super) {
         }
         table.applyXEdges();
     };
+    HTML_MultiRange_TableColumn.prototype.becomeTableRectRange = function () {
+        if (this.childNodes.length) {
+            var become = new HTML_MultiRange_TableRect(this.childNodes[0].documentElement, this.parentNode);
+            become.anchorTo(this.childNodes[0]);
+            return become;
+        }
+        else {
+            return null;
+        }
+    };
     return HTML_MultiRange_TableColumn;
 })(HTML_MultiRange);
 var HTML_MultiRange_TableRow = (function (_super) {
@@ -5061,7 +5079,92 @@ var HTML_MultiRange_TableRow = (function (_super) {
         enumerable: true,
         configurable: true
     });
+    HTML_MultiRange_TableRow.prototype.becomeTableRectRange = function () {
+        if (this.childNodes.length) {
+            var become = new HTML_MultiRange_TableRect(this.childNodes[0].documentElement, this.parentNode);
+            become.anchorTo(this.childNodes[0]);
+            return become;
+        }
+        else {
+            return null;
+        }
+    };
     return HTML_MultiRange_TableRow;
+})(HTML_MultiRange);
+var HTML_MultiRange_TableRect = (function (_super) {
+    __extends(HTML_MultiRange_TableRect, _super);
+    function HTML_MultiRange_TableRect(document, parentNode) {
+        _super.call(this, document, parentNode, 'table-selection');
+        this.anchor = null;
+        this.focus = null;
+    }
+    HTML_MultiRange_TableRect.prototype.appendChild = function (node, index) {
+        if (index === void 0) { index = null; }
+        var iNode, i = 0, len = 0, foundIndex = null;
+        if (!(node.is() == 'td')) {
+            if (node.is() == 'tr') {
+                for (i = 0, len = node.childNodes.length; i < len; i++) {
+                    this.appendChild(node.childNodes[i]);
+                }
+                return node;
+            }
+            else {
+                if (!(node.ownerBlockElement().is() == 'td')) {
+                    throw "Node not acceptable.";
+                }
+                else {
+                    iNode = node.ownerBlockElement();
+                }
+            }
+        }
+        else {
+            iNode = node;
+        }
+        for (i = 0, len = this.childNodes.length; i < len; i++) {
+            if (this.childNodes[i] == iNode) {
+                return iNode;
+            }
+        }
+        this.childNodes.push(iNode);
+        this.sortNodes();
+        return node;
+    };
+    HTML_MultiRange_TableRect.prototype.anchorTo = function (cell) {
+        this.anchor = cell;
+        this.focus = cell;
+        this.childNodes = [cell];
+        return this;
+    };
+    HTML_MultiRange_TableRect.prototype.focusTo = function (cell) {
+        if (cell.ownerTable != this.parentNode) {
+            // TODO: Search if the cell is a child of a cell of this ownerTable.
+            return;
+        }
+        var edgeLeft = Math.min(this.anchor.edgeLeft.index, cell.edgeLeft.index), edgeRight = Math.max(this.anchor.edgeRight.index, cell.edgeRight.index), edgeTop = Math.min(this.anchor.edgeTop.index, cell.edgeTop.index), edgeBottom = Math.max(this.anchor.edgeBottom.index, cell.edgeBottom.index), row = 0, rows = 0, col = 0, cols = 0, c;
+        this.childNodes = [];
+        for (row = 0, rows = this.parentNode.childNodes.length; row < rows; row++) {
+            for (col = 0, cols = this.parentNode.childNodes[row].childNodes.length; col < cols; col++) {
+                c = this.parentNode.childNodes[row].childNodes[col];
+                if (c.edgeLeft.index >= edgeLeft && c.edgeRight.index <= edgeRight && c.edgeTop.index >= edgeTop && c.edgeBottom.index <= edgeBottom) {
+                    this.childNodes.push(c);
+                }
+            }
+        }
+        this.sortNodes();
+        this.anchor.documentElement.viewport.selection.getRange().fire('changed');
+        this.focus = cell;
+    };
+    HTML_MultiRange_TableRect.prototype.acceptNode = function (node) {
+        var cursor = node;
+        while (cursor) {
+            if (cursor.is() == 'td' && cursor.parentNode.parentNode == this.parentNode) {
+                return cursor;
+            }
+            cursor = cursor.parentNode;
+        }
+        return null;
+    };
+    return HTML_MultiRange_TableRect;
 })(HTML_MultiRange);
 var TStyle = (function (_super) {
     __extends(TStyle, _super);
@@ -7398,7 +7501,12 @@ var Viewport_MouseDriver = (function (_super) {
                         break;
                     }
                     this.mbPressed = true;
-                    this.viewport.selection.anchorTo(target);
+                    if (DOMEvent.ctrlKey && target.target && target.target.ownerBlockElement().is() == 'td') {
+                        this.viewport.selection.anchorTo((((target.target).ownerBlockElement()).createMultiRangeAnchorNode()).createTarget());
+                    }
+                    else {
+                        this.viewport.selection.anchorTo(target);
+                    }
                     this.fire('refocus');
                 }
                 break;
@@ -7431,7 +7539,7 @@ var Viewport_MouseDriver = (function (_super) {
         if (isFromBody === void 0) { isFromBody = false; }
         DOMEvent.preventDefault();
         DOMEvent.stopPropagation();
-        var target, point, selection = this.viewport.selection, rng, anchor, focus;
+        var target, point, selection = this.viewport.selection, rng = selection.getRange(), anchor, focus;
         if (!isFromBody) {
             point = this.translateMouseEventXY(DOMEvent);
             if (this.lockedScrollbar !== null) {
@@ -7465,8 +7573,22 @@ var Viewport_MouseDriver = (function (_super) {
             target = this.viewport.getTargetAtXY(point);
         }
         if (this.mbPressed) {
-            if (target)
-                selection.focusTo(target);
+            if (target) {
+                if (rng.isMultiRange()) {
+                    if (!rng.becomeTableRectRange()) {
+                        return;
+                    }
+                    else {
+                        var targetCell;
+                        if (targetCell = (rng.anchorNode().target.acceptNode(target.target.ownerBlockElement()))) {
+                            rng.anchorNode().target.focusTo(targetCell);
+                        }
+                    }
+                }
+                else {
+                    selection.focusTo(target);
+                }
+            }
             // scroll up or down if mouse is on top / bottom bound.
             // make the point absolute on canvas
             point.x -= this.viewport.scrollLeft();
@@ -10305,6 +10427,41 @@ var TRange = (function (_super) {
     };
     TRange.prototype.isMultiRange = function () {
         return this._anchorNode && this._anchorNode.target.is() == 'multirange';
+    };
+    TRange.prototype.becomeTableRectRange = function () {
+        if (this.isMultiRange()) {
+            var newTarget;
+            switch (this._anchorNode.target.role) {
+                case 'table-selection':
+                    return true;
+                    break;
+                case 'table-row':
+                    newTarget = this._anchorNode.target.becomeTableRectRange();
+                    if (newTarget) {
+                        this._anchorNode.target = newTarget;
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                    break;
+                case 'table-column':
+                    newTarget = this._anchorNode.target.becomeTableRectRange();
+                    if (newTarget) {
+                        this._anchorNode.target = newTarget;
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                    break;
+                default:
+                    return false;
+            }
+        }
+        else {
+            return false;
+        }
     };
     return TRange;
 })(Events);

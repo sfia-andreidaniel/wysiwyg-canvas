@@ -265,6 +265,10 @@ class Viewport_CommandRouter extends Events {
 		    jump: number = 0,
 		    otherNode: boolean = false;
 
+		if ( range.isMultiRange() ) {
+			return;
+		}
+
 		if ( !focus ) {
 			return;
 		}
@@ -337,6 +341,10 @@ class Viewport_CommandRouter extends Events {
 		    mergeOrder              : TNode_Element[],
 		    mergePosition           : number = 0,
 		    collection              : TNode_Collection = null; 
+
+		if ( rng.isMultiRange() ) {
+			return;
+		}
 
 		if ( rng.length() ) {
 			this.viewport.selection.removeContents();
@@ -532,6 +540,10 @@ class Viewport_CommandRouter extends Events {
 	// a <br> tag will be inserted instead of creating a new paragraph.
 	public newLine( alternateMethod: boolean = null ) {
 		
+		if ( this.viewport.selection.getRange().isMultiRange() ) {
+			return;
+		}
+
 		if ( this.viewport.selection.getRange() ) {
 			this.viewport.selection.removeContents();
 		}
@@ -615,7 +627,7 @@ class Viewport_CommandRouter extends Events {
 	// moves the caret, and optionally extends the selection to the
 	// new caret position.
 	public moveCaret( movementType: CaretPos, amount: number, expandSelection: boolean ) {
-		
+
 		var td: HTML_TableCell,
 		     p: HTML_Paragraph;
 
@@ -628,6 +640,10 @@ class Viewport_CommandRouter extends Events {
 		    lineIndex: number,
 		    lines: Character_LinesCollection,
 		    line: Character_Line;
+
+		if ( range.isMultiRange() ) {
+			return;
+		}
 
 		if ( range.length() == null || !focus ) {
 			return;
@@ -754,7 +770,7 @@ class Viewport_CommandRouter extends Events {
 		          rng = selection.getRange(),
 		          len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -786,7 +802,7 @@ class Viewport_CommandRouter extends Events {
 		          rng = selection.getRange(),
 		          len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -818,7 +834,7 @@ class Viewport_CommandRouter extends Events {
 		          rng = selection.getRange(),
 		          len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -850,7 +866,7 @@ class Viewport_CommandRouter extends Events {
 		          rng = selection.getRange(),
 		          len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -957,7 +973,14 @@ class Viewport_CommandRouter extends Events {
 	// @contentType: the type of the content. allowed values can be "text" or "html".
 	public paste( content: string = null, contentType: string = null ) {
 
-		var data: TClipboardItem;
+		var data: TClipboardItem,
+		    selection = this.viewport.selection,
+		    rng = selection.getRange();
+
+		if ( rng.isMultiRange() ) {
+			console.warn( "TO IMPLEMENT PASTE IN MULTIRANGE!" );
+			return;
+		}
 
 		if ( content === null ) {
 			data = Clipboard.singleton().getContents();
@@ -1022,7 +1045,7 @@ class Viewport_CommandRouter extends Events {
 	        rng = selection.getRange(),
 	        len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -1041,7 +1064,7 @@ class Viewport_CommandRouter extends Events {
 		          rng = selection.getRange(),
 		          len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -1060,7 +1083,7 @@ class Viewport_CommandRouter extends Events {
 		    rng = selection.getRange(),
 		    len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -1099,7 +1122,7 @@ class Viewport_CommandRouter extends Events {
 		    rng = selection.getRange(),
 		    len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -1119,6 +1142,10 @@ class Viewport_CommandRouter extends Events {
 		    nodes: TNode_Element[] = rng.affectedBlockNodes(),
 		    i: number = 0,
 		    len: number = nodes.length;
+
+		if ( rng.isMultiRange() ) {
+			return;
+		}
 
 		if ( on !== null ) {
 			become = on ? listType : 'p';
@@ -1152,6 +1179,10 @@ class Viewport_CommandRouter extends Events {
 		    i: number = 0,
 		    len: number = nodes.length;
 
+		if ( rng.isMultiRange() ) {
+			return;
+		}
+
 		rng.save();
 
 		for ( i=0; i<len; i++ ) {
@@ -1184,7 +1215,7 @@ class Viewport_CommandRouter extends Events {
 		    rng = selection.getRange(),
 		    len = rng.length();
 
-		if ( !len ) {
+		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
 
@@ -1225,6 +1256,10 @@ class Viewport_CommandRouter extends Events {
 
 		} else {
 
+			if ( this.viewport.selection.getRange().isMultiRange() ) {
+				return;
+			}
+
 			var a = this.viewport.document.createElement( 'a' );
 			a.setAttribute( 'href', href );
 			a.setAttribute( 'target', target );
@@ -1252,7 +1287,7 @@ class Viewport_CommandRouter extends Events {
 
 		rng.save();
 
-		if ( rng.length() ) {
+		if ( rng.length() || rng.isMultiRange() ) {
 			nodes = rng.createContextualFragment().affectedInlineElements();
 			for ( i=0, len = nodes.length; i<len; i++ ) {
 				if ( nodes[i].is() == 'a' ) {

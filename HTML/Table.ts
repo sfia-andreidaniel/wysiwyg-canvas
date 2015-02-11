@@ -228,4 +228,77 @@ class HTML_Table extends TNode_Element {
 		return 0;
 	}
 
+	/* Creates a virtual node with the cells that are included between the colStart and colEnd or are intersected with
+	   the colStart and ColEnd
+	 */
+	public createVirtualColumnNode( colStart: number, colEnd: number, includeExact: boolean = false ): HTML_MultiRange_TableColumn {
+		
+		var i: number = 0,
+		    j: number = 0,
+		    len: number = 0,
+		    lem: number = 0,
+		    cell: HTML_TableCell,
+		    out: HTML_MultiRange_TableColumn = new HTML_MultiRange_TableColumn( this.documentElement, this );
+
+		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
+
+				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
+
+				if ( includeExact ) {
+
+					if ( colStart == cell.edgeLeft.index && colEnd == cell.edgeRight.index ) {
+						out.appendChild( cell );
+						break;
+					}
+				
+				} else {
+
+					if ( colStart >= cell.edgeLeft.index && colEnd <= cell.edgeRight.index ) {
+						out.appendChild( cell );
+						break;
+					}
+
+				}
+
+			}
+		}
+
+		return out;
+	}
+
+	public createVirtualRowNode( rowStart: number, rowEnd: number, includeExact: boolean = false ): HTML_MultiRange_TableRow {
+
+		var i: number = 0,
+		    j: number = 0,
+		    len: number = 0,
+		    lem: number = 0,
+		    cell: HTML_TableCell,
+		    out: HTML_MultiRange_TableRow = new HTML_MultiRange_TableRow( this.documentElement, this );
+
+		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
+
+				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
+
+				if ( includeExact ) {
+
+					if ( rowStart == cell.edgeTop.index && rowEnd == cell.edgeBottom.index ) {
+						out.appendChild( cell );
+					}
+				
+				} else {
+
+					if ( rowStart >= cell.edgeTop.index && rowEnd <= cell.edgeBottom.index ) {
+						out.appendChild( cell );
+					}
+
+				}
+
+			}
+		}
+
+		return out;
+	}
+
 }

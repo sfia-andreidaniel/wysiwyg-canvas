@@ -43,6 +43,10 @@ class TNode_Element extends TNode {
 
 	public appendChild( node: TNode, index: number = null ): TNode {
 		
+		if ( node && node.is() == 'multirange' ) {
+			throw "A MultiRange node cannot be appended inside of a real node";
+		}
+
 		var ownerBlockElement: TNode_Element;
 
 		/* If the node has style.float left || right, we append the node @ beginning
@@ -501,7 +505,8 @@ class TNode_Element extends TNode {
 		var borderColor: string,
 		    borderWidth: number,
 		    backgroundColor: string,
-		    range = this.documentElement.viewport.selection.getRange(),
+		    selection = this.documentElement.viewport.selection,
+		    range = selection.getRange(),
 		    isSelected: boolean = false;
 
 		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) && !this.isSelectionPaintingDisabled ) ) {
@@ -586,16 +591,16 @@ class TNode_Element extends TNode {
 				case point.x >= left + width - 4 && point.x <= left + width && point.y >= top + height - 4 && point.y <= top + height:
 					return TResizer.SE;
 					break;
-				case point.x == left:
+				case point.x == left + 1:
 					return TResizer.W;
 					break;
-				case point.x == left + width:
+				case point.x == left + width - 1:
 					return TResizer.E;
 					break;
-				case point.y == top:
+				case point.y == top + 1:
 					return TResizer.N;
 					break;
-				case point.y == top + height:
+				case point.y == top + height - 1:
 					return TResizer.S;
 					break;
 				default:
@@ -1389,5 +1394,60 @@ class TNode_Element extends TNode {
 			return this._tabStop;
 		}
 	}
+
+	public allTextNodes(): TNode_Text[] {
+		var out: TNode_Text[] = [],
+		    sub: TNode_Text[] = [],
+		      i: number = 0,
+		      len: number = 0,
+		      j: number = 0,
+		      k: number = 0;
+		if ( this.childNodes && this.childNodes.length ) {
+			
+			if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+				out.push( <TNode_Text> this.childNodes[i] );
+			} else {
+				sub = ( <TNode_Element>this.childNodes[i] ).allTextNodes();
+				if ( k = sub.length ) {
+					for ( j=0; j<k; j++ ) {
+						out.push( sub[j] );
+					}
+				}
+			}
+
+			return out;
+
+		} else {
+			return [];
+		}
+	}
+
+	public allSubElements(): TNode_Element[] {
+		var out: TNode_Element[] = [],
+		    sub: TNode_Element[] = [],
+		      i: number = 0,
+		      len: number = 0,
+		      j: number = 0,
+		      k: number = 0;
+		
+		if ( this.childNodes && this.childNodes.length ) {
+			
+			if ( this.childNodes[i].nodeType == TNode_Type.ELEMENT ) {
+				out.push( <TNode_Element>this.childNodes[i] );
+				sub = (<TNode_Element>this.childNodes[i]).allSubElements();
+				if ( k = sub.length ) {
+					for ( j=0; j<k; j++ ) {
+						out.push( sub[j] );
+					}
+				}
+			}
+
+			return out;
+
+		} else {
+			return [];
+		}
+	}
+
 
 }

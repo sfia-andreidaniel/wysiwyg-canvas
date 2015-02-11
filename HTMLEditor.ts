@@ -266,6 +266,10 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 
 				link.addEventListener( 'click' ,function() {
 					
+					if ( link.getAttribute( 'data-ignore-click' ) ) {
+						return;
+					}
+
 					var start = ~~link.getAttribute('data-start'),
 					     stop = ~~link.getAttribute('data-stop');
 
@@ -312,7 +316,14 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 					continue; // ignore text nodes
 					//links[i].firstChild.textContent = '#text';
 				} else {
-					links[i].firstChild.textContent = (<TNode_Element>node).nodeName.toUpperCase();
+					links[i].firstChild.textContent = node.is() == 'multirange'
+						? (<HTML_MultiRange>node).role
+						: ( node.is().toUpperCase() );
+					if ( node.is() == 'multirange' ) {
+						links[i].setAttribute( 'data-ignore-click', '1' );
+					} else {
+						links[i].removeAttribute( 'data-ignore-click' );
+					}
 				}
 
 				links[i].setAttribute('data-start', String(node.FRAGMENT_START) );

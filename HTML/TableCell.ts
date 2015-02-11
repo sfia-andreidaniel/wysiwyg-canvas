@@ -190,4 +190,58 @@ class HTML_TableCell extends TNode_Element {
 
 		return false;
 	}
+
+	public onmousedown( point: TPoint, button: number, driver: Viewport_MouseDriver ): boolean {
+		
+		if ( button == 1 ) {
+
+			var resizer: TResizer = this.getResizerTypeAtMousePoint( point );
+
+			switch ( resizer ) {
+
+				case TResizer.N:
+					if ( this.edgeTop.index == 0 ) {
+						// Select all the columns affected by the row
+						this.documentElement.viewport.selection.anchorTo(
+							new TRange_Target(
+								this.ownerTable.createVirtualColumnNode(
+									this.edgeLeft.index,
+									this.edgeRight.index,
+									false
+								), 0
+							)
+						);
+						return true;
+						break;
+					}
+				case TResizer.S:
+					return true;
+					break;
+
+				case TResizer.W:
+					if ( this.edgeLeft.index == 0 ) {
+
+						this.documentElement.viewport.selection.anchorTo(
+							new TRange_Target(
+								this.ownerTable.createVirtualRowNode(
+									this.edgeTop.index,
+									this.edgeBottom.index,
+									false
+								), 0
+							)
+						);
+						return true;
+						break;
+					}
+				case TResizer.E:
+					return true;
+					break;
+			}
+
+		}
+
+		return false;
+	}
+
+
 }

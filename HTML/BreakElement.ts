@@ -90,4 +90,8 @@ class HTML_BreakElement extends TNode_Element {
 		throw "ERR_SURGERY_DENIED";
 	}
 
+	public allTextNodes(): TNode_Text[] {
+		return [];
+	}
+
 }

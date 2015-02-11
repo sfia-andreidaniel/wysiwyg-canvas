@@ -796,6 +796,9 @@ var TNode_Element = (function (_super) {
      */
     TNode_Element.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
+        if (node && node.is() == 'multirange') {
+            throw "A MultiRange node cannot be appended inside of a real node";
+        }
         var ownerBlockElement;
         /* If the node has style.float left || right, we append the node @ beginning
            of our ownerBlockElement()
@@ -1124,7 +1127,7 @@ var TNode_Element = (function (_super) {
         ctx.strokeRect( layout.offsetLeftOuter - scrollLeft, layout.offsetTopOuter - scrollTop, layout.offsetWidthOuter, layout.offsetHeightOuter );
         ctx.closePath();
         */
-        var borderColor, borderWidth, backgroundColor, range = this.documentElement.viewport.selection.getRange(), isSelected = false;
+        var borderColor, borderWidth, backgroundColor, selection = this.documentElement.viewport.selection, range = selection.getRange(), isSelected = false;
         if ((range.equalsNode(this) && this.isSelectable) || (range.contains(this.FRAGMENT_START + 1) && range.contains(this.FRAGMENT_END - 1) && !this.isSelectionPaintingDisabled)) {
             isSelected = true;
             ctx.fillStyle = DocSelection.$Colors.focus;
@@ -1181,16 +1184,16 @@ var TNode_Element = (function (_super) {
                 case point.x >= left + width - 4 && point.x <= left + width && point.y >= top + height - 4 && point.y <= top + height:
                     return 3 /* SE */;
                     break;
-                case point.x == left:
+                case point.x == left + 1:
                     return 6 /* W */;
                     break;
-                case point.x == left + width:
+                case point.x == left + width - 1:
                     return 7 /* E */;
                     break;
-                case point.y == top:
+                case point.y == top + 1:
                     return 4 /* N */;
                     break;
-                case point.y == top + height:
+                case point.y == top + height - 1:
                     return 5 /* S */;
                     break;
                 default:
@@ -1796,6 +1799,44 @@ var TNode_Element = (function (_super) {
                 this.documentElement.changeThrottler.run();
             }
             return this._tabStop;
+        }
+    };
+    TNode_Element.prototype.allTextNodes = function () {
+        var out = [], sub = [], i = 0, len = 0, j = 0, k = 0;
+        if (this.childNodes && this.childNodes.length) {
+            if (this.childNodes[i].nodeType == 1 /* TEXT */) {
+                out.push(this.childNodes[i]);
+            }
+            else {
+                sub = this.childNodes[i].allTextNodes();
+                if (k = sub.length) {
+                    for (j = 0; j < k; j++) {
+                        out.push(sub[j]);
+                    }
+                }
+            }
+            return out;
+        }
+        else {
+            return [];
+        }
+    };
+    TNode_Element.prototype.allSubElements = function () {
+        var out = [], sub = [], i = 0, len = 0, j = 0, k = 0;
+        if (this.childNodes && this.childNodes.length) {
+            if (this.childNodes[i].nodeType == 2 /* ELEMENT */) {
+                out.push(this.childNodes[i]);
+                sub = this.childNodes[i].allSubElements();
+                if (k = sub.length) {
+                    for (j = 0; j < k; j++) {
+                        out.push(sub[j]);
+                    }
+                }
+            }
+            return out;
+        }
+        else {
+            return [];
         }
     };
     return TNode_Element;
@@ -3057,6 +3098,9 @@ var HTML_BreakElement = (function (_super) {
         if (nodeNameAfter === void 0) { nodeNameAfter = null; }
         throw "ERR_SURGERY_DENIED";
     };
+    HTML_BreakElement.prototype.allTextNodes = function () {
+        return [];
+    };
     return HTML_BreakElement;
 })(TNode_Element);
 var HTML_Image = (function (_super) {
@@ -3946,6 +3990,51 @@ var HTML_Table = (function (_super) {
         if (value === void 0) { value = null; }
         return 0;
     };
+    /* Creates a virtual node with the cells that are included between the colStart and colEnd or are intersected with
+       the colStart and ColEnd
+     */
+    HTML_Table.prototype.createVirtualColumnNode = function (colStart, colEnd, includeExact) {
+        if (includeExact === void 0) { includeExact = false; }
+        var i = 0, j = 0, len = 0, lem = 0, cell, out = new HTML_MultiRange_TableColumn(this.documentElement, this);
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
+                cell = this.childNodes[i].childNodes[j];
+                if (includeExact) {
+                    if (colStart == cell.edgeLeft.index && colEnd == cell.edgeRight.index) {
+                        out.appendChild(cell);
+                        break;
+                    }
+                }
+                else {
+                    if (colStart >= cell.edgeLeft.index && colEnd <= cell.edgeRight.index) {
+                        out.appendChild(cell);
+                        break;
+                    }
+                }
+            }
+        }
+        return out;
+    };
+    HTML_Table.prototype.createVirtualRowNode = function (rowStart, rowEnd, includeExact) {
+        if (includeExact === void 0) { includeExact = false; }
+        var i = 0, j = 0, len = 0, lem = 0, cell, out = new HTML_MultiRange_TableRow(this.documentElement, this);
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
+                cell = this.childNodes[i].childNodes[j];
+                if (includeExact) {
+                    if (rowStart == cell.edgeTop.index && rowEnd == cell.edgeBottom.index) {
+                        out.appendChild(cell);
+                    }
+                }
+                else {
+                    if (rowStart >= cell.edgeTop.index && rowEnd <= cell.edgeBottom.index) {
+                        out.appendChild(cell);
+                    }
+                }
+            }
+        }
+        return out;
+    };
     return HTML_Table;
 })(TNode_Element);
 var HTML_Table_Matrix = (function () {
@@ -4398,6 +4487,33 @@ var HTML_TableCell = (function (_super) {
         }
         return false;
     };
+    HTML_TableCell.prototype.onmousedown = function (point, button, driver) {
+        if (button == 1) {
+            var resizer = this.getResizerTypeAtMousePoint(point);
+            switch (resizer) {
+                case 4 /* N */:
+                    if (this.edgeTop.index == 0) {
+                        // Select all the columns affected by the row
+                        this.documentElement.viewport.selection.anchorTo(new TRange_Target(this.ownerTable.createVirtualColumnNode(this.edgeLeft.index, this.edgeRight.index, false), 0));
+                        return true;
+                        break;
+                    }
+                case 5 /* S */:
+                    return true;
+                    break;
+                case 6 /* W */:
+                    if (this.edgeLeft.index == 0) {
+                        this.documentElement.viewport.selection.anchorTo(new TRange_Target(this.ownerTable.createVirtualRowNode(this.edgeTop.index, this.edgeBottom.index, false), 0));
+                        return true;
+                        break;
+                    }
+                case 7 /* E */:
+                    return true;
+                    break;
+            }
+        }
+        return false;
+    };
     return HTML_TableCell;
 })(TNode_Element);
 var HTML_NegationNode = (function (_super) {
@@ -4610,6 +4726,197 @@ var HTML_Strike = (function (_super) {
     }
     return HTML_Strike;
 })(TNode_Element);
+var HTML_MultiRange = (function (_super) {
+    __extends(HTML_MultiRange, _super);
+    function HTML_MultiRange(document, parentNode, role) {
+        _super.call(this);
+        this.isSelectable = true;
+        this.isResizable = true;
+        this.role = 'generic';
+        this.nodeName = 'multirange';
+        this.documentElement = document;
+        this.parentNode = parentNode;
+        this.role = role;
+        if (!this.parentNode) {
+            throw "Bad initialization";
+        }
+    }
+    Object.defineProperty(HTML_MultiRange.prototype, "FRAGMENT_START", {
+        get: function () {
+            if (this.childNodes.length) {
+                return this.childNodes[0].FRAGMENT_START;
+            }
+            else {
+                return this.parentNode.FRAGMENT_START;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(HTML_MultiRange.prototype, "FRAGMENT_END", {
+        get: function () {
+            if (this.childNodes.length) {
+                return this.childNodes[this.childNodes.length - 1].FRAGMENT_END;
+            }
+            else {
+                return this.parentNode.FRAGMENT_END;
+            }
+        },
+        enumerable: true,
+        configurable: true
+    });
+    HTML_MultiRange.prototype.sortNodes = function () {
+        this.childNodes.sort(function (a, b) {
+            return a.FRAGMENT_START - b.FRAGMENT_START;
+        });
+    };
+    HTML_MultiRange.prototype.appendChild = function (node, index) {
+        if (index === void 0) { index = null; }
+        if (this.childNodes.indexOf(node) == -1) {
+            this.childNodes.push(node);
+            this.sortNodes();
+        }
+        return node;
+    };
+    HTML_MultiRange.prototype.removeChild = function (node) {
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            if (this.childNodes[i] == node) {
+                this.childNodes.splice(i, 1);
+                this.sortNodes();
+                break;
+            }
+        }
+        return node;
+    };
+    HTML_MultiRange.prototype.appendCollection = function (collection, siblingIndex) {
+        if (siblingIndex === void 0) { siblingIndex = null; }
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.remove = function () {
+        return this;
+    };
+    HTML_MultiRange.prototype.createSurgery = function (atFragmentIndex, createNodeAfter, nodeNameAfter, hint) {
+        if (createNodeAfter === void 0) { createNodeAfter = true; }
+        if (nodeNameAfter === void 0) { nodeNameAfter = null; }
+        if (hint === void 0) { hint = 0 /* NONE */; }
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.mergeWith = function (element) {
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.removeFromDOMAtUserCommand = function () {
+        return false;
+    };
+    HTML_MultiRange.prototype.unwrap = function () {
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.defragment = function (removeOrphans) {
+        if (removeOrphans === void 0) { removeOrphans = true; }
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.clone = function () {
+        return this;
+    };
+    HTML_MultiRange.prototype.canDefragmentWith = function (element) {
+        return false;
+    };
+    HTML_MultiRange.prototype.becomeElement = function (elementName) {
+        throw "ERR_NOT_SUPPORTED";
+    };
+    HTML_MultiRange.prototype.mergeAdjacentLists = function () {
+        // nothing.
+    };
+    HTML_MultiRange.prototype.tabStop = function (value) {
+        if (value === void 0) { value = null; }
+        return value;
+    };
+    HTML_MultiRange.prototype.outerHTML = function (v) {
+        if (v === void 0) { v = null; }
+        if (v !== null) {
+            throw "ERR_NOT_SUPPORTED";
+        }
+        else {
+            return this.innerHTML(null);
+        }
+    };
+    return HTML_MultiRange;
+})(TNode_Element);
+var HTML_MultiRange_TableColumn = (function (_super) {
+    __extends(HTML_MultiRange_TableColumn, _super);
+    function HTML_MultiRange_TableColumn(document, parentNode) {
+        _super.call(this, document, parentNode, 'table-column');
+    }
+    HTML_MultiRange_TableColumn.prototype.appendChild = function (node, index) {
+        if (index === void 0) { index = null; }
+        var iNode, i = 0, len = 0, foundIndex = null;
+        if (!(node.is() == 'td')) {
+            if (node.is() == 'tr') {
+                for (i = 0, len = node.childNodes.length; i < len; i++) {
+                    this.appendChild(node.childNodes[i]);
+                }
+                return node;
+            }
+            else {
+                if (!(node.ownerBlockElement().is() == 'td')) {
+                    throw "Node not acceptable.";
+                }
+                else {
+                    iNode = node.ownerBlockElement();
+                }
+            }
+        }
+        else {
+            iNode = node;
+        }
+        for (i = 0, len = this.childNodes.length; i < len; i++) {
+            if (this.childNodes[i] == iNode) {
+                return iNode;
+            }
+        }
+        this.childNodes.push(iNode);
+        this.sortNodes();
+        return node;
+    };
+    return HTML_MultiRange_TableColumn;
+})(HTML_MultiRange);
+var HTML_MultiRange_TableRow = (function (_super) {
+    __extends(HTML_MultiRange_TableRow, _super);
+    function HTML_MultiRange_TableRow(document, parentNode) {
+        _super.call(this, document, parentNode, 'table-row');
+    }
+    HTML_MultiRange_TableRow.prototype.appendChild = function (node, index) {
+        if (index === void 0) { index = null; }
+        var iNode, i = 0, len = 0, foundIndex = null;
+        if (!(node.is() == 'td')) {
+            if (node.is() == 'tr') {
+                for (i = 0, len = node.childNodes.length; i < len; i++) {
+                    this.appendChild(node.childNodes[i]);
+                }
+                return node;
+            }
+            else {
+                if (!(node.ownerBlockElement().is() == 'td')) {
+                    throw "Node not acceptable.";
+                }
+                else {
+                    iNode = node.ownerBlockElement();
+                }
+            }
+        }
+        else {
+            iNode = node;
+        }
+        for (i = 0, len = this.childNodes.length; i < len; i++) {
+            if (this.childNodes[i] == iNode) {
+                return iNode;
+            }
+        }
+        this.childNodes.push(iNode);
+        this.sortNodes();
+        return node;
+    };
+    return HTML_MultiRange_TableRow;
+})(HTML_MultiRange);
 var TStyle = (function (_super) {
     __extends(TStyle, _super);
     function TStyle(node) {
@@ -6938,12 +7245,15 @@ var Viewport_MouseDriver = (function (_super) {
                 var target = this.viewport.getTargetAtXY(point);
                 if (target) {
                     window['$1'] = target.target;
+                    /* If the ownerBlock of the target handles the onmousedown event, we abort
+                       ulterior operations
+                    */
+                    if ((target.target && target.target.nodeType == 1 /* TEXT */ && (target.target.ownerBlockElement()).onmousedown(point, 1, this)) || (target.target && target.target.nodeType == 2 /* ELEMENT */ && target.target.onmousedown(point, 1, this))) {
+                        break;
+                    }
                     this.mbPressed = true;
                     this.viewport.selection.anchorTo(target);
                     this.fire('refocus');
-                    // Run the onmousedown event on the target...
-                    if (target.target && target.target.nodeType == 2 /* ELEMENT */ && target.target.onmousedown(point, 1, this)) {
-                    }
                 }
                 break;
             case 3:
@@ -7746,6 +8056,9 @@ var Viewport_CommandRouter = (function (_super) {
             return;
         }
         var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0, otherNode = false;
+        if (range.isMultiRange()) {
+            return;
+        }
         if (!focus) {
             return;
         }
@@ -7781,6 +8094,9 @@ var Viewport_CommandRouter = (function (_super) {
             return;
         }
         var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
+        if (rng.isMultiRange()) {
+            return;
+        }
         if (rng.length()) {
             this.viewport.selection.removeContents();
             this.viewport.scrollToCaret();
@@ -7928,6 +8244,9 @@ var Viewport_CommandRouter = (function (_super) {
     // a <br> tag will be inserted instead of creating a new paragraph.
     Viewport_CommandRouter.prototype.newLine = function (alternateMethod) {
         if (alternateMethod === void 0) { alternateMethod = null; }
+        if (this.viewport.selection.getRange().isMultiRange()) {
+            return;
+        }
         if (this.viewport.selection.getRange()) {
             this.viewport.selection.removeContents();
         }
@@ -7977,6 +8296,9 @@ var Viewport_CommandRouter = (function (_super) {
             this.caretX = null;
         }
         var range = this.viewport.selection.getRange(), focus = range.focusNode(), lineIndex, lines, line;
+        if (range.isMultiRange()) {
+            return;
+        }
         if (range.length() == null || !focus) {
             return;
         }
@@ -8076,7 +8398,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.bold = function (state) {
         if (state === void 0) { state = null; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         if (state === null) {
@@ -8098,7 +8420,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.strike = function (state) {
         if (state === void 0) { state = null; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         if (state === null) {
@@ -8120,7 +8442,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.italic = function (state) {
         if (state === void 0) { state = null; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         if (state === null) {
@@ -8142,7 +8464,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.underline = function (state) {
         if (state === void 0) { state = null; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         if (state === null) {
@@ -8219,7 +8541,11 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.paste = function (content, contentType) {
         if (content === void 0) { content = null; }
         if (contentType === void 0) { contentType = null; }
-        var data;
+        var data, selection = this.viewport.selection, rng = selection.getRange();
+        if (rng.isMultiRange()) {
+            console.warn("TO IMPLEMENT PASTE IN MULTIRANGE!");
+            return;
+        }
         if (content === null) {
             data = Clipboard.singleton().getContents();
             if (data === null) {
@@ -8268,7 +8594,7 @@ var Viewport_CommandRouter = (function (_super) {
             throw "ERR_UNKNOWN_VALIGN_TYPE";
         }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         rng.affectedRanges().unwrapFromElement('sub').unwrapFromElement('sup').wrapInElement(verticalAlignmentType, null, null, function () {
@@ -8280,7 +8606,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.font = function (fontFamily) {
         if (fontFamily === void 0) { fontFamily = "Arial"; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('font').wrapInElement('font', 'name', fontFamily, function () {
@@ -8293,7 +8619,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.color = function (colorName) {
         if (colorName === void 0) { colorName = ""; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('color').wrapInElement('color', 'name', colorName, function () {
@@ -8319,7 +8645,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.size = function (fontSize) {
         if (fontSize === void 0) { fontSize = ''; }
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').wrapInElement('size', 'value', fontSize, function () {
@@ -8331,6 +8657,9 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.list = function (listType, on) {
         if (on === void 0) { on = null; }
         var become = '', selection = this.viewport.selection, rng = selection.getRange(), nodes = rng.affectedBlockNodes(), i = 0, len = nodes.length;
+        if (rng.isMultiRange()) {
+            return;
+        }
         if (on !== null) {
             become = on ? listType : 'p';
         }
@@ -8350,6 +8679,9 @@ var Viewport_CommandRouter = (function (_super) {
             throw "Invalid block type!";
         }
         var selection = this.viewport.selection, rng = selection.getRange(), nodes = rng.affectedBlockNodes(), i = 0, len = nodes.length;
+        if (rng.isMultiRange()) {
+            return;
+        }
         rng.save();
         for (i = 0; i < len; i++) {
             switch (blockType) {
@@ -8375,7 +8707,7 @@ var Viewport_CommandRouter = (function (_super) {
     };
     Viewport_CommandRouter.prototype.clearFormatting = function () {
         var selection = this.viewport.selection, rng = selection.getRange(), len = rng.length();
-        if (!len) {
+        if (!len && !rng.isMultiRange()) {
             return;
         }
         this.viewport.selection.getRange().affectedRanges().unwrapFromElement('size').unwrapFromElement('font').unwrapFromElement('b').unwrapFromElement('!b').unwrapFromElement('i').unwrapFromElement('!i').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('strike').unwrapFromElement('!strike').unwrapFromElement('color').end();
@@ -8390,6 +8722,9 @@ var Viewport_CommandRouter = (function (_super) {
             this.viewport.selection.getRange().affectedRanges().unwrapFromElement('a').unwrapFromElement('u').unwrapFromElement('!u').unwrapFromElement('strike').unwrapFromElement('!strike').wrapInElement('a', ['href', 'target'], [href || '', target || '']).end();
         }
         else {
+            if (this.viewport.selection.getRange().isMultiRange()) {
+                return;
+            }
             var a = this.viewport.document.createElement('a');
             a.setAttribute('href', href);
             a.setAttribute('target', target);
@@ -8401,7 +8736,7 @@ var Viewport_CommandRouter = (function (_super) {
     Viewport_CommandRouter.prototype.unlink = function () {
         var selection = this.viewport.selection, rng = selection.getRange(), nodes, aNodes = [], i = 0, len = 0, node, block;
         rng.save();
-        if (rng.length()) {
+        if (rng.length() || rng.isMultiRange()) {
             nodes = rng.createContextualFragment().affectedInlineElements();
             for (i = 0, len = nodes.length; i < len; i++) {
                 if (nodes[i].is() == 'a') {
@@ -8736,98 +9071,6 @@ var Fragment = (function () {
         return new Fragment_CaretLock(this, at, direction, lockName);
     };
     return Fragment;
-})();
-var Fragment_CaretLock = (function () {
-    function Fragment_CaretLock(fragment, lockIndex, direction, lockName) {
-        if (direction === void 0) { direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */; }
-        if (lockName === void 0) { lockName = 'Lock'; }
-        this.lockName = lockName;
-        this.chars = 0;
-        this.lockIndex = 0;
-        this.startedEOL = false;
-        var at, i = 0, len = 0, n = 0;
-        this.fragment = fragment;
-        this.lockIndex = lockIndex;
-        this.chars = 0;
-        this.direction = direction;
-        this.startedEOL = this.fragment.at(lockIndex) == 2 /* EOL */;
-        if (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
-            for (i = 0; i <= lockIndex; i++) {
-                at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    this.chars++;
-                }
-            }
-        }
-        else {
-            for (i = this.fragment.length() - 1; i >= lockIndex; i--) {
-                at = this.fragment.at(i);
-                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                    this.chars++;
-                }
-            }
-        }
-    }
-    Fragment_CaretLock.prototype.getTarget = function () {
-        var i = 0, len = 0, chars = 0, at, foundIndex = this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 0 : this.fragment.length() - 1;
-        if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
-            if (this.chars != 0) {
-                for (i = 0, len = this.fragment.length(); i < len; i++) {
-                    at = this.fragment.at(i);
-                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                        chars++;
-                        foundIndex = i;
-                        if (chars == this.chars) {
-                            break;
-                        }
-                    }
-                }
-            }
-            if (this.startedEOL || chars < this.chars) {
-                foundIndex++;
-                len = this.fragment.length();
-                while (foundIndex < len) {
-                    at = this.fragment.at(foundIndex);
-                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
-                        break;
-                    }
-                    foundIndex++;
-                }
-            }
-            return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
-        }
-        else {
-            if (this.chars != 0) {
-                for (i = foundIndex; i >= 0; i--) {
-                    at = this.fragment.at(i);
-                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
-                        chars++;
-                        if (chars == this.chars) {
-                            foundIndex = i;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (this.startedEOL) {
-                foundIndex--;
-                while (foundIndex >= 0) {
-                    at = this.fragment.at(foundIndex);
-                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
-                        break;
-                    }
-                    foundIndex--;
-                }
-            }
-            if (foundIndex >= 0) {
-                return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
-            }
-            else {
-                return this.fragment.createTargetAt(0 /* DOC_BEGIN */);
-            }
-        }
-    };
-    return Fragment_CaretLock;
 })();
 var Fragment_Contextual = (function () {
     function Fragment_Contextual(fragment, indexStart, indexEnd, isEmpty) {
@@ -9225,6 +9468,158 @@ var Fragment_Contextual = (function () {
     };
     return Fragment_Contextual;
 })();
+var Fragment_Contextual_MultiRange = (function (_super) {
+    __extends(Fragment_Contextual_MultiRange, _super);
+    function Fragment_Contextual_MultiRange(fragment, rangeNode, isEmpty) {
+        if (isEmpty === void 0) { isEmpty = false; }
+        _super.call(this, fragment, 0, 0, isEmpty);
+        this.fragment = fragment;
+        this.rangeNode = rangeNode;
+        this.isEmpty = isEmpty;
+    }
+    Fragment_Contextual_MultiRange.prototype.compute = function () {
+        var i = 0, len = 0, node;
+        if (this.isEmpty) {
+            return;
+        }
+        this.parts = [];
+        for (var i = 0, len = this.rangeNode.childNodes.length; i < len; i++) {
+            node = this.rangeNode.childNodes[i];
+            switch (true) {
+                case node.nodeType == 1 /* TEXT */:
+                    this.parts.push(new Fragment_Contextual_TextNode(node, node.FRAGMENT_START, node.FRAGMENT_END));
+                    break;
+                case node.nodeType == 2 /* ELEMENT */:
+                    this.parts.push(new Fragment_Contextual_NodeStart(node));
+                    this.parts.push(new Fragment_Contextual_NodeEnd(node));
+                    break;
+            }
+        }
+    };
+    Fragment_Contextual_MultiRange.prototype.affectedTextNodes = function () {
+        var out = [], subNodes = [], i, len, j, k;
+        this.compute();
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            if (this.parts[i].type == 2 /* TEXT */) {
+                out.push(this.parts[i].node);
+            }
+            else {
+                if (this.parts[i].type == 0 /* NODE_START */) {
+                    subNodes = this.parts[i].node.allTextNodes();
+                    for (j = 0, k = subNodes.length; j < k; j++) {
+                        out.push(subNodes[j]);
+                    }
+                }
+            }
+        }
+        return out;
+    };
+    Fragment_Contextual_MultiRange.prototype.affectedInlineElements = function () {
+        var out = [], sub, i, len, j = 0, k = 0, node;
+        this.compute();
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            switch (this.parts[i].type) {
+                case 0 /* NODE_START */:
+                    node = this.parts[i].node;
+                    if (node.style.display() == 'inline') {
+                        out.push(node);
+                    }
+                    sub = node.allSubElements();
+                    if (k = sub.length) {
+                        for (j = 0; j < k; j++) {
+                            if (sub[i].style.display() == 'inline') {
+                                out.push(sub[i]);
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+        out.sort(function (a, b) {
+            return a.FRAGMENT_START - b.FRAGMENT_START;
+        });
+        return out;
+    };
+    Fragment_Contextual_MultiRange.prototype.affectedBlockNodes = function () {
+        var out = [], i, len, node;
+        this.compute();
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            switch (this.parts[i].type) {
+                case 0 /* NODE_START */:
+                    node = this.parts[i].node;
+                    if (['tr', 'table'].indexOf(node.nodeName) >= 0) {
+                        continue;
+                    }
+                    else {
+                        node = node.ownerBlockElement();
+                    }
+                    break;
+                case 2 /* TEXT */:
+                    node = this.parts[i].node.ownerBlockElement();
+                    break;
+            }
+            if (out.indexOf(node) == -1) {
+                out.push(node);
+            }
+        }
+        out.sort(function (a, b) {
+            return a.FRAGMENT_START - b.FRAGMENT_START;
+        });
+        return out;
+    };
+    Fragment_Contextual_MultiRange.prototype.affectedRanges = function () {
+        this.compute();
+        var blockNodes = this.affectedBlockNodes(), i = 0, len = 0, returnValue = [];
+        for (i = 0, len = blockNodes.length; i < len; i++) {
+            if (blockNodes[i].childNodes && blockNodes[i].childNodes.length && blockNodes[i].is() != 'tr') {
+                returnValue.push(new TNode_Collection_Dettached(blockNodes[i], blockNodes[i].FRAGMENT_START + 1, blockNodes[i].FRAGMENT_END - 1));
+            }
+        }
+        this.fragment.document().canRelayout = false;
+        for (i = 0, len = returnValue.length; i < len; i++) {
+            returnValue[i].createSlices();
+        }
+        this.fragment.document().canRelayout = true;
+        this.fragment.document().relayout(true);
+        for (i = 0, len = returnValue.length; i < len; i++) {
+            returnValue[i].createRanges();
+        }
+        return returnValue;
+    };
+    Fragment_Contextual_MultiRange.prototype.remove = function () {
+        console.warn("ERR_NOT_IMPLEMENTED");
+    };
+    Fragment_Contextual_MultiRange.prototype.toString = function (format, closeTags) {
+        if (format === void 0) { format = 'text/html'; }
+        if (closeTags === void 0) { closeTags = false; }
+        if (['html', 'text/html', 'text', 'text/plain'].indexOf(format) == -1) {
+            throw "Bad format type!";
+        }
+        this.compute();
+        var out = [], i = 0, len = this.parts.length, node, txt;
+        for (i = 0, len = this.parts.length; i < len; i++) {
+            switch (this.parts[i].type) {
+                case 0 /* NODE_START */:
+                    node = this.parts[i].node;
+                    break;
+                case 2 /* TEXT */:
+                    txt = this.parts[i].node;
+                    break;
+                default:
+                    node = null;
+                    txt = null;
+            }
+            if (node != null) {
+                out.push((format == 'text/html' || format == 'html') ? node.outerHTML() : node.textContents());
+            }
+            else if (txt != null) {
+                out.push((format == 'text/html' || format == 'html') ? txt.escape() : txt.textContents());
+            }
+        }
+        return out.join('');
+    };
+    return Fragment_Contextual_MultiRange;
+})(Fragment_Contextual);
 var Fragment_Contextual_Item = (function () {
     function Fragment_Contextual_Item() {
         this.type = null;
@@ -9299,6 +9694,98 @@ var Fragment_Contextual_TextNode = (function (_super) {
     };
     return Fragment_Contextual_TextNode;
 })(Fragment_Contextual_Item);
+var Fragment_CaretLock = (function () {
+    function Fragment_CaretLock(fragment, lockIndex, direction, lockName) {
+        if (direction === void 0) { direction = 0 /* FROM_BEGINNING_OF_DOCUMENT */; }
+        if (lockName === void 0) { lockName = 'Lock'; }
+        this.lockName = lockName;
+        this.chars = 0;
+        this.lockIndex = 0;
+        this.startedEOL = false;
+        var at, i = 0, len = 0, n = 0;
+        this.fragment = fragment;
+        this.lockIndex = lockIndex;
+        this.chars = 0;
+        this.direction = direction;
+        this.startedEOL = this.fragment.at(lockIndex) == 2 /* EOL */;
+        if (direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+            for (i = 0; i <= lockIndex; i++) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    this.chars++;
+                }
+            }
+        }
+        else {
+            for (i = this.fragment.length() - 1; i >= lockIndex; i--) {
+                at = this.fragment.at(i);
+                if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                    this.chars++;
+                }
+            }
+        }
+    }
+    Fragment_CaretLock.prototype.getTarget = function () {
+        var i = 0, len = 0, chars = 0, at, foundIndex = this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */ ? 0 : this.fragment.length() - 1;
+        if (this.direction == 0 /* FROM_BEGINNING_OF_DOCUMENT */) {
+            if (this.chars != 0) {
+                for (i = 0, len = this.fragment.length(); i < len; i++) {
+                    at = this.fragment.at(i);
+                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                        chars++;
+                        foundIndex = i;
+                        if (chars == this.chars) {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (this.startedEOL || chars < this.chars) {
+                foundIndex++;
+                len = this.fragment.length();
+                while (foundIndex < len) {
+                    at = this.fragment.at(foundIndex);
+                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
+                        break;
+                    }
+                    foundIndex++;
+                }
+            }
+            return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
+        }
+        else {
+            if (this.chars != 0) {
+                for (i = foundIndex; i >= 0; i--) {
+                    at = this.fragment.at(i);
+                    if (at == 3 /* CHARACTER */ || at == 4 /* WHITE_SPACE */) {
+                        chars++;
+                        if (chars == this.chars) {
+                            foundIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (this.startedEOL) {
+                foundIndex--;
+                while (foundIndex >= 0) {
+                    at = this.fragment.at(foundIndex);
+                    if (at == 4 /* WHITE_SPACE */ || at == 3 /* CHARACTER */ || at == 2 /* EOL */) {
+                        break;
+                    }
+                    foundIndex--;
+                }
+            }
+            if (foundIndex >= 0) {
+                return new TRange_Target(this.fragment.getNodeAtIndex(foundIndex), foundIndex);
+            }
+            else {
+                return this.fragment.createTargetAt(0 /* DOC_BEGIN */);
+            }
+        }
+    };
+    return Fragment_CaretLock;
+})();
 var Fragment_Batch = (function () {
     function Fragment_Batch(range, items) {
         this.ended = false;
@@ -9429,7 +9916,12 @@ var TRange = (function (_super) {
         return target;
     };
     TRange.prototype.equalsNode = function (node) {
-        return this._focusNode === null && this._anchorNode.target === node;
+        if (!this.isMultiRange()) {
+            return this._focusNode === null && this._anchorNode.target === node;
+        }
+        else {
+            return this._anchorNode.target.childNodes.indexOf(node) >= 0;
+        }
     };
     TRange.prototype.contains = function (fragmentIndex) {
         if (this._focusNode && this._anchorNode && !this.isCollapsed()) {
@@ -9474,16 +9966,21 @@ var TRange = (function (_super) {
         }
     };
     TRange.prototype.createContextualFragment = function () {
-        if (this._focusNode === null) {
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END, false);
+        if (this.isMultiRange()) {
+            return new Fragment_Contextual_MultiRange(this._anchorNode.target.documentElement.fragment, (this._anchorNode.target), (this._anchorNode.target).childNodes.length == 0);
         }
         else {
-            var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos), isEmpty = minIndex == maxIndex;
-            if (this._focusNode.fragPos > this._anchorNode.fragPos) {
-                maxIndex--;
+            if (this._focusNode === null) {
+                return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, this._anchorNode.target.FRAGMENT_START, this._anchorNode.target.FRAGMENT_END, false);
             }
-            maxIndex += (this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0);
-            return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, minIndex, maxIndex, isEmpty);
+            else {
+                var minIndex = Math.min(this._focusNode.fragPos, this._anchorNode.fragPos), maxIndex = Math.max(this._focusNode.fragPos, this._anchorNode.fragPos), isEmpty = minIndex == maxIndex;
+                if (this._focusNode.fragPos > this._anchorNode.fragPos) {
+                    maxIndex--;
+                }
+                maxIndex += (this._focusNode.fragPos < this._anchorNode.fragPos ? -1 : 0);
+                return new Fragment_Contextual(this._anchorNode.target.documentElement.fragment, minIndex, maxIndex, isEmpty);
+            }
         }
     };
     /* Note: DO NOT USE THIS METHOD DIRECTLY.
@@ -9493,28 +9990,43 @@ var TRange = (function (_super) {
        range.
      */
     TRange.prototype.removeContents = function () {
-        if (this._focusNode === null) {
-            this._anchorNode.target.remove();
+        if (this.isMultiRange()) {
+            var fragment = this.createContextualFragment();
+            fragment.remove();
             return true;
         }
         else {
-            if (this.length() !== null) {
-                var fragment = this.createContextualFragment();
-                fragment.remove();
+            if (this._focusNode === null) {
+                this._anchorNode.target.remove();
                 return true;
             }
             else {
-                return false;
+                if (this.length() !== null) {
+                    var fragment = this.createContextualFragment();
+                    fragment.remove();
+                    return true;
+                }
+                else {
+                    return false;
+                }
             }
         }
     };
     TRange.prototype.affectedBlockNodes = function () {
-        if (!this._focusNode || !this.length()) {
-            return [this._anchorNode.target.ownerBlockElement()];
+        if (this.isMultiRange()) {
+            return this.createContextualFragment().affectedBlockNodes();
         }
-        return this.createContextualFragment().affectedBlockNodes();
+        else {
+            if (!this._focusNode || !this.length()) {
+                return [this._anchorNode.target.ownerBlockElement()];
+            }
+            return this.createContextualFragment().affectedBlockNodes();
+        }
     };
     TRange.prototype.save = function () {
+        if (this.isMultiRange()) {
+            return this;
+        }
         var fragment = this._anchorNode.target.documentElement.fragment;
         if (this._focusNode) {
             this._focusLock = new Fragment_CaretLock(fragment, this._focusNode.fragPos, this._focusNode.fragPos <= this._anchorNode.fragPos ? 0 /* FROM_BEGINNING_OF_DOCUMENT */ : 1 /* FROM_ENDING_OF_DOCUMENT */, 'Focus');
@@ -9527,6 +10039,9 @@ var TRange = (function (_super) {
         return this;
     };
     TRange.prototype.restore = function () {
+        if (this.isMultiRange()) {
+            return this;
+        }
         this._anchorNode.target.documentElement.relayout(true);
         if (this._focusNode) {
             if (!this._focusLock) {
@@ -9556,49 +10071,67 @@ var TRange = (function (_super) {
         return this;
     };
     TRange.prototype.affectedRanges = function () {
-        this.save();
-        this._anchorNode.target.documentElement.lockTables();
-        if (!this._focusNode || !this.length()) {
-            return new Fragment_Batch(this, []);
+        if (this.isMultiRange()) {
+            this._anchorNode.target.documentElement.lockTables();
+            return new Fragment_Batch(this, this.createContextualFragment().affectedRanges());
         }
         else {
-            return new Fragment_Batch(this, this.createContextualFragment().affectedRanges());
+            this.save();
+            this._anchorNode.target.documentElement.lockTables();
+            if (!this._focusNode || !this.length()) {
+                return new Fragment_Batch(this, []);
+            }
+            else {
+                return new Fragment_Batch(this, this.createContextualFragment().affectedRanges());
+            }
         }
     };
     /* These methods MIGHT be removed in the future, if better ways will be found
      */
     TRange.prototype.setAnchorAsFocus = function () {
-        if (this._focusNode) {
-            this._anchorNode.target = this._focusNode.target;
-            this._anchorNode.fragPos = this._anchorNode.fragPos;
-            this.fire('changed');
+        if (!this.isMultiRange()) {
+            if (this._focusNode) {
+                this._anchorNode.target = this._focusNode.target;
+                this._anchorNode.fragPos = this._anchorNode.fragPos;
+                this.fire('changed');
+            }
         }
     };
     TRange.prototype.setFocusAsAnchor = function () {
-        if (this._focusNode) {
-            this._focusNode.target = this._anchorNode.target;
-            this._focusNode.fragPos = this._anchorNode.fragPos;
-            this.fire('changed');
+        if (!this.isMultiRange()) {
+            if (this._focusNode) {
+                this._focusNode.target = this._anchorNode.target;
+                this._focusNode.fragPos = this._anchorNode.fragPos;
+                this.fire('changed');
+            }
         }
     };
     TRange.prototype.setFocusAndAnchorTo = function (target) {
-        this._focusNode = this.cloneTarget(target);
         this._anchorNode = this.cloneTarget(target);
+        if (!this.isMultiRange()) {
+            this._focusNode = this.cloneTarget(target);
+        }
+        else {
+            this._focusNode = null;
+        }
         this.fire('changed');
     };
     TRange.prototype.moveRightUntilCharacterIfNotLandedOnText = function () {
-        if (this._focusNode) {
+        if (this._focusNode && !this.isMultiRange()) {
             this._focusNode.moveRightUntilCharacterIfNotLandedOnText();
             this._anchorNode.fragPos = this._focusNode.fragPos;
             this._anchorNode.target = this._focusNode.target;
         }
     };
     TRange.prototype.moveLeftUntilCharacterIfNotLandedOnText = function () {
-        if (this._focusNode) {
+        if (this._focusNode && !this.isMultiRange()) {
             this._focusNode.moveLeftUntilCharacterIfNotLandedOnText();
             this._anchorNode.fragPos = this._focusNode.fragPos;
             this._anchorNode.target = this._focusNode.target;
         }
+    };
+    TRange.prototype.isMultiRange = function () {
+        return this._anchorNode && this._anchorNode.target.is() == 'multirange';
     };
     return TRange;
 })(Events);
@@ -10242,7 +10775,7 @@ var Selection_EditorState = (function (_super) {
     };
     Selection_EditorState.prototype.compute = function () {
         var nodes = [], rng = this.selection.getRange(), frag = null, i = 0, len = 0, state = this.createEditorState(), focus = rng.focusNode(), anchor = rng.anchorNode(), element = null, fBold = false, fItalic = false, fUnderline = false, fStrike = false, fTextAlign = null, fFontFamily = null, fFontSize = null, fFontColor = null, fVerticalAlign = null, fBlockLevel = null, fListType = null, textDecoration = null, nulls = 0, changed = [], k = '', blockElement, listType;
-        if (focus && rng.length()) {
+        if ((focus && rng.length()) || rng.isMultiRange()) {
             frag = rng.createContextualFragment();
             nodes = frag.affectedTextNodes();
         }
@@ -10623,6 +11156,9 @@ function HTMLEditor(value, config) {
             anchor.appendChild(document.createTextNode(' '));
             (function (link) {
                 link.addEventListener('click', function () {
+                    if (link.getAttribute('data-ignore-click')) {
+                        return;
+                    }
                     var start = ~~link.getAttribute('data-start'), stop = ~~link.getAttribute('data-stop');
                     viewport.selection.selectByFragmentIndexes(start, stop);
                     viewport.canvas.focus();
@@ -10648,7 +11184,13 @@ function HTMLEditor(value, config) {
                     continue;
                 }
                 else {
-                    links[i].firstChild.textContent = node.nodeName.toUpperCase();
+                    links[i].firstChild.textContent = node.is() == 'multirange' ? node.role : (node.is().toUpperCase());
+                    if (node.is() == 'multirange') {
+                        links[i].setAttribute('data-ignore-click', '1');
+                    }
+                    else {
+                        links[i].removeAttribute('data-ignore-click');
+                    }
                 }
                 links[i].setAttribute('data-start', String(node.FRAGMENT_START));
                 links[i].setAttribute('data-stop', String(node.FRAGMENT_END));

@@ -43,6 +43,10 @@
 /// <reference path="./HTML/Size.ts" /> 
 /// <reference path="./HTML/Strike.ts" /> 
 
+/// <reference path="./HTML/MultiRange.ts" />
+/// <reference path="./HTML/MultiRange/TableColumn.ts" />
+/// <reference path="./HTML/MultiRange/TableRow.ts" />
+
 /// <reference path="TStyle.ts" />
 /// <reference path="./TStyle/Browser/Calculator.ts" />
 /// <reference path="./TStyle/TableCell.ts" />
@@ -73,12 +77,14 @@
 /// <reference path="Clipboard.ts" />
 
 /// <reference path="Fragment.ts" />
-/// <reference path="./Fragment/CaretLock.ts" />
 /// <reference path="./Fragment/Contextual.ts" />
+/// <reference path="./Fragment/Contextual/MultiRange.ts" />
 /// <reference path="./Fragment/Contextual/Item.ts" />
 /// <reference path="./Fragment/Contextual/NodeStart.ts" />
 /// <reference path="./Fragment/Contextual/NodeEnd.ts" />
 /// <reference path="./Fragment/Contextual/TextNode.ts" />
+
+/// <reference path="./Fragment/CaretLock.ts" />
 /// <reference path="./Fragment/Batch.ts" />
 
 /// <reference path="TRange.ts" />

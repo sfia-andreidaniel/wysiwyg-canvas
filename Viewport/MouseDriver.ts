@@ -120,17 +120,22 @@ class Viewport_MouseDriver extends Events {
 
 					window['$1'] = target.target;
 
+					/* If the ownerBlock of the target handles the onmousedown event, we abort
+					   ulterior operations
+					*/
+
+					if ( ( target.target && target.target.nodeType == TNode_Type.TEXT &&  ( target.target.ownerBlockElement() ).onmousedown( point, 1, this ) ) ||
+						 ( target.target && target.target.nodeType == TNode_Type.ELEMENT && (<TNode_Element>target.target).onmousedown( point, 1, this ) )
+					) {
+						break;
+					}
+
 					this.mbPressed = true;
 
 					this.viewport.selection.anchorTo( target );
 
 					this.fire( 'refocus' );
 
-					// Run the onmousedown event on the target...
-
-					if ( target.target && target.target.nodeType == TNode_Type.ELEMENT && (<TNode_Element>target.target).onmousedown( point, 1, this ) ) {
-						// console.warn( target mousedown )
-					}
 				}
 
 				break;

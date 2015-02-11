@@ -73,7 +73,7 @@ class Selection_EditorState extends Events {
 		    blockElement: TNode_Element,
 		    listType    : string;
 
-		if ( focus && rng.length() ) {
+		if ( ( focus && rng.length() ) || rng.isMultiRange() ) {
 			frag = rng.createContextualFragment();
 			nodes = frag.affectedTextNodes();
 		} else {

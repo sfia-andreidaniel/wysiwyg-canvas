@@ -4,6 +4,8 @@ The purpose of this project is to implement a HTML Editor who is using
 a canvas to render it's contents, without using the standard contenteditable
 feature of the web browsers that is used at this moment in the other WYSIWYG editors.
 
+![Editor Preview](/_assets/preview.png?raw=true)
+
 # Usage
 
 See index.html file in the root of the repo for embedding example.

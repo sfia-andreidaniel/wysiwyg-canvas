@@ -2,6 +2,16 @@ class HTML_MultiRange_TableRow extends HTML_MultiRange {
 	
 	constructor( document: HTML_Body, parentNode: TNode_Element ) {
 		super( document, parentNode, 'table-row' );
+		( function( me ) {
+
+			me.style.on( 'changed', function( propertyName: string ) {
+				if ( propertyName == 'height' ) {
+					me.setHeight( me.style.height() );
+				}
+			} );
+
+		})( this );
+
 	}
 
 	public appendChild( node: TNode, index: number = null ): TNode {
@@ -48,4 +58,22 @@ class HTML_MultiRange_TableRow extends HTML_MultiRange {
 		return node;
 
 	}
+
+	get layout(): Layout {
+
+		if ( this.childNodes.length ){
+			return (<TNode_Element>this.childNodes[0]).layout;
+		} else {
+			return this.parentNode.layout;
+		}
+	}
+
+	set layout( l: Layout ) {
+		// nothing
+	}
+
+	public setHeight( height: number ) {
+		console.warn( 'set Height: ' + height );
+	}
+
 }

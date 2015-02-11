@@ -456,6 +456,38 @@ class Viewport_MouseDriver extends Events {
 
 					break;
 
+				case TResizer.N:
+
+					if ( computeHeight ) {
+						newHeight = this.resizingLockTarget.layout.offsetHeight - this.resizingDelta.y;
+					}
+
+					break;
+
+				case TResizer.S:
+
+					if ( computeHeight ) {
+						newHeight = this.resizingLockTarget.layout.offsetHeight + this.resizingDelta.y;
+					}
+
+					break;
+
+				case TResizer.E:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth + this.resizingDelta.x;
+					}
+
+					break;
+
+				case TResizer.W:
+
+					if ( computeWidth ) {
+						newWidth = this.resizingLockTarget.layout.offsetWidth - this.resizingDelta.x;
+					}
+
+					break;
+
 				default:
 					throw "Unexpected resizing method!";
 			}
@@ -503,6 +535,9 @@ class Viewport_MouseDriver extends Events {
 		
 		switch ( resizeType ) {
 			case TResizer.NW:
+			
+			case TResizer.N:
+			case TResizer.W:
 				// save the opposite node for the resizing process
 				this.resizingReferencePoint = {
 					"x": target.layout.offsetLeft + target.layout.offsetWidth,
@@ -510,6 +545,7 @@ class Viewport_MouseDriver extends Events {
 				};
 				break;
 			case TResizer.NE:
+			case TResizer.E:
 				// save the opposite node for the resizing process
 				this.resizingReferencePoint = {
 					"x": target.layout.offsetLeft,
@@ -517,6 +553,7 @@ class Viewport_MouseDriver extends Events {
 				};
 				break;
 			case TResizer.SW:
+			case TResizer.S:
 				// save the opposite node for the resizing process
 				this.resizingReferencePoint = {
 					"x": target.layout.offsetLeft + target.layout.offsetWidth,

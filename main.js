@@ -4499,6 +4499,7 @@ var HTML_TableCell = (function (_super) {
                         break;
                     }
                 case 5 /* S */:
+                    driver.lockTargetForResizing(this.ownerTable.createVirtualRowNode(this.edgeTop.index, this.edgeBottom.index, true), resizer, point);
                     return true;
                     break;
                 case 6 /* W */:
@@ -4508,6 +4509,7 @@ var HTML_TableCell = (function (_super) {
                         break;
                     }
                 case 7 /* E */:
+                    driver.lockTargetForResizing(this.ownerTable.createVirtualColumnNode(this.edgeLeft.index, this.edgeRight.index, true), resizer, point);
                     return true;
                     break;
             }
@@ -4726,6 +4728,16 @@ var HTML_Strike = (function (_super) {
     }
     return HTML_Strike;
 })(TNode_Element);
+/*
+   The HTML_MultiRange Element represents a virtual Element that
+   is used by multirange selection.
+
+   The element cannot be appended inside the DOM, removed, etc.
+
+   The childNodes from the HTML_MultiRange element have physically other
+   parentNode's, not the HTML_MultiRange element node.
+
+*/
 var HTML_MultiRange = (function (_super) {
     __extends(HTML_MultiRange, _super);
     function HTML_MultiRange(document, parentNode, role) {
@@ -4845,6 +4857,13 @@ var HTML_MultiRange_TableColumn = (function (_super) {
     __extends(HTML_MultiRange_TableColumn, _super);
     function HTML_MultiRange_TableColumn(document, parentNode) {
         _super.call(this, document, parentNode, 'table-column');
+        (function (me) {
+            me.style.on('changed', function (propertyName) {
+                if (propertyName == 'width') {
+                    me.setWidth(me.style.width());
+                }
+            });
+        })(this);
     }
     HTML_MultiRange_TableColumn.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
@@ -4877,12 +4896,37 @@ var HTML_MultiRange_TableColumn = (function (_super) {
         this.sortNodes();
         return node;
     };
+    Object.defineProperty(HTML_MultiRange_TableColumn.prototype, "layout", {
+        get: function () {
+            if (this.childNodes.length) {
+                return this.childNodes[0].layout;
+            }
+            else {
+                return this.parentNode.layout;
+            }
+        },
+        set: function (l) {
+            // nothing
+        },
+        enumerable: true,
+        configurable: true
+    });
+    HTML_MultiRange_TableColumn.prototype.setWidth = function (value) {
+        console.warn("Set width: " + value);
+    };
     return HTML_MultiRange_TableColumn;
 })(HTML_MultiRange);
 var HTML_MultiRange_TableRow = (function (_super) {
     __extends(HTML_MultiRange_TableRow, _super);
     function HTML_MultiRange_TableRow(document, parentNode) {
         _super.call(this, document, parentNode, 'table-row');
+        (function (me) {
+            me.style.on('changed', function (propertyName) {
+                if (propertyName == 'height') {
+                    me.setHeight(me.style.height());
+                }
+            });
+        })(this);
     }
     HTML_MultiRange_TableRow.prototype.appendChild = function (node, index) {
         if (index === void 0) { index = null; }
@@ -4914,6 +4958,24 @@ var HTML_MultiRange_TableRow = (function (_super) {
         this.childNodes.push(iNode);
         this.sortNodes();
         return node;
+    };
+    Object.defineProperty(HTML_MultiRange_TableRow.prototype, "layout", {
+        get: function () {
+            if (this.childNodes.length) {
+                return this.childNodes[0].layout;
+            }
+            else {
+                return this.parentNode.layout;
+            }
+        },
+        set: function (l) {
+            // nothing
+        },
+        enumerable: true,
+        configurable: true
+    });
+    HTML_MultiRange_TableRow.prototype.setHeight = function (height) {
+        console.warn('set Height: ' + height);
     };
     return HTML_MultiRange_TableRow;
 })(HTML_MultiRange);
@@ -7475,6 +7537,26 @@ var Viewport_MouseDriver = (function (_super) {
                         newHeight = this.resizingLockTarget.layout.offsetHeight + this.resizingDelta.y;
                     }
                     break;
+                case 4 /* N */:
+                    if (computeHeight) {
+                        newHeight = this.resizingLockTarget.layout.offsetHeight - this.resizingDelta.y;
+                    }
+                    break;
+                case 5 /* S */:
+                    if (computeHeight) {
+                        newHeight = this.resizingLockTarget.layout.offsetHeight + this.resizingDelta.y;
+                    }
+                    break;
+                case 7 /* E */:
+                    if (computeWidth) {
+                        newWidth = this.resizingLockTarget.layout.offsetWidth + this.resizingDelta.x;
+                    }
+                    break;
+                case 6 /* W */:
+                    if (computeWidth) {
+                        newWidth = this.resizingLockTarget.layout.offsetWidth - this.resizingDelta.x;
+                    }
+                    break;
                 default:
                     throw "Unexpected resizing method!";
             }
@@ -7509,6 +7591,8 @@ var Viewport_MouseDriver = (function (_super) {
         this.resizingLockTarget = target;
         switch (resizeType) {
             case 0 /* NW */:
+            case 4 /* N */:
+            case 6 /* W */:
                 // save the opposite node for the resizing process
                 this.resizingReferencePoint = {
                     "x": target.layout.offsetLeft + target.layout.offsetWidth,
@@ -7516,6 +7600,7 @@ var Viewport_MouseDriver = (function (_super) {
                 };
                 break;
             case 1 /* NE */:
+            case 7 /* E */:
                 // save the opposite node for the resizing process
                 this.resizingReferencePoint = {
                     "x": target.layout.offsetLeft,
@@ -7523,6 +7608,7 @@ var Viewport_MouseDriver = (function (_super) {
                 };
                 break;
             case 2 /* SW */:
+            case 5 /* S */:
                 // save the opposite node for the resizing process
                 this.resizingReferencePoint = {
                     "x": target.layout.offsetLeft + target.layout.offsetWidth,

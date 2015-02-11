@@ -215,6 +215,15 @@ class HTML_TableCell extends TNode_Element {
 						break;
 					}
 				case TResizer.S:
+					driver.lockTargetForResizing( 
+						this.ownerTable.createVirtualRowNode(
+							this.edgeTop.index,
+							this.edgeBottom.index,
+							true
+						),
+						resizer,
+						point
+					);
 					return true;
 					break;
 
@@ -234,6 +243,15 @@ class HTML_TableCell extends TNode_Element {
 						break;
 					}
 				case TResizer.E:
+					driver.lockTargetForResizing( 
+						this.ownerTable.createVirtualColumnNode(
+							this.edgeLeft.index,
+							this.edgeRight.index,
+							true
+						),
+						resizer,
+						point
+					);
 					return true;
 					break;
 			}

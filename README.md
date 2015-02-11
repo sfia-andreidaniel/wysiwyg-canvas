@@ -2,7 +2,7 @@
 
 The purpose of this project is to implement a HTML Editor who is using
 a canvas to render it's contents, without using the standard contenteditable
-feature of the web browsers that is used at this moment.
+feature of the web browsers that is used at this moment in the other WYSIWYG editors.
 
 # Usage
 

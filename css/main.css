@@ -224,6 +224,10 @@ div.html-editor > div.toolbar div.ui-panel div.ui-button {
 
 div.html-editor > div.toolbar div.ui-panel div.ui-button.state-disabled {
 	background-image: url(icons-disabled.png);
+	background-color: #666;
+	border-color: #666;
+	border-style: solid;
+	outline: 1px solid #666;
 }
 
 div.html-editor > div.toolbar div.ui-panel div.text-dropdown {
@@ -314,6 +318,10 @@ div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.color.none 
 	background-position: -65px -103px;
 }
 
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button.state-disabled > div.color.none {
+	background-image: url(icons-disabled.png);
+}
+
 div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.overlay > div.c.none {
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
@@ -351,23 +359,28 @@ div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.expander {
 	left: 35px;
 }
 
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button.state-disabled > div.expander {
+	background-image: url(icons-disabled.png);
+	background-color: transparent;
+}
+
 div.html-editor > div.toolbar div.ui-panel div.ui-color-button.state-disabled > div.icon {
 	background-image: url(icons-disabled.png);
 }
 
-div.html-editor > div.toolbar div.ui-panel div.ui-button:hover,
-div.html-editor > div.toolbar div.ui-panel div.expander:hover,
-div.html-editor > div.toolbar div.ui-panel div.ui-color-button:hover > div.color {
+div.html-editor > div.toolbar div.ui-panel div.ui-button:not(.state-disabled):hover,
+div.html-editor > div.toolbar div.ui-panel div.ui-button:not(.state-disabled) div.expander:hover,
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button:not(.state-disabled):hover > div.color {
 	border: 1px outset #ddd !important;
 }
 
 
-div.html-editor > div.toolbar div.ui-panel div.ui-color-button:active > div.color {
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button:not(.state-disabled):active > div.color {
 	border: 1px inset #ddd;
 }
 
-div.html-editor > div.toolbar div.ui-panel div.ui-button:active,
-div.html-editor > div.toolbar div.ui-panel div.expander:active {
+div.html-editor > div.toolbar div.ui-panel div.ui-button:not(.state-disabled):active,
+div.html-editor > div.toolbar div.ui-panel div.ui-button:not(.state-disabled) div.expander:active {
 	background-color: #bbb !important;
 	border: 1px inset #ddd;
 }

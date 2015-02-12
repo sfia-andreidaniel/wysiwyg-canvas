@@ -64,6 +64,19 @@ class TNode extends Events {
 		}
 	}
 
+	public firstParentOfType( whatToBe: string ): TNode {
+		var cursor = this;
+
+		while ( cursor ) {
+			if ( cursor.is() == whatToBe ) {
+				return cursor;
+			}
+			cursor = cursor.parentNode;
+		}
+
+		return null;
+	}
+
 	public hostElement(): TNode_Element {
 		
 		var cursor: TNode = this,

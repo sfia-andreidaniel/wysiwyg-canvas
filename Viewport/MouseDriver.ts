@@ -132,8 +132,9 @@ class Viewport_MouseDriver extends Events {
 
 					this.mbPressed = true;
 
-					if ( DOMEvent.ctrlKey && target.target && target.target.ownerBlockElement().is() == 'td' ) {
-						this.viewport.selection.anchorTo( ( ( <HTML_TableCell>( ( target.target ).ownerBlockElement() ) ).createMultiRangeAnchorNode() ).createTarget() );
+					if ( DOMEvent.ctrlKey && target.target && target.target.firstParentOfType( 'td' ) ) {
+						this.viewport.selection.anchorTo( ( ( <HTML_TableCell>( ( target.target ).firstParentOfType('td') ) ).createMultiRangeAnchorNode() ).createTarget() );
+						this.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorCellSelect + ') 1 1, default';
 					} else {
 						this.viewport.selection.anchorTo( target );
 					}

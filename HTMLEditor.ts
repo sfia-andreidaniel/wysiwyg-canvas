@@ -313,6 +313,11 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 				if ( node.nodeType == TNode_Type.TEXT ) {
 					i--;
 					node = node.parentNode;
+					
+					if ( node.is() == 'br' ) {
+						node = node.parentNode;
+					}
+					
 					continue; // ignore text nodes
 					//links[i].firstChild.textContent = '#text';
 				} else {

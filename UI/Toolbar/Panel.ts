@@ -27,6 +27,7 @@ class UI_Toolbar_Panel extends Events {
 		}
 
 		this.toolbar.panelRows[ panelRowIndex ].push( this );
+
 	}
 
 	// abstract method, which is triggered when the document state changes.
@@ -235,6 +236,10 @@ class UI_Toolbar_Panel extends Events {
 
 		element.addEventListener('mousedown', function( e ) {
 			
+			if ( DOM.hasClass( element, 'state-disabled' ) ) {
+				return;
+			}
+
 			var target = <any>( e.target || e.toElement );
 
 			if ( target && DOM.hasClass( target, 'color' ) ) {
@@ -269,6 +274,9 @@ class UI_Toolbar_Panel extends Events {
 		}, true );
 
 		expander.addEventListener( 'click', function() {
+			if ( DOM.hasClass( element, 'state-disabled' ) ) {
+				return;
+			}
 			setTimeout( function() {
 				overlay.style.display = 'block';
 			}, 10 );

@@ -447,6 +447,16 @@ var TNode = (function (_super) {
             return this.nodeName;
         }
     };
+    TNode.prototype.firstParentOfType = function (whatToBe) {
+        var cursor = this;
+        while (cursor) {
+            if (cursor.is() == whatToBe) {
+                return cursor;
+            }
+            cursor = cursor.parentNode;
+        }
+        return null;
+    };
     TNode.prototype.hostElement = function () {
         var cursor = this, hosts = ['body', 'td', 'li'];
         while (hosts.indexOf(cursor.is()) == -1) {
@@ -7517,8 +7527,9 @@ var Viewport_MouseDriver = (function (_super) {
                         break;
                     }
                     this.mbPressed = true;
-                    if (DOMEvent.ctrlKey && target.target && target.target.ownerBlockElement().is() == 'td') {
-                        this.viewport.selection.anchorTo((((target.target).ownerBlockElement()).createMultiRangeAnchorNode()).createTarget());
+                    if (DOMEvent.ctrlKey && target.target && target.target.firstParentOfType('td')) {
+                        this.viewport.selection.anchorTo((((target.target).firstParentOfType('td')).createMultiRangeAnchorNode()).createTarget());
+                        this.viewport.canvas.style.cursor = 'url(' + UI_Resources.gif_cursorCellSelect + ') 1 1, default';
                     }
                     else {
                         this.viewport.selection.anchorTo(target);
@@ -11292,16 +11303,16 @@ var Selection_EditorState = (function (_super) {
                 switch (nodeMultiRng.role) {
                     case 'table-row':
                     case 'table-column':
-                        state.table = (nodeMultiRng.parentNode);
+                        state.table = false;
                         state.cell = (nodeMultiRng.childNodes[0]);
                         break;
                     case 'table-selection':
-                        state.table = (nodeMultiRng.parentNode);
+                        state.table = false;
                         state.cell = (nodeMultiRng.focus);
                         break;
                     default:
-                        state.table = undefined;
-                        state.cell = undefined;
+                        state.table = false;
+                        state.cell = null;
                         break;
                 }
                 break;
@@ -11309,19 +11320,11 @@ var Selection_EditorState = (function (_super) {
                 switch (rng.anchorNode().target.is()) {
                     case 'td':
                         state.cell = (rng.anchorNode().target);
-                        state.table = state.cell.ownerTable;
-                        break;
-                    case 'tr':
-                        state.cell = undefined;
-                        state.table = rng.anchorNode().target.ownerTable;
-                        break;
-                    case 'table':
-                        state.cell = undefined;
-                        state.table = (rng.anchorNode().target);
+                        state.table = false;
                         break;
                     default:
-                        state.table = undefined;
-                        state.cell = undefined;
+                        state.table = false;
+                        state.cell = null;
                         break;
                 }
                 break;
@@ -11329,16 +11332,15 @@ var Selection_EditorState = (function (_super) {
                 switch (rng.focusNode().target.ownerBlockElement().is()) {
                     case 'td':
                         state.cell = (rng.focusNode().target.ownerBlockElement());
-                        state.table = state.cell.ownerTable;
+                        state.table = false;
                         break;
                     default:
-                        state.cell = undefined;
-                        state.table = undefined;
+                        state.cell = null;
+                        state.table = !!!rng.length() && !!!(rng.focusNode().target.firstParentOfType('td'));
                         fCursor = rng.focusNode().target.ownerBlockElement().parentNode;
                         while (fCursor) {
                             if (fCursor.is() == 'td') {
                                 state.cell = fCursor;
-                                state.table = state.cell.ownerTable;
                                 break;
                             }
                             fCursor = fCursor.parentNode;
@@ -11347,8 +11349,8 @@ var Selection_EditorState = (function (_super) {
                 }
                 break;
             default:
-                state.cell = undefined;
-                state.table = undefined;
+                state.cell = null;
+                state.table = false;
         }
         for (k in state) {
             if (state[k] !== this.state[k]) {
@@ -11593,6 +11595,9 @@ function HTMLEditor(value, config) {
                 if (node.nodeType == 1 /* TEXT */) {
                     i--;
                     node = node.parentNode;
+                    if (node.is() == 'br') {
+                        node = node.parentNode;
+                    }
                     continue;
                 }
                 else {
@@ -11661,7 +11666,7 @@ var UI_Resources = (function () {
     function UI_Resources() {
     }
     UI_Resources._init_ = function () {
-        var props = ["html_alert", "png_alertIcon", "gif_cursorColSelect", "gif_cursorRowSelect", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar"];
+        var props = ["html_alert", "png_alertIcon", "gif_cursorCellSelect", "gif_cursorColSelect", "gif_cursorRowSelect", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar"];
         for (var i = 0, len = props.length; i < len; i++) {
             if (/^html_/.test(props[i])) {
                 UI_Resources._patch_(props[i]);
@@ -11678,6 +11683,7 @@ var UI_Resources = (function () {
     };
     UI_Resources.html_alert = "<div class=\"dialog-body\">\r\n\r\n\t<img src=\"{png_alertIcon}\" style=\"float: left; border: 0;\" />\r\n\r\n\t<p class=\"alert-text\" style=\"margin-left: 50px; margin-top: 7px; margin-right: 10px;\"></p>\r\n\r\n</div>";
     UI_Resources.png_alertIcon = "data:image/png;base64,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";
+    UI_Resources.gif_cursorCellSelect = "data:image/gif;base64,R0lGODlhFAAUAKECAAAAAP7+/v///////yH5BAEKAAIALAAAAAAUABQAAAJElI8AyG0QlpswTlftTaHrLWSdtIkjaJ5XqmLe2zLKDH/r6JF3VOmuBpkJFYfegxhKPFoLic7JHA5DsafSWFRmQz7psAAAOw==";
     UI_Resources.gif_cursorColSelect = "data:image/gif;base64,R0lGODlhDAASAKEAAP///wAAAP///////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAAIALAAAAAAMABIAAAImlBUZxwiwmgkvSgrlrNpljVlN2JEgd34XOimh6z2yis1irDImeBcAOw==";
     UI_Resources.gif_cursorRowSelect = "data:image/gif;base64,R0lGODlhEgAMAKEAAP///wAAAP///////yH5BAEKAAIALAAAAAASAAwAAAIllI8WyRzbYgAwpknV23yDv2DfSJZPiZrdeoIWglWvMMnzM19JAQA7";
     UI_Resources.html_editLink = "<div class=\"dialog-body\">\r\n\r\n\t<fieldset>\r\n\t\t<legend>Hyperlink</legend>\r\n\r\n\t\t<label>\r\n\t\t\t<span>Link:</span>\r\n\t\t\t<input type=\"text\" class=\"i-link focus-first\" />\r\n\t\t</label>\r\n\t\t<label>\r\n\t\t\t<span>Open In:</span>\r\n\t\t\t<select class=\"s-target\">\r\n\t\t\t\t<option value=\"\">Current Window</option>\r\n\t\t\t\t<option value=\"_blank\">New Window</option>\r\n\t\t\t</select>\r\n\t\t</label>\r\n\t</fieldset>\r\n\r\n</div>";
@@ -11928,6 +11934,9 @@ var UI_Toolbar_Panel = (function (_super) {
             onchange(c || '');
         }
         element.addEventListener('mousedown', function (e) {
+            if (DOM.hasClass(element, 'state-disabled')) {
+                return;
+            }
             var target = (e.target || e.toElement);
             if (target && DOM.hasClass(target, 'color')) {
                 // clicked on the last color
@@ -11949,6 +11958,9 @@ var UI_Toolbar_Panel = (function (_super) {
             overlay.style.display = 'none';
         }, true);
         expander.addEventListener('click', function () {
+            if (DOM.hasClass(element, 'state-disabled')) {
+                return;
+            }
             setTimeout(function () {
                 overlay.style.display = 'block';
             }, 10);
@@ -12589,13 +12601,86 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         this.btnDeleteCol = this.node.querySelector('div.ui-button.table-delete-c');
         (function (me) {
             me.makeColorDropdown(me.btnBorderColor, function (color) {
-                me.setBorderColor(color);
+                if (!DOM.hasClass(me.btnBorderColor, 'state-disabled')) {
+                    me.setBorderColor(color);
+                }
             }, '');
+            me.btnTable.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnTable, 'state-disabled')) {
+                    console.warn('insert / edit table');
+                }
+            }, true);
+            me.btnInsertRowAfter.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnInsertRowAfter, 'state-disabled')) {
+                    console.warn('insert row after');
+                }
+            }, true);
+            me.btnInsertRowBefore.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnInsertRowBefore, 'state-disabled')) {
+                    console.warn('insert row before');
+                }
+            }, true);
+            me.btnDeleteRow.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnDeleteRow, 'state-disabled')) {
+                    console.warn('delete row');
+                }
+            }, true);
+            me.btnInsertColAfter.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnInsertColAfter, 'state-disabled')) {
+                    console.warn('insert col after');
+                }
+            }, true);
+            me.btnInsertColBefore.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnInsertColBefore, 'state-disabled')) {
+                    console.warn('insert col before');
+                }
+            }, true);
+            me.btnDeleteCol.addEventListener('click', function (evt) {
+                if (!DOM.hasClass(me.btnDeleteCol, 'state-disabled')) {
+                    console.warn('delete col');
+                }
+            }, true);
         })(this);
         this.on_afterload();
     }
+    UI_Toolbar_Panel_Table.prototype.updatePanelState = function () {
+        var tableState = !!this.toolbar.state.state.table, cellState = !!this.toolbar.state.state.cell;
+        if (tableState) {
+            DOM.removeClass(this.btnTable, 'state-disabled');
+        }
+        else {
+            DOM.addClass(this.btnTable, 'state-disabled');
+        }
+        if (cellState) {
+            DOM.removeClass(this.btnBorderColor, 'state-disabled');
+            DOM.removeClass(this.btnInsertColAfter, 'state-disabled');
+            DOM.removeClass(this.btnInsertColBefore, 'state-disabled');
+            DOM.removeClass(this.btnDeleteCol, 'state-disabled');
+            DOM.removeClass(this.btnInsertRowAfter, 'state-disabled');
+            DOM.removeClass(this.btnInsertRowBefore, 'state-disabled');
+            DOM.removeClass(this.btnDeleteRow, 'state-disabled');
+        }
+        else {
+            DOM.addClass(this.btnBorderColor, 'state-disabled');
+            DOM.addClass(this.btnInsertColAfter, 'state-disabled');
+            DOM.addClass(this.btnInsertColBefore, 'state-disabled');
+            DOM.addClass(this.btnDeleteCol, 'state-disabled');
+            DOM.addClass(this.btnInsertRowAfter, 'state-disabled');
+            DOM.addClass(this.btnInsertRowBefore, 'state-disabled');
+            DOM.addClass(this.btnDeleteRow, 'state-disabled');
+        }
+    };
     UI_Toolbar_Panel_Table.prototype.setBorderColor = function (color) {
         console.info('setBorderColor: ' + color);
+    };
+    UI_Toolbar_Panel_Table.prototype.updateDocumentState = function (propertiesList) {
+        var i = 0, len = propertiesList.length;
+        for (i = 0; i < len; i++) {
+            if (propertiesList[i] == 'table' || propertiesList[i] == 'cell') {
+                this.updatePanelState();
+                break;
+            }
+        }
     };
     return UI_Toolbar_Panel_Table;
 })(UI_Toolbar_Panel);

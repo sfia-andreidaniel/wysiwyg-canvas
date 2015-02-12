@@ -109,7 +109,7 @@ interface EditorState {
 	blockLevel    : string; // "normal" for "p", "li", "td", and "h1 ... h6" for headings.
 	listType      : string; // eihter "ul", "ol", null, or undefined.
 
-	table         : HTML_Table     ; // The selected table
+	table         : boolean        ; // Weather if the table insert command can be execut'd or not
 	cell          : HTML_TableCell ; // The selected cell
 }
 

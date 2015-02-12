@@ -35,8 +35,54 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		( function( me ) {
 
 			me.makeColorDropdown( me.btnBorderColor, function( color: string ) {
-				me.setBorderColor( color );
+				
+				if ( !DOM.hasClass( me.btnBorderColor, 'state-disabled' ) ) {
+					me.setBorderColor( color );
+				}
+
 			}, '' );
+
+			me.btnTable.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnTable, 'state-disabled' ) ) {
+					console.warn( 'insert / edit table' );
+				}
+			}, true );
+
+			me.btnInsertRowAfter.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnInsertRowAfter, 'state-disabled' ) ) {
+					console.warn( 'insert row after' );
+				}
+			}, true );
+
+			me.btnInsertRowBefore.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnInsertRowBefore, 'state-disabled' ) ) {
+					console.warn( 'insert row before' );
+				}
+			}, true );
+
+			me.btnDeleteRow.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnDeleteRow, 'state-disabled' ) ) {
+					console.warn( 'delete row' );
+				}
+			}, true );
+
+			me.btnInsertColAfter.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnInsertColAfter, 'state-disabled' ) ) {
+					console.warn( 'insert col after' );
+				}
+			}, true );
+
+			me.btnInsertColBefore.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnInsertColBefore, 'state-disabled' ) ) {
+					console.warn( 'insert col before' );
+				}
+			}, true );
+
+			me.btnDeleteCol.addEventListener( 'click', function( evt ) {
+				if ( !DOM.hasClass( me.btnDeleteCol, 'state-disabled' ) ) {
+					console.warn( 'delete col' );
+				}
+			}, true );
 
 		} )( this );
 
@@ -44,8 +90,56 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		
 	}
 
+	private updatePanelState() {
+
+		var tableState: boolean = !!this.toolbar.state.state.table,
+		    cellState : boolean = !!this.toolbar.state.state.cell;
+
+		if ( tableState ) {
+			DOM.removeClass( this.btnTable, 'state-disabled' );
+		} else {
+			DOM.addClass( this.btnTable, 'state-disabled' );
+		}
+
+		if ( cellState ) {
+			DOM.removeClass( this.btnBorderColor,     'state-disabled' );
+			DOM.removeClass( this.btnInsertColAfter,  'state-disabled' );
+			DOM.removeClass( this.btnInsertColBefore, 'state-disabled' );
+			DOM.removeClass( this.btnDeleteCol,       'state-disabled' );
+			DOM.removeClass( this.btnInsertRowAfter,  'state-disabled' );
+			DOM.removeClass( this.btnInsertRowBefore, 'state-disabled' );
+			DOM.removeClass( this.btnDeleteRow,       'state-disabled' );
+		} else {
+			DOM.addClass( this.btnBorderColor,        'state-disabled' );
+			DOM.addClass( this.btnInsertColAfter,     'state-disabled' );
+			DOM.addClass( this.btnInsertColBefore,    'state-disabled' );
+			DOM.addClass( this.btnDeleteCol,          'state-disabled' );
+			DOM.addClass( this.btnInsertRowAfter,     'state-disabled' );
+			DOM.addClass( this.btnInsertRowBefore,    'state-disabled' );
+			DOM.addClass( this.btnDeleteRow,          'state-disabled' );
+		}
+
+	}
+
 	private setBorderColor( color: string ) {
 		console.info( 'setBorderColor: ' + color );
 	}
+
+	public updateDocumentState( propertiesList: string [] ) {
+		
+		var i: number = 0,
+		    len: number = propertiesList.length;
+
+		for ( i=0; i<len; i++ ) {
+
+			if ( propertiesList[i] == 'table' || propertiesList[i] == 'cell' ) {
+				this.updatePanelState();
+				break;
+			}
+
+		}
+
+	}
+
 
 }

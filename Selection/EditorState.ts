@@ -267,16 +267,16 @@ class Selection_EditorState extends Events {
 				switch ( nodeMultiRng.role ) {
 					case 'table-row':
 					case 'table-column':
-						state.table = <HTML_Table>(nodeMultiRng.parentNode);
+						state.table = false;
 						state.cell  = <HTML_TableCell>(nodeMultiRng.childNodes[0]);
 						break;
 					case 'table-selection':
-						state.table = <HTML_Table>(nodeMultiRng.parentNode);
+						state.table = false;
 						state.cell  = <HTML_TableCell>( (<HTML_MultiRange_TableRect>nodeMultiRng).focus );
 						break;
 					default:
-						state.table = undefined;
-						state.cell  = undefined;
+						state.table = false;
+						state.cell  = null;
 						break;
 				}
 
@@ -287,19 +287,11 @@ class Selection_EditorState extends Events {
 				switch ( rng.anchorNode().target.is() ) {
 					case 'td':
 						state.cell = <HTML_TableCell>( rng.anchorNode().target );
-						state.table= state.cell.ownerTable;
-						break;
-					case 'tr':
-						state.cell = undefined;
-						state.table= ( <HTML_TableRow>rng.anchorNode().target ).ownerTable;
-						break;
-					case 'table':
-						state.cell = undefined;
-						state.table = <HTML_Table>(rng.anchorNode().target);
+						state.table= false;
 						break;
 					default:
-						state.table = undefined;
-						state.cell  = undefined;
+						state.table = false;
+						state.cell  = null;
 						break;
 				}
 
@@ -310,12 +302,13 @@ class Selection_EditorState extends Events {
 				switch ( rng.focusNode().target.ownerBlockElement().is() ) {
 					case 'td':
 						state.cell = <HTML_TableCell>( rng.focusNode().target.ownerBlockElement() );
-						state.table= state.cell.ownerTable;
+						state.table= false;
 						break;
+					
 					default:
 
-						state.cell = undefined;
-						state.table = undefined;
+						state.cell = null;
+						state.table = !!!rng.length() && !!!( rng.focusNode().target.firstParentOfType( 'td' ) );
 						
 						fCursor = rng.focusNode().target.ownerBlockElement().parentNode;
 
@@ -323,7 +316,6 @@ class Selection_EditorState extends Events {
 
 							if ( fCursor.is() == 'td' ) {
 								state.cell = <HTML_TableCell>fCursor;
-								state.table= state.cell.ownerTable;
 								break;
 							}
 
@@ -336,8 +328,8 @@ class Selection_EditorState extends Events {
 				break;
 
 			default:
-				state.cell = undefined;
-				state.table = undefined;
+				state.cell = null;
+				state.table = false;
 
 		}
 

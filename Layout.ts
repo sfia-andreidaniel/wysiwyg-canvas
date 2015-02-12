@@ -205,8 +205,11 @@ class Layout {
 			lines: Character_LinesCollection;
 
 		if ( this.children && this.children.length ) {
+			
 			for ( i=this.children.length - 1; i>=0; i-- ) {
+
 				childTarget = this.children[i].getTargetAtXY( point, true, bestTarget );
+			
 				if ( childTarget !== null ) {
 					return childTarget;
 				}

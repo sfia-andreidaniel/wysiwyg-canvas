@@ -380,8 +380,27 @@ class Layout_BlockChar extends Layout {
 		    breakFor: boolean = false,
 		    relative: TPoint,
 		    w: number,
-		    isLastLine: boolean = false;
+		    isLastLine: boolean = false,
+		    parentHasOtherBlockCharsBeforeMyself: boolean = false;
 		
+		if ( this.parent ) {
+			for ( i=0, len = this.parent.children.length; i<len; i++ ) {
+				if ( this.parent.children[i] == this ) {
+					for ( j = i - 1; j >= 0; j -- ) {
+						if ( this.parent.children[j].layoutType == 'text' ) {
+							parentHasOtherBlockCharsBeforeMyself = true;
+							break;
+						}
+					}
+					break;
+				}
+			}
+			
+			if ( parentHasOtherBlockCharsBeforeMyself && point.y < this.offsetTop ) {
+				return null;
+			}
+		}
+
 		if ( target !== null ) {
 			
 			relative = {
@@ -392,7 +411,7 @@ class Layout_BlockChar extends Layout {
 			bestCharTargetIndex = target.fragPos;
 
 			for ( line=0, lines = this.lines.length; line<lines; line++ ) {
-				if ( relative.y >= startY || line == 0) {
+				if ( relative.y >= startY || ( line == 0 && !parentHasOtherBlockCharsBeforeMyself ) ) {
 					bestLine = this.lines[line];
 					bestLineIndex = line;
 					isLastLine = line == lines-1;

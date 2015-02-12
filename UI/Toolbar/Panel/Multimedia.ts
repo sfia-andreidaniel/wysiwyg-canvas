@@ -4,9 +4,9 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 	public buttonPicture: HTMLDivElement = null;
 	public buttonVideo: HTMLDivElement = null;
 
-	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualWidth: number ) {
+	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
 		
-		super( toolbar, 'Multimedia', appendIn, maxPercentualWidth );
+		super( toolbar, 'Multimedia', appendIn, maxPercentualOrFixedWidth, panelRowIndex );
 
 		DOM.addClass( this.node, 'ui-panel-multimedia');
 

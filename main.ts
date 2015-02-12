@@ -102,6 +102,8 @@
 /// <reference path="./UI/Toolbar/Panel.ts" />
 /// <reference path="./UI/Toolbar/Panel/Formatting.ts" />
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />
+/// <reference path="./UI/Toolbar/Panel/Table.ts" />
+
 
 /// <reference path="./UI/Dialog.ts" />
 /// <reference path="./UI/Dialog/Manager.ts" />

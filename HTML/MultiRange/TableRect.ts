@@ -1,7 +1,7 @@
 class HTML_MultiRange_TableRect extends HTML_MultiRange {
 	
-	private anchor: HTML_TableCell = null;
-	private focus:  HTML_TableCell = null;
+	public anchor: HTML_TableCell = null;
+	public focus:  HTML_TableCell = null;
 
 	constructor( document: HTML_Body, parentNode: TNode_Element ) {
 		super( document, parentNode, 'table-selection' );

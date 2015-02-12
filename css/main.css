@@ -137,6 +137,7 @@ div.html-editor > div.toolbar div.ui-panel {
 	height: 18px;
 	padding: 1px 1px 1px 0px;
 	margin: 0px 2px 0px 0px;
+	vertical-align: top;
 }
 
 div.html-editor > div.toolbar div.ui-panel > div.more {
@@ -144,7 +145,7 @@ div.html-editor > div.toolbar div.ui-panel > div.more {
 	width: 10px;
 	height: 20px;
 	position: relative;
-	background-color: #666;
+	background-color: #bcbcbc;
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: 0px -99px;
@@ -167,6 +168,7 @@ div.html-editor > div.toolbar div.ui-panel > div.more > div.panel.right-aligned 
 
 div.html-editor > div.toolbar div.ui-panel > div.more.opened > div.panel {
 	display: block;
+	z-index: 100;
 }
 
 div.html-editor > div.toolbar div.ui-panel.resized-panel > div.more {
@@ -218,6 +220,10 @@ div.html-editor > div.toolbar div.ui-panel div.ui-button {
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: 0px 0px;
+}
+
+div.html-editor > div.toolbar div.ui-panel div.ui-button.state-disabled {
+	background-image: url(icons-disabled.png);
 }
 
 div.html-editor > div.toolbar div.ui-panel div.text-dropdown {
@@ -345,6 +351,10 @@ div.html-editor > div.toolbar div.ui-panel div.ui-color-button > div.expander {
 	left: 35px;
 }
 
+div.html-editor > div.toolbar div.ui-panel div.ui-color-button.state-disabled > div.icon {
+	background-image: url(icons-disabled.png);
+}
+
 div.html-editor > div.toolbar div.ui-panel div.ui-button:hover,
 div.html-editor > div.toolbar div.ui-panel div.expander:hover,
 div.html-editor > div.toolbar div.ui-panel div.ui-color-button:hover > div.color {
@@ -452,10 +462,6 @@ div.html-editor .ui-panel-style .ui-button.decrease {
 	background-position: -41px -41px !important;
 }
 
-div.html-editor .ui-panel-style .ui-button.borderColor > .icon {
-	background-position: -61px -81px !important;
-}
-
 div.html-editor .ui-panel-style .ui-button.backgroundColor > .icon {
 	background-position: -1px -21px !important;
 }
@@ -474,6 +480,31 @@ div.html-editor .ui-panel-multimedia .ui-button.picture {
 
 div.html-editor .ui-panel-multimedia .ui-button.video {
 	background-position: -41px -1px !important;
+}
+
+div.html-editor .ui-panel-table .ui-button.table {
+	background-position: -41px -21px !important;
+}
+div.html-editor .ui-panel-table .ui-button.borderColor > .icon {
+	background-position: -61px -81px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-insert-r-before {
+	background-position: -21px -161px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-insert-r-after {
+	background-position: 0px -161px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-delete-r {
+	background-position: 0px -181px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-insert-c-before {
+	background-position: -61px -161px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-insert-c-after {
+	background-position: -41px -161px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-delete-c {
+	background-position: -21px -181px !important;
 }
 
 
@@ -564,6 +595,10 @@ div.ui-dialog > div.resizer > div.titlebar > div.buttons > div {
 	border: 2px outset #bbb;
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
+}
+
+div.ui-dialog > div.resizer > div.titlebar > div.buttons > div.state-disabled {
+	background-image: url(icons-disabled.png);
 }
 
 div.ui-dialog > div.resizer > div.titlebar > div.buttons > div:active {

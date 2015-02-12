@@ -19,13 +19,12 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 	public btnIndent  		  : HTMLDivElement     = null;
 	public btnUnindent 		  : HTMLDivElement     = null;
 
-	public btnBorderColor	  : HTMLDivElement	   = null;
 	public btnBackgroundColor : HTMLDivElement     = null;
 	public btnColor           : HTMLDivElement     = null;
 
-	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualWidth: number ) {
+	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
 		
-		super( toolbar, 'Formatting', appendIn, maxPercentualWidth );
+		super( toolbar, 'Formatting', appendIn, maxPercentualOrFixedWidth, panelRowIndex );
 
 		DOM.addClass( this.node, 'ui-panel-style')
 
@@ -58,7 +57,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 		this.btnIndent  		= <HTMLDivElement>  this.node.querySelector( '.ui-button.increase' );
 		this.btnUnindent 		= <HTMLDivElement>  this.node.querySelector( '.ui-button.decrease' );
 
-		this.btnBorderColor     = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.borderColor' );
 		this.btnBackgroundColor = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.backgroundColor' );
 		this.btnColor           = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.color' );
 
@@ -144,10 +142,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 			me.btnUnindent.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT, [] );
 			}, true );
-
-			me.makeColorDropdown( me.btnBorderColor, function( color: string ) {
-				me.setBorderColor( color );
-			}, '' );
 
 			me.makeColorDropdown( me.btnBackgroundColor, function( color: string ) {
 				me.setBackgroundColor( color );
@@ -330,10 +324,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 			default:
 				break;
 		}
-	}
-
-	private setBorderColor( color: string ) {
-		console.info( 'setBorderColor: ' + color );
 	}
 
 	private setBackgroundColor( color: string ) {

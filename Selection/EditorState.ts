@@ -34,7 +34,10 @@ class Selection_EditorState extends Events {
 			verticalAlign : undefined,
 
 			blockLevel    : undefined,
-			listType      : undefined
+			listType      : undefined,
+
+			table         : undefined,
+			cell          : undefined
 		};
 	}
 
@@ -71,7 +74,10 @@ class Selection_EditorState extends Events {
 		    k          : string   = '',
 
 		    blockElement: TNode_Element,
-		    listType    : string;
+		    listType    : string,
+
+		    fCursor     : TNode_Element,
+		    nodeMultiRng: HTML_MultiRange;
 
 		if ( ( focus && rng.length() ) || rng.isMultiRange() ) {
 			frag = rng.createContextualFragment();
@@ -248,6 +254,90 @@ class Selection_EditorState extends Events {
 			if ( nulls == 11 ) { // all properties are set to null
 				break;
 			}
+
+		}
+
+		/* The editorState.table and the editorState.cell is computed with another algorithm */
+		switch ( true ) {
+			
+			case rng.isMultiRange():
+
+				nodeMultiRng = (<HTML_MultiRange>rng.anchorNode().target);
+
+				switch ( nodeMultiRng.role ) {
+					case 'table-row':
+					case 'table-column':
+						state.table = <HTML_Table>(nodeMultiRng.parentNode);
+						state.cell  = <HTML_TableCell>(nodeMultiRng.childNodes[0]);
+						break;
+					case 'table-selection':
+						state.table = <HTML_Table>(nodeMultiRng.parentNode);
+						state.cell  = <HTML_TableCell>( (<HTML_MultiRange_TableRect>nodeMultiRng).focus );
+						break;
+					default:
+						state.table = undefined;
+						state.cell  = undefined;
+						break;
+				}
+
+				break;
+
+			case !!!rng.focusNode():
+
+				switch ( rng.anchorNode().target.is() ) {
+					case 'td':
+						state.cell = <HTML_TableCell>( rng.anchorNode().target );
+						state.table= state.cell.ownerTable;
+						break;
+					case 'tr':
+						state.cell = undefined;
+						state.table= ( <HTML_TableRow>rng.anchorNode().target ).ownerTable;
+						break;
+					case 'table':
+						state.cell = undefined;
+						state.table = <HTML_Table>(rng.anchorNode().target);
+						break;
+					default:
+						state.table = undefined;
+						state.cell  = undefined;
+						break;
+				}
+
+				break;
+
+			case !!rng.focusNode():
+
+				switch ( rng.focusNode().target.ownerBlockElement().is() ) {
+					case 'td':
+						state.cell = <HTML_TableCell>( rng.focusNode().target.ownerBlockElement() );
+						state.table= state.cell.ownerTable;
+						break;
+					default:
+
+						state.cell = undefined;
+						state.table = undefined;
+						
+						fCursor = rng.focusNode().target.ownerBlockElement().parentNode;
+
+						while ( fCursor ) {
+
+							if ( fCursor.is() == 'td' ) {
+								state.cell = <HTML_TableCell>fCursor;
+								state.table= state.cell.ownerTable;
+								break;
+							}
+
+							fCursor = fCursor.parentNode;
+						}
+
+						break;
+				}
+
+				break;
+
+			default:
+				state.cell = undefined;
+				state.table = undefined;
 
 		}
 

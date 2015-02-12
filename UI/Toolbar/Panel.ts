@@ -2,23 +2,34 @@ class UI_Toolbar_Panel extends Events {
 
 	public node : HTMLElement = document.createElement( 'div' );
 
-	protected percentualWidth : number           = 0; // the percentualWidth of the toolbar. value is a float between 0 and 1.
+	public    percentualWidth : number           = 0   ; // the percentualWidth of the toolbar. value is a float between 0 and 1.
+	public    fixedWidth      : number           = null; // the fixed width of the toolbar. value should be greater than 1.
+
+
 	private   items           : HTMLDivElement[] = null;
 	private   itemWidths      : number[]         = null;
 
 	public    showMore        : HTMLDivElement   = null;
 	private   showMorePanel   : HTMLDivElement   = null;
 
-	constructor( public toolbar: UI_Toolbar, public name: string, appendIn: HTMLDivElement, maxPercentualWidth: number ) {
+	constructor( public toolbar: UI_Toolbar, public name: string, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
 		super();
 
 		DOM.addClass( this.node, 'ui-panel' );
 		appendIn.appendChild( this.node );
 		this.node.title = name || 'Toolbar';
 
-		this.percentualWidth = maxPercentualWidth;
+		if ( maxPercentualOrFixedWidth <= 1 && maxPercentualOrFixedWidth >= 0 ) {
+			this.percentualWidth = maxPercentualOrFixedWidth;
+		} else {
+			this.fixedWidth      = maxPercentualOrFixedWidth;
+			this.percentualWidth = 1;
+		}
+
+		this.toolbar.panelRows[ panelRowIndex ].push( this );
 	}
 
+	// abstract method, which is triggered when the document state changes.
 	public updateDocumentState( propertiesList: string [] ) {
 		
 	}

@@ -5,6 +5,8 @@ class UI_Toolbar extends Events {
 	public rows: HTMLDivElement[];
 
 	public panels: UI_Toolbar_Panel[]     = [];
+	public panelRows: [UI_Toolbar_Panel[]] = [ [], [] ];
+
 	public router: Viewport_CommandRouter = null;
 
 	public state : Selection_EditorState  = null;
@@ -24,9 +26,9 @@ class UI_Toolbar extends Events {
 			<HTMLDivElement>this.node.querySelector( '.toolbar-row.index-1' ),
 			<HTMLDivElement>this.node.querySelector( '.toolbar-row.index-2' )
 		];
-	
-		this.panels.push( new UI_Toolbar_Panel_Multimedia ( this, this.rows[0], 1 ) );
-		this.panels.push( new UI_Toolbar_Panel_Formatting ( this, this.rows[1], 1 ) );
+		this.panels.push( new UI_Toolbar_Panel_Multimedia ( this, this.rows[0], 70, 0 ) );
+		this.panels.push( new UI_Toolbar_Panel_Table      ( this, this.rows[0], 210, 0 ) );
+		this.panels.push( new UI_Toolbar_Panel_Formatting ( this, this.rows[1],  1, 1 ) );
 
 		for ( var i=0, len = this.rows.length; i<len; i++ ) {
 			
@@ -66,8 +68,46 @@ class UI_Toolbar extends Events {
 
 		width = ~~width;
 
-		for ( var i=0, len = this.panels.length; i<len; i++ ) {
-			this.panels[i].resizeByParentWidth( width );
+		var panel             : number = 0,
+		    panels            : number = 0,
+		    row               : number = 0,
+		    rows              : number = 0,
+		    percentualDefined : number = 0,
+
+		    fixedWidths       : UI_Toolbar_Panel[],
+		    fixedWidthsSum    : number = 0,
+
+		    remainingFixedWidth: number = 0;
+
+		for ( row = 0, rows = this.panelRows.length; row < rows; row++ ) {
+
+			fixedWidthsSum = 0;
+
+			// compute the percentualWidth of the panels with fixed width;
+			percentualDefined = 0;
+			fixedWidths       = [];
+
+			for ( panel = 0, panels = this.panelRows[ row ].length; panel < panels; panel++ ) {
+				if ( this.panelRows[ row ][ panel ].fixedWidth === null ) {
+					percentualDefined += this.panelRows[ row ][ panel ].percentualWidth;
+				} else {
+					fixedWidths.push( this.panelRows[ row ][ panel ] );
+					fixedWidthsSum += this.panelRows[ row ][ panel ].fixedWidth;
+				}
+			}
+
+			remainingFixedWidth = ( 1 - percentualDefined ) * width;
+
+			for ( panel = 0, panels = this.panelRows[ row ].length; panel < panels; panel++ ) {
+				
+				if ( this.panelRows[ row ][ panel ].fixedWidth === null ) {
+					this.panelRows[ row ][ panel ].resizeByParentWidth( width - fixedWidthsSum );
+				} else {
+					this.panelRows[ row ][ panel ].resizeByParentWidth( remainingFixedWidth );
+					remainingFixedWidth -= this.panelRows[ row ][ panel ].fixedWidth;
+				}
+
+			}
 		}
 
 	}

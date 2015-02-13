@@ -16,7 +16,8 @@ class TNode_Text extends TNode {
 	static $SpecialChars = {
 		'<': '&lt;',
 		'>': '&gt;',
-		'"': '&quot'
+		'"': '&quot;',
+		' ': '&nbsp;'
 	}
 
 	constructor( textContents: string ) {

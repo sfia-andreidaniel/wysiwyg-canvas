@@ -58,7 +58,8 @@ class Layout_Block extends Layout {
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {
 
 		var contentHeight: number = 0,
-		    topPlacementBegin: number = topPlacement;
+		    topPlacementBegin: number = topPlacement,
+		    add: number = 0;
 
 		if ( this.node ) {
 			
@@ -76,6 +77,11 @@ class Layout_Block extends Layout {
 
 		if ( this.children && this.children.length ) {
 			throw "unexpected children!";
+		}
+
+		if ( this.node && this.node.isOrphanElement() ) {
+			add = ( this.node.style.fontSize() * this.node.style.lineHeight() );
+			contentHeight += add;
 		}
 
 		// a block Node doesn't contain children anymore...

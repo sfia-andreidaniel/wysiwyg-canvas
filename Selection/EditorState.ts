@@ -290,7 +290,7 @@ class Selection_EditorState extends Events {
 						state.table= false;
 						break;
 					default:
-						state.table = false;
+						state.table = rng.anchorNode().target.isOrphanElement();
 						state.cell  = null;
 						break;
 				}

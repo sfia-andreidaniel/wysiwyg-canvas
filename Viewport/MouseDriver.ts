@@ -273,7 +273,7 @@ class Viewport_MouseDriver extends Events {
 
 			if ( target && target.target.nodeType == TNode_Type.ELEMENT ) {
 				if ( !(<TNode_Element>target.target).onmousemove( point, 0, this ) ) {
-					this.viewport.canvas.style.cursor = 'default';
+					this.viewport.canvas.style.cursor = target.target.isOrphanElement() ? 'text' : 'default';
 				}
 			} else {
 				if ( target && target.target.nodeType == TNode_Type.TEXT ) {
@@ -283,7 +283,7 @@ class Viewport_MouseDriver extends Events {
 					}
 
 				} else {
-					this.viewport.canvas.style.cursor = 'default';
+					this.viewport.canvas.style.cursor = target && target.target.isOrphanElement() ? 'text' : 'default';
 				}
 			}
 

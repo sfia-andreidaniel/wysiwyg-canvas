@@ -510,7 +510,9 @@ class TNode_Element extends TNode {
 		    isSelected: boolean = false;
 
 		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) && !this.isSelectionPaintingDisabled ) ) {
+			
 			isSelected = true;
+			
 			ctx.fillStyle = DocSelection.$Colors.focus;
 			ctx.fillRect( ~~( layout.innerLeft - scrollLeft) , ~~( layout.innerTop - scrollTop ), ~~layout.innerWidth, ~~layout.innerHeight );
 		}
@@ -529,6 +531,40 @@ class TNode_Element extends TNode {
 				ctx.beginPath();
 				ctx.strokeRect( layout.offsetLeft + ( borderWidth / 2) - scrollLeft, layout.offsetTop + ( borderWidth / 2 ) - scrollTop, layout.offsetWidth - borderWidth, layout.offsetHeight - borderWidth );
 				ctx.closePath();
+			}
+
+			if ( this.isOrphanElement() && !range.focusNode() && range.anchorNode().target == this ) {
+				// paint a caret inside this element
+				ctx.fillStyle = '#000';
+				ctx.fillRect( layout.innerLeft - scrollLeft + ( this.style.textAlign() == 'center' ? ( this.layout.innerWidth / 2 ) : ( this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0 ) ), layout.innerTop  - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight() );
+
+			}
+
+		} else {
+
+			if ( this.isOrphanElement() ) {
+				ctx.strokeStyle = '#ddd';
+				ctx.lineWidth = 1;
+
+				ctx.save();
+
+				if ( ctx.setLineDash ) {
+					ctx.setLineDash([1,2]);
+				}
+
+				ctx.beginPath();
+				ctx.strokeRect( layout.offsetLeft + .5 - scrollLeft, layout.offsetTop + .5 - scrollTop, layout.offsetWidth - 1, layout.offsetHeight - 1 );
+				ctx.closePath();
+
+
+				ctx.restore();
+
+				if ( !range.focusNode() && range.anchorNode().target == this ) {
+					// paint a caret inside this element
+					ctx.fillStyle = '#000';
+					ctx.fillRect( layout.innerLeft - scrollLeft + ( this.style.textAlign() == 'center' ? ( this.layout.innerWidth / 2 ) : ( this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0 ) ), layout.innerTop  - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight() );
+
+				}
 			}
 		}
 

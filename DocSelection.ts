@@ -111,7 +111,8 @@ class DocSelection extends Events {
 		
 		var range = this.getRange(),
 		    atEnd: boolean = false,
-		    len: number = range.length();
+		    len: number = range.length(),
+		    target: TRange_Target;
 
 		range.save();
 
@@ -129,6 +130,23 @@ class DocSelection extends Events {
 			}
 
 			range.collapse( true );
+
+			/* Verify validity of the range */
+			if ( target = range.focusNode() ) {
+				if ( target.fragPos < 0 || target.fragPos >= this.viewport.document.fragment.length() ) {
+					this.range = null;
+					this.fire( 'changed' );
+					return;
+				}
+			}
+
+			if ( target = range.anchorNode() ) {
+				if ( target.fragPos < 0 || target.fragPos >= this.viewport.document.fragment.length() ) {
+					this.range = null;
+					this.fire( 'changed' );
+					return;
+				}
+			}
 
 		}
 
@@ -343,10 +361,15 @@ class DocSelection extends Events {
 
 		this.viewport.document.relayout( true );
 
-		rng.focusNode().fragPos = ( normalized.at(  normalized.length - 1 ) ).FRAGMENT_END + 1;
-		rng.focusNode().target  = this.viewport.document.findNodeAtIndex( rng.focusNode().fragPos );
+		if ( rng.focusNode() ) {
+			rng.focusNode().fragPos = ( normalized.at(  normalized.length - 1 ) ).FRAGMENT_END + 1;
+			rng.focusNode().target  = this.viewport.document.findNodeAtIndex( rng.focusNode().fragPos );
+			rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+			if ( rng.focusNode().fragPos > this.viewport.document.fragment.length() - 1 ) {
+				console.warn( "Aici!" );
+			}
+		}
 
-		rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
 		rng.collapse( true );
 
 		rng.fire( 'changed' );

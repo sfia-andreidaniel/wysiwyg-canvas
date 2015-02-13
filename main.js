@@ -447,6 +447,15 @@ var TNode = (function (_super) {
             return this.nodeName;
         }
     };
+    TNode.prototype.isOrphanElement = function () {
+        var is = this.is();
+        if (is == '#text') {
+            return false;
+        }
+        else {
+            return this.childNodes && this.childNodes.length == 0 && this.isBlockTextNode;
+        }
+    };
     TNode.prototype.firstParentOfType = function (whatToBe) {
         var cursor = this;
         while (cursor) {
@@ -694,7 +703,8 @@ var TNode_Text = (function (_super) {
     TNode_Text.$SpecialChars = {
         '<': '&lt;',
         '>': '&gt;',
-        '"': '&quot'
+        '"': '&quot;',
+        ' ': '&nbsp;'
     };
     return TNode_Text;
 })(TNode);
@@ -1152,6 +1162,30 @@ var TNode_Element = (function (_super) {
                 ctx.beginPath();
                 ctx.strokeRect(layout.offsetLeft + (borderWidth / 2) - scrollLeft, layout.offsetTop + (borderWidth / 2) - scrollTop, layout.offsetWidth - borderWidth, layout.offsetHeight - borderWidth);
                 ctx.closePath();
+            }
+            if (this.isOrphanElement() && !range.focusNode() && range.anchorNode().target == this) {
+                // paint a caret inside this element
+                ctx.fillStyle = '#000';
+                ctx.fillRect(layout.innerLeft - scrollLeft + (this.style.textAlign() == 'center' ? (this.layout.innerWidth / 2) : (this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0)), layout.innerTop - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight());
+            }
+        }
+        else {
+            if (this.isOrphanElement()) {
+                ctx.strokeStyle = '#ddd';
+                ctx.lineWidth = 1;
+                ctx.save();
+                if (ctx.setLineDash) {
+                    ctx.setLineDash([1, 2]);
+                }
+                ctx.beginPath();
+                ctx.strokeRect(layout.offsetLeft + .5 - scrollLeft, layout.offsetTop + .5 - scrollTop, layout.offsetWidth - 1, layout.offsetHeight - 1);
+                ctx.closePath();
+                ctx.restore();
+                if (!range.focusNode() && range.anchorNode().target == this) {
+                    // paint a caret inside this element
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(layout.innerLeft - scrollLeft + (this.style.textAlign() == 'center' ? (this.layout.innerWidth / 2) : (this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0)), layout.innerTop - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight());
+                }
             }
         }
         if ((backgroundColor = this.style.backgroundColor()) && !isSelected) {
@@ -2496,13 +2530,13 @@ var HTMLParser = (function () {
             this.NODES = [];
             this.loops = 1;
             pushIn = this.NODES;
-            data = data.replace(/(^[\s]+|[\s]+$)/g, '').replace(/\>[\s]+\</g, '><');
+            data;
         }
         while (data) {
             if ((token1 = HTMLParser.READ_TEXT(data)) !== null) {
                 pushIn.push({
                     "type": "#text",
-                    "value": token1
+                    "value": token1.replace(/[\s]/g, ' ').replace(/[\s]+/g, ' ').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
                 });
                 data = data.substr(token1.length);
             }
@@ -2799,6 +2833,9 @@ var HTML_Body = (function (_super) {
         this.style._width.isSet = true;
         this._layout.computeWidths();
         this._layout.computeHeights(this.style.marginTop());
+        if (this._layout.offsetHeightOuter < this.viewport.height() - this.viewport._scrollbarSize) {
+            this._layout.increaseHeightBy(this.viewport.height() - this.viewport._scrollbarSize - this._layout.offsetHeightOuter);
+        }
         this.viewport._clientWidth = this._layout.offsetWidth + this._layout.offsetHeight;
         this.viewport._clientHeight = this._layout.offsetHeight + this._layout.offsetTop;
         this.viewport.scrollTop(this.viewport.scrollTop());
@@ -2937,6 +2974,27 @@ var HTML_Body = (function (_super) {
     };
     HTML_Body.prototype.unlockTables = function () {
         this._tablesLocked = false;
+    };
+    HTML_Body.prototype.findNodeAtIndex = function (index) {
+        if (index < 0 || index >= this.fragment.length()) {
+            return this;
+        }
+        else
+            return _super.prototype.findNodeAtIndex.call(this, index);
+    };
+    HTML_Body.prototype.removeChild = function (node) {
+        var result = _super.prototype.removeChild.call(this, node);
+        if (this.childNodes.length == 0) {
+            (function (me) {
+                setTimeout(function () {
+                    var p = me.createElement('p');
+                    me.appendChild(p);
+                    me.relayout(true);
+                    me.viewport.selection.anchorTo(new TRange_Target(p, p.FRAGMENT_START));
+                }, 1);
+            })(this);
+        }
+        return result;
     };
     HTML_Body.AUTOCLOSE_TAGS = [
         'br',
@@ -4448,20 +4506,8 @@ var HTML_TableCell = (function (_super) {
                 break;
         }
     };
-    HTML_TableCell.prototype.removeChild = function (node) {
-        var returnValue = _super.prototype.removeChild.call(this, node);
-        if (this.childNodes.length == 0) {
-            if (this.documentElement && this.documentElement._tablesLocked) {
-            }
-            else {
-                this.appendChild(this.documentElement.createTextNode(' '));
-            }
-        }
-        return returnValue;
-    };
     HTML_TableCell.prototype.removeFromDOMAtUserCommand = function () {
         this.removeAllChildNodes();
-        this.appendChild(this.documentElement.createTextNode(' '));
         return true;
     };
     // a table cell cannot become other element type.
@@ -4575,6 +4621,9 @@ var HTML_TableCell = (function (_super) {
         var anchor = new HTML_MultiRange_TableRect(this.documentElement, this.ownerTable);
         anchor.anchorTo(this);
         return anchor;
+    };
+    HTML_TableCell.prototype.removeOrphanNodes = function () {
+        // void, intentionally.
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -6843,7 +6892,7 @@ var Layout_Block = (function (_super) {
     };
     Layout_Block.prototype.computeHeights = function (topPlacement, indent) {
         if (indent === void 0) { indent = 0; }
-        var contentHeight = 0, topPlacementBegin = topPlacement;
+        var contentHeight = 0, topPlacementBegin = topPlacement, add = 0;
         if (this.node) {
             topPlacement += this.node.style.marginTop();
             this.offsetTop = topPlacement;
@@ -6855,6 +6904,10 @@ var Layout_Block = (function (_super) {
         }
         if (this.children && this.children.length) {
             throw "unexpected children!";
+        }
+        if (this.node && this.node.isOrphanElement()) {
+            add = (this.node.style.fontSize() * this.node.style.lineHeight());
+            contentHeight += add;
         }
         // a block Node doesn't contain children anymore...
         topPlacement += contentHeight;
@@ -7632,7 +7685,7 @@ var Viewport_MouseDriver = (function (_super) {
         else {
             if (target && target.target.nodeType == 2 /* ELEMENT */) {
                 if (!target.target.onmousemove(point, 0, this)) {
-                    this.viewport.canvas.style.cursor = 'default';
+                    this.viewport.canvas.style.cursor = target.target.isOrphanElement() ? 'text' : 'default';
                 }
             }
             else {
@@ -7642,7 +7695,7 @@ var Viewport_MouseDriver = (function (_super) {
                     }
                 }
                 else {
-                    this.viewport.canvas.style.cursor = 'default';
+                    this.viewport.canvas.style.cursor = target && target.target.isOrphanElement() ? 'text' : 'default';
                 }
             }
         }
@@ -8377,11 +8430,8 @@ var Viewport_CommandRouter = (function (_super) {
         if (!str) {
             return;
         }
-        var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0, otherNode = false;
+        var range = this.viewport.selection.getRange(), focus = range.focusNode(), len = str.length, nowPos, jump = 0, otherNode = false, textNode;
         if (range.isMultiRange()) {
-            return;
-        }
-        if (!focus) {
             return;
         }
         // clear existing selection if any.
@@ -8389,6 +8439,16 @@ var Viewport_CommandRouter = (function (_super) {
             this.viewport.selection.removeContents();
             range = this.viewport.selection.getRange();
             focus = range.focusNode();
+        }
+        if (!focus && range.anchorNode().target.isOrphanElement()) {
+            textNode = range.anchorNode().target.documentElement.createTextNode(str);
+            range.anchorNode().target.appendChild(textNode);
+            this.viewport.document.relayout(true);
+            this.viewport.selection.anchorTo(new TRange_Target(textNode, textNode.FRAGMENT_END));
+            return;
+        }
+        if (!focus) {
+            return;
         }
         //console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
         // find the target text node offset
@@ -9350,6 +9410,7 @@ var Fragment = (function () {
                         return new TRange_Target(element, i);
                     }
                 }
+                return new TRange_Target(this._doc, this._doc.FRAGMENT_START);
                 break;
             case 1 /* DOC_END */:
                 for (i = this._length - 1; i >= 0; i--) {
@@ -9358,6 +9419,7 @@ var Fragment = (function () {
                         return new TRange_Target(element, i);
                     }
                 }
+                return new TRange_Target(this._doc, this._doc.FRAGMENT_END);
                 break;
             default:
                 throw "ERR_ILLEGAL_POS_DESCRIPTOR";
@@ -9415,12 +9477,18 @@ var Fragment_Contextual = (function () {
     }
     // compute the parts of the contextual fragment.
     Fragment_Contextual.prototype.compute = function () {
-        var i = 0, currentNode = null, element = null, at, iStart = 0, iStop = 0;
+        var i = 0, currentNode = null, element = null, at, iStart = 0, iStop = 0, start = this.start, end = this.end;
         if (this.isEmpty) {
             return;
         }
         this.parts = [];
-        for (i = this.start; i <= this.end; i++) {
+        if (start < 0) {
+            start = 0;
+        }
+        if (end >= this.fragment.length()) {
+            end = this.fragment.length() - 1;
+        }
+        for (i = start; i <= end; i++) {
             at = this.fragment.at(i);
             switch (at) {
                 case 0 /* NODE_START */:
@@ -10920,7 +10988,7 @@ var DocSelection = (function (_super) {
     };
     // removes the contents of selection.
     DocSelection.prototype.removeContents = function () {
-        var range = this.getRange(), atEnd = false, len = range.length();
+        var range = this.getRange(), atEnd = false, len = range.length(), target;
         range.save();
         if (range.removeContents()) {
             this.viewport.document.relayout(true);
@@ -10930,6 +10998,21 @@ var DocSelection = (function (_super) {
                 range.setFocusAndAnchorTo(range.anchorNode());
             }
             range.collapse(true);
+            /* Verify validity of the range */
+            if (target = range.focusNode()) {
+                if (target.fragPos < 0 || target.fragPos >= this.viewport.document.fragment.length()) {
+                    this.range = null;
+                    this.fire('changed');
+                    return;
+                }
+            }
+            if (target = range.anchorNode()) {
+                if (target.fragPos < 0 || target.fragPos >= this.viewport.document.fragment.length()) {
+                    this.range = null;
+                    this.fire('changed');
+                    return;
+                }
+            }
         }
     };
     /* This function is used by the default StatusBar, and *might* not treat
@@ -11070,9 +11153,14 @@ var DocSelection = (function (_super) {
             hostElement.removeOrphanNodes();
         }
         this.viewport.document.relayout(true);
-        rng.focusNode().fragPos = (normalized.at(normalized.length - 1)).FRAGMENT_END + 1;
-        rng.focusNode().target = this.viewport.document.findNodeAtIndex(rng.focusNode().fragPos);
-        rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+        if (rng.focusNode()) {
+            rng.focusNode().fragPos = (normalized.at(normalized.length - 1)).FRAGMENT_END + 1;
+            rng.focusNode().target = this.viewport.document.findNodeAtIndex(rng.focusNode().fragPos);
+            rng.focusNode().moveLeftUntilCharacterIfNotLandedOnText();
+            if (rng.focusNode().fragPos > this.viewport.document.fragment.length() - 1) {
+                console.warn("Aici!");
+            }
+        }
         rng.collapse(true);
         rng.fire('changed');
     };
@@ -11323,7 +11411,7 @@ var Selection_EditorState = (function (_super) {
                         state.table = false;
                         break;
                     default:
-                        state.table = false;
+                        state.table = rng.anchorNode().target.isOrphanElement();
                         state.cell = null;
                         break;
                 }
@@ -12601,15 +12689,10 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         this.btnDeleteCol = this.node.querySelector('div.ui-button.table-delete-c');
         (function (me) {
             me.makeColorDropdown(me.btnBorderColor, function (color) {
-                if (!DOM.hasClass(me.btnBorderColor, 'state-disabled')) {
-                    me.setBorderColor(color);
-                }
+                if (DOM.hasClass(me.btnBorderColor, 'state-disabled'))
+                    return;
+                me.setBorderColor(color);
             }, '');
-            me.btnTable.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnTable, 'state-disabled')) {
-                    console.warn('insert / edit table');
-                }
-            }, true);
             me.btnInsertRowAfter.addEventListener('click', function (evt) {
                 if (!DOM.hasClass(me.btnInsertRowAfter, 'state-disabled')) {
                     console.warn('insert row after');
@@ -12640,6 +12723,9 @@ var UI_Toolbar_Panel_Table = (function (_super) {
                     console.warn('delete col');
                 }
             }, true);
+            me.createTableDropdown(me.btnTable, function (c, r) {
+                me.insertTable(c, r);
+            });
         })(this);
         this.on_afterload();
     }
@@ -12671,7 +12757,111 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         }
     };
     UI_Toolbar_Panel_Table.prototype.setBorderColor = function (color) {
-        console.info('setBorderColor: ' + color);
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (!cell) {
+            return;
+        }
+        cell.ownerTable.style.borderColor(color);
+        if (!color) {
+            cell.ownerTable.border(0);
+        }
+        else {
+            if (cell.ownerTable.border() == 0) {
+                cell.ownerTable.border(1);
+            }
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.createTableDropdown = function (button, onchange) {
+        var overlay = document.createElement('div'), status = document.createElement('div'), row, col, matrix = [[], [], [], [], [], [], [], [], [], []];
+        function reset() {
+            var r = 0, c = 0;
+            for (r = 0; r < 10; r++) {
+                for (c = 0; c < 10; c++) {
+                    matrix[r][c].className = 'cell';
+                }
+            }
+            status.textContent = '';
+        }
+        button.addEventListener('click', function (evt) {
+            if (DOM.hasClass(button, 'state-disabled')) {
+                return;
+            }
+            if (DOM.hasClass(button, 'state-expanded')) {
+                reset();
+                DOM.removeClass(button, 'state-expanded');
+                DOM.removeClass(button, 'state-pressed');
+            }
+            else {
+                DOM.addClass(button, 'state-expanded');
+                DOM.addClass(button, 'state-pressed');
+            }
+        }, false);
+        DOM.addClass(overlay, 'overlay');
+        function highlight(cell) {
+            var row = ~~cell.getAttribute('data-row'), col = ~~cell.getAttribute('data-col'), mc, r, c;
+            for (r = 1; r <= 10; r++) {
+                for (c = 1; c <= 10; c++) {
+                    mc = matrix[r - 1][c - 1];
+                    if (r <= row && c <= col) {
+                        DOM.addClass(mc, 'on');
+                    }
+                    else {
+                        DOM.removeClass(mc, 'on');
+                    }
+                }
+            }
+            status.textContent = col + ' x ' + row;
+        }
+        for (row = 1; row <= 10; row++) {
+            for (col = 1; col <= 10; col++) {
+                (function (row, col) {
+                    var cell = document.createElement('div');
+                    DOM.addClass(cell, 'cell');
+                    cell.setAttribute('data-row', row);
+                    cell.setAttribute('data-col', col);
+                    overlay.appendChild(cell);
+                    matrix[row - 1].push(cell);
+                    cell.addEventListener('mouseover', function (evt) {
+                        highlight(cell);
+                    }, false);
+                })(row, col);
+            }
+        }
+        function dispatchClick(cell) {
+            var row = ~~cell.getAttribute('data-row'), col = ~~cell.getAttribute('data-col');
+            DOM.removeClass(button, 'state-expanded');
+            DOM.removeClass(button, 'state-pressed');
+            onchange(col, row);
+            reset();
+        }
+        button.tabIndex = 0;
+        overlay.addEventListener('click', function (evt) {
+            evt.preventDefault();
+            evt.stopPropagation();
+            var target = evt.target || evt.srcElement;
+            if (target) {
+                if (DOM.hasClass(target, 'cell')) {
+                    dispatchClick(target);
+                }
+            }
+        }, true);
+        DOM.addClass(status, 'status');
+        overlay.appendChild(status);
+        button.appendChild(overlay);
+    };
+    UI_Toolbar_Panel_Table.prototype.insertTable = function (cols, rows) {
+        var out = [
+            '<table border="1" bordercolor="#000000" cellpadding="0" cellspacing="0">'
+        ];
+        for (var r = 0; r < rows; r++) {
+            out.push('<tr>');
+            for (var c = 0; c < cols; c++) {
+                out.push('<td></td>');
+            }
+            out.push('</tr>');
+        }
+        out.push('</table>');
+        this.toolbar.router.viewport.selection.insertHTML(out.join(''));
     };
     UI_Toolbar_Panel_Table.prototype.updateDocumentState = function (propertiesList) {
         var i = 0, len = propertiesList.length;

@@ -281,7 +281,7 @@ class HTMLParser {
 			this.NODES = [];
 			this.loops = 1;
 			pushIn = this.NODES;
-			data = data.replace( /(^[\s]+|[\s]+$)/g, '' ).replace( /\>[\s]+\</g, '><' );
+			data
 		}
 
 		while ( data ) {
@@ -291,7 +291,12 @@ class HTMLParser {
 				pushIn.push( {
 
 					"type": "#text",
-					"value": token1
+					"value": token1 .replace(/[\s]/g, ' ' )
+									.replace(/[\s]+/g, ' ' )
+									.replace( /&nbsp;/g, ' ' )
+									.replace(/&lt;/g, '<' )
+									.replace(/&gt;/g, '>' )
+									.replace(/&quot;/g, '"' )
 
 				} );
 

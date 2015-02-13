@@ -263,13 +263,10 @@ class Viewport_CommandRouter extends Events {
 		    len: number = str.length,
 		    nowPos: number,
 		    jump: number = 0,
-		    otherNode: boolean = false;
+		    otherNode: boolean = false,
+		    textNode: TNode_Text;
 
 		if ( range.isMultiRange() ) {
-			return;
-		}
-
-		if ( !focus ) {
 			return;
 		}
 
@@ -278,6 +275,18 @@ class Viewport_CommandRouter extends Events {
 			this.viewport.selection.removeContents();
 			range = this.viewport.selection.getRange();
 			focus = range.focusNode();
+		}
+
+		if ( !focus && range.anchorNode().target.isOrphanElement() ) {
+			textNode = range.anchorNode().target.documentElement.createTextNode( str );
+			(<TNode_Element>range.anchorNode().target).appendChild( textNode );
+			this.viewport.document.relayout(true);
+			this.viewport.selection.anchorTo( new TRange_Target( textNode, textNode.FRAGMENT_END ) );
+			return;
+		}
+
+		if ( !focus ) {
+			return;
 		}
 
 		//console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );

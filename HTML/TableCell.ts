@@ -105,22 +105,8 @@ class HTML_TableCell extends TNode_Element {
 
 	}
 
-	public removeChild( node: TNode ): TNode {
-		var returnValue = super.removeChild( node );
-		if ( this.childNodes.length == 0 ) {
-			
-			if ( this.documentElement && this.documentElement._tablesLocked ) {
-				// we don't want such behaviour while removeFormatting for example.
-			} else {
-				this.appendChild( this.documentElement.createTextNode( ' ' ) );
-			}
-		}
-		return returnValue;
-	}
-
 	public removeFromDOMAtUserCommand(): boolean {
 		this.removeAllChildNodes();
-		this.appendChild( this.documentElement.createTextNode( ' ' ) );
 		return true;
 	}
 
@@ -291,5 +277,10 @@ class HTML_TableCell extends TNode_Element {
 		anchor.anchorTo( this );
 		return anchor;
 	}
+
+	public removeOrphanNodes() {
+		// void, intentionally.
+	}
+
 
 }

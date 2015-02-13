@@ -64,6 +64,17 @@ class TNode extends Events {
 		}
 	}
 
+	public isOrphanElement(): boolean {
+		var is: string = this.is();
+
+		if ( is == '#text' ) {
+			return false;
+		} else {
+			return (<TNode_Element>this).childNodes && (<TNode_Element>this).childNodes.length == 0 &&
+			 	   (<TNode_Element>this).isBlockTextNode;
+		}
+	}
+
 	public firstParentOfType( whatToBe: string ): TNode {
 		var cursor = this;
 

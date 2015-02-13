@@ -346,6 +346,10 @@ class HTML_Body extends TNode_Element {
 		this._layout.computeWidths( );
 		this._layout.computeHeights( this.style.marginTop() );
 
+		if ( this._layout.offsetHeightOuter < this.viewport.height() - this.viewport._scrollbarSize ) {
+			this._layout.increaseHeightBy( this.viewport.height() - this.viewport._scrollbarSize - this._layout.offsetHeightOuter );
+		}
+
 		this.viewport._clientWidth = this._layout.offsetWidth + this._layout.offsetHeight;
 		this.viewport._clientHeight = this._layout.offsetHeight + this._layout.offsetTop;
 		
@@ -537,6 +541,27 @@ class HTML_Body extends TNode_Element {
 
 	public unlockTables() {
 		this._tablesLocked = false;
+	}
+
+	public findNodeAtIndex( index: number ): TNode {
+		if ( index < 0 || index >= this.fragment.length() ) {
+			return this;
+		} else return super.findNodeAtIndex( index );
+	}
+
+	public removeChild( node: TNode ): TNode {
+		var result: TNode = super.removeChild( node );
+		if ( this.childNodes.length == 0 ) {
+			( function( me ) {
+				setTimeout( function() {
+					var p = me.createElement('p');
+					me.appendChild(p);
+					me.relayout(true);
+					me.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
+				}, 1 )
+			} )( this );
+		}
+		return result;
 	}
 
 }

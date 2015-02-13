@@ -25,7 +25,9 @@ class Fragment_Contextual {
 		    element: TNode_Element = null,
 		    at: FragmentItem,
 		    iStart: number = 0,
-		    iStop: number = 0;
+		    iStop: number = 0,
+		    start: number = this.start,
+		    end: number = this.end;
 
 		if ( this.isEmpty ) {
 			return;
@@ -33,7 +35,15 @@ class Fragment_Contextual {
 
 		this.parts = [];
 
-		for ( i = this.start; i <= this.end; i++ ) {
+		if ( start < 0 ) {
+			start = 0;
+		}
+
+		if ( end >= this.fragment.length() ) {
+			end = this.fragment.length() - 1;
+		}
+
+		for ( i = start; i <= end; i++ ) {
 
 			at = this.fragment.at( i );
 			

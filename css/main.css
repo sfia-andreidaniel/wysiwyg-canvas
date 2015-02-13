@@ -497,7 +497,51 @@ div.html-editor .ui-panel-multimedia .ui-button.video {
 
 div.html-editor .ui-panel-table .ui-button.table {
 	background-position: -41px -21px !important;
+	position: relative;
 }
+
+div.html-editor .ui-panel-table .ui-button.table > .overlay {
+	display: none;
+	white-space: normal;
+}
+
+div.html-editor .ui-panel-table .ui-button.table > .overlay > .status {
+	text-align: center;
+	font-family: Arial;
+	font-size: 12px;
+	height: 16px;
+	display: block;
+	clear: both;
+	cursor: default;
+	padding-top: 8px;
+}
+
+div.html-editor .ui-panel-table .ui-button.table > .overlay > .cell {
+	display: block;
+	width: 16px;
+	height: 16px;
+	border: 1px solid black;
+	float: left;
+
+}
+
+div.html-editor .ui-panel-table .ui-button.table > .overlay > .cell.on {
+	background-color: blue;
+}
+
+div.html-editor .ui-panel-table .ui-button.table:not(.state-disabled).state-expanded > .overlay {
+	display: block;
+	position: absolute;
+	left: 0px;
+	top: 19px;
+	background-color: white;
+	outline: 1px solid black;
+	padding: 2px;
+	z-index: 100;
+	width: 180px;
+}
+
+
 div.html-editor .ui-panel-table .ui-button.borderColor > .icon {
 	background-position: -61px -81px !important;
 }

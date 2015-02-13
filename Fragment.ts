@@ -107,6 +107,9 @@ class Fragment {
 						return new TRange_Target( element, i );
 					}
 				}
+
+				return new TRange_Target( this._doc, this._doc.FRAGMENT_START );
+
 				break;
 
 			case FragmentPos.DOC_END:
@@ -117,6 +120,9 @@ class Fragment {
 						return new TRange_Target( element, i );
 					}
 				}
+
+				return new TRange_Target( this._doc, this._doc.FRAGMENT_END );
+
 				break;
 
 			default:

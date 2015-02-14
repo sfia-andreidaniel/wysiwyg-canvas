@@ -282,5 +282,12 @@ class HTML_TableCell extends TNode_Element {
 		// void, intentionally.
 	}
 
+	public realColIndex(): number {
+		return this.edgeLeft.index;
+	}
+
+	public realRowIndex(): number {
+		return this.edgeTop.index;
+	}
 
 }

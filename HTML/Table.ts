@@ -334,5 +334,4 @@ class HTML_Table extends TNode_Element {
 		return super.outerHTML(v);
 	}
 
-
 }

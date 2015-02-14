@@ -4625,6 +4625,12 @@ var HTML_TableCell = (function (_super) {
     HTML_TableCell.prototype.removeOrphanNodes = function () {
         // void, intentionally.
     };
+    HTML_TableCell.prototype.realCol = function () {
+        return this.edgeLeft.index;
+    };
+    HTML_TableCell.prototype.realRow = function () {
+        return this.edgeTop.index;
+    };
     return HTML_TableCell;
 })(TNode_Element);
 var HTML_NegationNode = (function (_super) {

@@ -19,7 +19,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 	public btnIndent  		  : HTMLDivElement     = null;
 	public btnUnindent 		  : HTMLDivElement     = null;
 
-	public btnBackgroundColor : HTMLDivElement     = null;
 	public btnColor           : HTMLDivElement     = null;
 
 	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
@@ -57,7 +56,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 		this.btnIndent  		= <HTMLDivElement>  this.node.querySelector( '.ui-button.increase' );
 		this.btnUnindent 		= <HTMLDivElement>  this.node.querySelector( '.ui-button.decrease' );
 
-		this.btnBackgroundColor = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.backgroundColor' );
 		this.btnColor           = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.color' );
 
 
@@ -142,10 +140,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 			me.btnUnindent.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT, [] );
 			}, true );
-
-			me.makeColorDropdown( me.btnBackgroundColor, function( color: string ) {
-				me.setBackgroundColor( color );
-			}, '' );
 
 			me.makeColorDropdown( me.btnColor, function( color: string ) {
 				me.setColor( color );
@@ -324,10 +318,6 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 			default:
 				break;
 		}
-	}
-
-	private setBackgroundColor( color: string ) {
-		this.toolbar.router.dispatchCommand( EditorCommand.BGCOLOR, [ color ] );
 	}
 
 	private setColor( color: string ) {

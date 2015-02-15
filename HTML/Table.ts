@@ -9,7 +9,7 @@ class HTML_Table extends TNode_Element {
 	protected _cellSpacing = 0;
 	protected _border      = 0;
 
-	private   _xEdgesApplied: boolean = false;
+	public    _xEdgesApplied: boolean = false;
 
 	constructor() {
 		super();
@@ -332,6 +332,56 @@ class HTML_Table extends TNode_Element {
 			this.applyXEdges();
 		}
 		return super.outerHTML(v);
+	}
+
+	public getCellsForRow( rowMinIndex: number, rowMaxIndex: number ): HTML_TableCell[] {
+		var i: number = 0,
+		    j: number = 0,
+		    len: number = 0,
+		    lem: number = 0,
+		    cell: HTML_TableCell,
+		    out: HTML_TableCell[] = [];
+
+		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
+
+				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
+
+				if ( rowMinIndex >= cell.edgeTop.index && rowMaxIndex <= cell.edgeBottom.index ) {
+					out.push( cell );
+				}
+
+			}
+		}
+
+		return out;
+
+	}
+
+	public getCellsForColumn( colMinIndex: number, colMaxIndex: number ): HTML_TableCell[] {
+		
+		var i: number = 0,
+		    j: number = 0,
+		    len: number = 0,
+		    lem: number = 0,
+		    cell: HTML_TableCell,
+		    out: HTML_TableCell[] = [];
+
+		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
+			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
+
+				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
+
+				if ( colMinIndex >= cell.edgeLeft.index && colMaxIndex <= cell.edgeRight.index ) {
+					out.push( cell );
+					break;
+				}
+
+			}
+		}
+
+		return out;
+
 	}
 
 }

@@ -2,6 +2,8 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 	
 	public btnTable           : HTMLDivElement     = null;
 	public btnBorderColor	  : HTMLDivElement	   = null;
+	public btnBackgroundColor : HTMLDivElement     = null;
+
 
 	public btnInsertRowBefore : HTMLDivElement     = null;
 	public btnInsertRowAfter  : HTMLDivElement     = null;
@@ -22,6 +24,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 
 		this.btnTable           = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table' );
 		this.btnBorderColor     = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.borderColor' );
+		this.btnBackgroundColor = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.backgroundColor' );
 
 		this.btnInsertRowBefore = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-insert-r-before' );
 		this.btnInsertRowAfter  = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-insert-r-after' );
@@ -44,44 +47,48 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			}, '' );
 
 			me.btnInsertRowAfter.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnInsertRowAfter, 'state-disabled' ) ) {
-					console.warn( 'insert row after' );
-				}
+				if ( DOM.hasClass( me.btnInsertRowAfter, 'state-disabled' ) )
+					return;
+				me.insertRowAfter();
 			}, true );
 
 			me.btnInsertRowBefore.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnInsertRowBefore, 'state-disabled' ) ) {
-					console.warn( 'insert row before' );
-				}
+				if ( DOM.hasClass( me.btnInsertRowBefore, 'state-disabled' ) )
+					return;
+				me.insertRowBefore();
 			}, true );
 
 			me.btnDeleteRow.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnDeleteRow, 'state-disabled' ) ) {
-					console.warn( 'delete row' );
-				}
+				if ( DOM.hasClass( me.btnDeleteRow, 'state-disabled' ) )
+					return;
+				me.deleteRow();
 			}, true );
 
 			me.btnInsertColAfter.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnInsertColAfter, 'state-disabled' ) ) {
-					console.warn( 'insert col after' );
-				}
+				if ( DOM.hasClass( me.btnInsertColAfter, 'state-disabled' ) ) 
+					return;
+				me.insertColumnAfter();
 			}, true );
 
 			me.btnInsertColBefore.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnInsertColBefore, 'state-disabled' ) ) {
-					console.warn( 'insert col before' );
-				}
+				if ( DOM.hasClass( me.btnInsertColBefore, 'state-disabled' ) )
+					return;
+				me.insertColumnBefore();
 			}, true );
 
 			me.btnDeleteCol.addEventListener( 'click', function( evt ) {
-				if ( !DOM.hasClass( me.btnDeleteCol, 'state-disabled' ) ) {
-					console.warn( 'delete col' );
-				}
+				if ( DOM.hasClass( me.btnDeleteCol, 'state-disabled' ) )
+					return;
+				me.deleteColumn();
 			}, true );
 
 			me.createTableDropdown( me.btnTable, function( c: number, r: number ) {
 				me.insertTable( c, r );
 			} );
+
+			me.makeColorDropdown( me.btnBackgroundColor, function( color: string ) {
+				me.setBackgroundColor( color );
+			}, '' );
 
 
 		} )( this );
@@ -104,6 +111,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 
 		if ( cellState ) {
 			DOM.removeClass( this.btnBorderColor,     'state-disabled' );
+			DOM.removeClass( this.btnBackgroundColor, 'state-disabled' );
 			DOM.removeClass( this.btnInsertColAfter,  'state-disabled' );
 			DOM.removeClass( this.btnInsertColBefore, 'state-disabled' );
 			DOM.removeClass( this.btnDeleteCol,       'state-disabled' );
@@ -112,6 +120,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			DOM.removeClass( this.btnDeleteRow,       'state-disabled' );
 		} else {
 			DOM.addClass( this.btnBorderColor,        'state-disabled' );
+			DOM.addClass( this.btnBackgroundColor,    'state-disabled' );
 			DOM.addClass( this.btnInsertColAfter,     'state-disabled' );
 			DOM.addClass( this.btnInsertColBefore,    'state-disabled' );
 			DOM.addClass( this.btnDeleteCol,          'state-disabled' );
@@ -287,6 +296,62 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		out.push( '</table>' );
 
 		this.toolbar.router.viewport.selection.insertHTML( out.join( '' ) );
+	}
+
+	private insertColumnBefore() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.insertColumn( true );
+		}
+	}
+
+	private insertColumnAfter() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.insertColumn( false );
+		}
+	}
+
+	private insertRowBefore() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.insertRow( true );
+		}
+
+	}
+
+	private insertRowAfter() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.insertRow( false );
+		}
+
+	}
+
+	private deleteColumn() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.deleteColumn();
+		}
+
+	}
+
+	private deleteRow() {
+		var cell: HTML_TableCell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.deleteRow();
+		}
+
+	}
+
+	private setBackgroundColor( color: string ) {
+		this.toolbar.router.dispatchCommand( EditorCommand.BGCOLOR, [ color ] );
 	}
 
 	public updateDocumentState( propertiesList: string [] ) {

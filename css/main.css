@@ -142,13 +142,19 @@ div.html-editor > div.toolbar div.ui-panel {
 
 div.html-editor > div.toolbar div.ui-panel > div.more {
 	display: none;
-	width: 10px;
-	height: 20px;
+	width: 9px;
+	height: 19px;
 	position: relative;
 	background-color: #bcbcbc;
 	background-image: url(icons.png);
 	background-repeat: no-repeat;
 	background-position: 0px -99px;
+	border-right-width: 1px;
+	border-top-width: 1px;
+	border-left-width: 0px;
+	border-bottom-width: 0px;
+	border-style: solid;
+	border-color: transparent;
 }
 
 div.html-editor > div.toolbar div.ui-panel > div.more > div.panel {
@@ -157,8 +163,9 @@ div.html-editor > div.toolbar div.ui-panel > div.more > div.panel {
 	right: -1px;
 	padding: 5px;
 	background-color: #ddd;
-	top: 21px;
+	top: 19px;
 	border: 1px outset #666;
+	border-top: none;
 }
 
 div.html-editor > div.toolbar div.ui-panel > div.more > div.panel.right-aligned {
@@ -166,7 +173,13 @@ div.html-editor > div.toolbar div.ui-panel > div.more > div.panel.right-aligned 
 	left: -1px;
 }
 
-div.html-editor > div.toolbar div.ui-panel > div.more.opened > div.panel {
+div.html-editor > div.toolbar div.ui-panel > div.more.opened,
+div.html-editor > div.toolbar div.ui-panel:hover > div.more {
+	border-color: #333;
+}
+
+div.html-editor > div.toolbar div.ui-panel > div.more.opened > div.panel,
+div.html-editor > div.toolbar div.ui-panel:hover > div.more > div.panel {
 	display: block;
 	z-index: 100;
 }
@@ -404,7 +417,7 @@ div.html-editor > div.toolbar div.ui-panel div.text-dropdown {
 }
 
 div.html-editor > div.toolbar div.ui-panel input.nodeName {
-	width: 80px;
+	width: 42px;
 }
 
 div.html-editor > div.toolbar div.ui-panel input.fontFamily {
@@ -475,10 +488,6 @@ div.html-editor .ui-panel-style .ui-button.decrease {
 	background-position: -41px -41px !important;
 }
 
-div.html-editor .ui-panel-style .ui-button.backgroundColor > .icon {
-	background-position: -1px -21px !important;
-}
-
 div.html-editor .ui-panel-style .ui-button.color > .icon {
 	background-position: -21px -21px !important;
 }
@@ -545,6 +554,11 @@ div.html-editor .ui-panel-table .ui-button.table:not(.state-disabled).state-expa
 div.html-editor .ui-panel-table .ui-button.borderColor > .icon {
 	background-position: -61px -81px !important;
 }
+
+div.html-editor .ui-panel-table .ui-button.backgroundColor > .icon {
+	background-position: -1px -21px !important;
+}
+
 div.html-editor .ui-panel-table .ui-button.table-insert-r-before {
 	background-position: -21px -161px !important;
 }

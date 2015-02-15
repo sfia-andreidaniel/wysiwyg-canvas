@@ -282,12 +282,236 @@ class HTML_TableCell extends TNode_Element {
 		// void, intentionally.
 	}
 
-	public realColIndex(): number {
-		return this.edgeLeft.index;
+	/* Inserts a column in the ownerTable of the cell.
+	   If @before is true, the column will be inserted before
+	   this cell, otherwise the column will be inserted after this cell.
+	 */
+	public insertColumn( before: boolean = true ) {
+
+		this.ownerTable._xEdgesApplied = false;
+
+		var table: HTML_Table = this.ownerTable,
+		    leftIndex: number = this.edgeLeft.index,
+		    rightIndex: number = this.edgeRight.index,
+		    col  : HTML_TableCell[] = table.getCellsForColumn( leftIndex, rightIndex ),
+		    indexes: number[][] = [],
+		    i: number = 0,
+		    len: number = 0,
+		    cell: HTML_TableCell;
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			indexes.push( [ col[i].edgeLeft.index, col[i].edgeRight.index ] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+
+			if ( before ) {
+
+				// if the cell @i leftIndex is lower than this cell left
+				// index, we increase it's colspan, otherwise we insert a cell...
+
+				// the cell should have the same rowspan as the cell @ i.
+
+				if ( indexes[i][0] < leftIndex ) {
+
+					col[i].colSpan( col[i].colSpan() + 1 );
+
+				} else {
+
+					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
+					cell.ownerTable = this.ownerTable;
+					cell.rowSpan( col[i].rowSpan() );
+					col[i].parentNode.appendChild( cell, col[i].siblingIndex );
+
+				}
+
+			} else {
+
+				if ( indexes[i][1] > rightIndex ) {
+					col[i].colSpan( col[i].colSpan() + 1 );
+				} else {
+					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
+					cell.ownerTable = this.ownerTable;
+					cell.rowSpan( col[i].rowSpan() );
+					col[i].parentNode.appendChild( cell, col[i].siblingIndex + 1 );
+				}
+
+			}
+
+		}
 	}
 
-	public realRowIndex(): number {
-		return this.edgeTop.index;
+	public insertRow( before: boolean = true ) {
+
+		this.ownerTable._xEdgesApplied = false;
+
+		var table: HTML_Table = this.ownerTable,
+		    topIndex: number = this.edgeTop.index,
+		    bottomIndex: number = this.edgeBottom.index,
+		    col  : HTML_TableCell[] = table.getCellsForRow( topIndex, bottomIndex ),
+		    row  : HTML_TableCell[] = [],
+		    tr   : HTML_TableRow,
+		    indexes: number[][] = [],
+		    i: number = 0,
+		    len: number = 0,
+		    cell: HTML_TableCell;
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			indexes.push( [ col[i].edgeTop.index, col[i].edgeBottom.index ] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+
+			if ( before ) {
+
+				if ( indexes[i][0] < topIndex ) {
+
+					col[i].rowSpan( col[i].rowSpan() + 1 );
+
+				} else {
+
+					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
+					cell.ownerTable = this.ownerTable;
+					cell.colSpan( col[i].colSpan() );
+					row.push( cell );
+
+				}
+
+			} else {
+
+				if ( indexes[i][1] > bottomIndex ) {
+					col[i].rowSpan( col[i].rowSpan() + 1 );
+				} else {
+					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
+					cell.ownerTable = this.ownerTable;
+					cell.colSpan( col[i].colSpan() );
+					row.push( cell );
+				}
+
+			}
+
+		}
+
+		if ( row.length ) {
+			tr = <HTML_TableRow>this.documentElement.createElement( 'tr' );
+			tr.ownerTable = this.ownerTable;
+			
+			for ( i=0, len = row.length; i<len; i++ ) {
+				tr.appendChild( row[i] );
+			}
+
+			if ( before ) {
+				this.ownerTable.appendChild( tr, this.parentNode.siblingIndex );
+			} else {
+				this.ownerTable.appendChild( tr, this.parentNode.siblingIndex + 1 );
+			}
+		}
+
 	}
+
+	public deleteColumn() {
+
+		this.ownerTable._xEdgesApplied = false;
+
+		var table: HTML_Table = this.ownerTable,
+		    leftIndex: number = this.edgeLeft.index,
+		    rightIndex: number = this.edgeRight.index,
+		    col  : HTML_TableCell[] = table.getCellsForColumn( leftIndex, rightIndex ),
+		    rows : HTML_TableRow[] = [],
+		    i: number = 0,
+		    len: number = 0,
+		    indexes: number[][] = [],
+		    thisColspan: number = this.colSpan(),
+		    removedCells: HTML_TableCell[] = [],
+		    selection = this.documentElement.viewport.selection,
+		    rng       = selection.getRange();
+
+		for ( i=0, len = this.ownerTable.childNodes.length; i<len; i++ ) {
+			rows.push( <HTML_TableRow>this.ownerTable.childNodes[i] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			indexes.push( [ col[i].edgeLeft.index, col[i].edgeRight.index ] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			if ( indexes[i][0] < leftIndex || indexes[i][1] > rightIndex ) {
+				col[i].colSpan( col[i].colSpan() - thisColspan );
+			} else {
+				col[i].remove();
+				removedCells.push( col[i] );
+			}
+		}
+
+
+		for ( i=0, len = rows.length; i<len; i++ ) {
+			if ( rows[i].childNodes.length == 0 ) {
+				rows[i].remove();
+			}
+		}
+
+		if ( this.ownerTable.childNodes.length == 0 ) {
+			this.ownerTable.remove();
+		}
+
+		if ( this.ownerTable.parentNode )
+			selection.anchorTo( new TRange_Target( this.ownerTable, this.ownerTable.FRAGMENT_START ) );
+		else
+			selection.anchorTo( new TRange_Target( this.documentElement ) );
+
+	}
+
+	public deleteRow() {
+
+		this.ownerTable._xEdgesApplied = false;
+
+		var table: HTML_Table = this.ownerTable,
+		    topIndex: number = this.edgeTop.index,
+		    bottomIndex: number = this.edgeBottom.index,
+		    col  : HTML_TableCell[] = table.getCellsForRow( topIndex, bottomIndex ),
+		    rows : HTML_TableRow[] = [],
+		    i: number = 0,
+		    len: number = 0,
+		    indexes: number[][] = [],
+		    thisRowspan: number = this.rowSpan(),
+		    removedCells: HTML_TableCell[] = [],
+		    selection = this.documentElement.viewport.selection,
+		    rng       = selection.getRange();
+
+		for ( i=0, len = this.ownerTable.childNodes.length; i<len; i++ ) {
+			rows.push( <HTML_TableRow>this.ownerTable.childNodes[i] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			indexes.push( [ col[i].edgeTop.index, col[i].edgeBottom.index ] );
+		}
+
+		for ( i=0, len = col.length; i<len; i++ ) {
+			if ( indexes[i][0] < topIndex || indexes[i][1] > bottomIndex ) {
+				col[i].rowSpan( col[i].rowSpan() - thisRowspan );
+			} else {
+				col[i].remove();
+				removedCells.push( col[i] );
+			}
+		}
+
+
+		for ( i=0, len = rows.length; i<len; i++ ) {
+			if ( rows[i].childNodes.length == 0 ) {
+				rows[i].remove();
+			}
+		}
+
+		if ( this.ownerTable.childNodes.length == 0 ) {
+			this.ownerTable.remove();
+		}
+
+		if ( this.ownerTable.parentNode )
+			selection.anchorTo( new TRange_Target( this.ownerTable, this.ownerTable.FRAGMENT_START ) );
+		else
+			selection.anchorTo( new TRange_Target( this.documentElement ) );
+
+	}
+
 
 }

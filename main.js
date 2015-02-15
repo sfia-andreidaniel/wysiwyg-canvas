@@ -4126,6 +4126,31 @@ var HTML_Table = (function (_super) {
         }
         return _super.prototype.outerHTML.call(this, v);
     };
+    HTML_Table.prototype.getCellsForRow = function (rowMinIndex, rowMaxIndex) {
+        var i = 0, j = 0, len = 0, lem = 0, cell, out = [];
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
+                cell = this.childNodes[i].childNodes[j];
+                if (rowMinIndex >= cell.edgeTop.index && rowMaxIndex <= cell.edgeBottom.index) {
+                    out.push(cell);
+                }
+            }
+        }
+        return out;
+    };
+    HTML_Table.prototype.getCellsForColumn = function (colMinIndex, colMaxIndex) {
+        var i = 0, j = 0, len = 0, lem = 0, cell, out = [];
+        for (var i = 0, len = this.childNodes.length; i < len; i++) {
+            for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
+                cell = this.childNodes[i].childNodes[j];
+                if (colMinIndex >= cell.edgeLeft.index && colMaxIndex <= cell.edgeRight.index) {
+                    out.push(cell);
+                    break;
+                }
+            }
+        }
+        return out;
+    };
     return HTML_Table;
 })(TNode_Element);
 var HTML_Table_Matrix = (function () {
@@ -4625,11 +4650,151 @@ var HTML_TableCell = (function (_super) {
     HTML_TableCell.prototype.removeOrphanNodes = function () {
         // void, intentionally.
     };
-    HTML_TableCell.prototype.realCol = function () {
-        return this.edgeLeft.index;
+    /* Inserts a column in the ownerTable of the cell.
+       If @before is true, the column will be inserted before
+       this cell, otherwise the column will be inserted after this cell.
+     */
+    HTML_TableCell.prototype.insertColumn = function (before) {
+        if (before === void 0) { before = true; }
+        this.ownerTable._xEdgesApplied = false;
+        var table = this.ownerTable, leftIndex = this.edgeLeft.index, rightIndex = this.edgeRight.index, col = table.getCellsForColumn(leftIndex, rightIndex), indexes = [], i = 0, len = 0, cell;
+        for (i = 0, len = col.length; i < len; i++) {
+            indexes.push([col[i].edgeLeft.index, col[i].edgeRight.index]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            if (before) {
+                // if the cell @i leftIndex is lower than this cell left
+                // index, we increase it's colspan, otherwise we insert a cell...
+                // the cell should have the same rowspan as the cell @ i.
+                if (indexes[i][0] < leftIndex) {
+                    col[i].colSpan(col[i].colSpan() + 1);
+                }
+                else {
+                    cell = this.documentElement.createElement('td');
+                    cell.ownerTable = this.ownerTable;
+                    cell.rowSpan(col[i].rowSpan());
+                    col[i].parentNode.appendChild(cell, col[i].siblingIndex);
+                }
+            }
+            else {
+                if (indexes[i][1] > rightIndex) {
+                    col[i].colSpan(col[i].colSpan() + 1);
+                }
+                else {
+                    cell = this.documentElement.createElement('td');
+                    cell.ownerTable = this.ownerTable;
+                    cell.rowSpan(col[i].rowSpan());
+                    col[i].parentNode.appendChild(cell, col[i].siblingIndex + 1);
+                }
+            }
+        }
     };
-    HTML_TableCell.prototype.realRow = function () {
-        return this.edgeTop.index;
+    HTML_TableCell.prototype.insertRow = function (before) {
+        if (before === void 0) { before = true; }
+        this.ownerTable._xEdgesApplied = false;
+        var table = this.ownerTable, topIndex = this.edgeTop.index, bottomIndex = this.edgeBottom.index, col = table.getCellsForRow(topIndex, bottomIndex), row = [], tr, indexes = [], i = 0, len = 0, cell;
+        for (i = 0, len = col.length; i < len; i++) {
+            indexes.push([col[i].edgeTop.index, col[i].edgeBottom.index]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            if (before) {
+                if (indexes[i][0] < topIndex) {
+                    col[i].rowSpan(col[i].rowSpan() + 1);
+                }
+                else {
+                    cell = this.documentElement.createElement('td');
+                    cell.ownerTable = this.ownerTable;
+                    cell.colSpan(col[i].colSpan());
+                    row.push(cell);
+                }
+            }
+            else {
+                if (indexes[i][1] > bottomIndex) {
+                    col[i].rowSpan(col[i].rowSpan() + 1);
+                }
+                else {
+                    cell = this.documentElement.createElement('td');
+                    cell.ownerTable = this.ownerTable;
+                    cell.colSpan(col[i].colSpan());
+                    row.push(cell);
+                }
+            }
+        }
+        if (row.length) {
+            tr = this.documentElement.createElement('tr');
+            tr.ownerTable = this.ownerTable;
+            for (i = 0, len = row.length; i < len; i++) {
+                tr.appendChild(row[i]);
+            }
+            if (before) {
+                this.ownerTable.appendChild(tr, this.parentNode.siblingIndex);
+            }
+            else {
+                this.ownerTable.appendChild(tr, this.parentNode.siblingIndex + 1);
+            }
+        }
+    };
+    HTML_TableCell.prototype.deleteColumn = function () {
+        this.ownerTable._xEdgesApplied = false;
+        var table = this.ownerTable, leftIndex = this.edgeLeft.index, rightIndex = this.edgeRight.index, col = table.getCellsForColumn(leftIndex, rightIndex), rows = [], i = 0, len = 0, indexes = [], thisColspan = this.colSpan(), removedCells = [], selection = this.documentElement.viewport.selection, rng = selection.getRange();
+        for (i = 0, len = this.ownerTable.childNodes.length; i < len; i++) {
+            rows.push(this.ownerTable.childNodes[i]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            indexes.push([col[i].edgeLeft.index, col[i].edgeRight.index]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            if (indexes[i][0] < leftIndex || indexes[i][1] > rightIndex) {
+                col[i].colSpan(col[i].colSpan() - thisColspan);
+            }
+            else {
+                col[i].remove();
+                removedCells.push(col[i]);
+            }
+        }
+        for (i = 0, len = rows.length; i < len; i++) {
+            if (rows[i].childNodes.length == 0) {
+                rows[i].remove();
+            }
+        }
+        if (this.ownerTable.childNodes.length == 0) {
+            this.ownerTable.remove();
+        }
+        if (this.ownerTable.parentNode)
+            selection.anchorTo(new TRange_Target(this.ownerTable, this.ownerTable.FRAGMENT_START));
+        else
+            selection.anchorTo(new TRange_Target(this.documentElement));
+    };
+    HTML_TableCell.prototype.deleteRow = function () {
+        this.ownerTable._xEdgesApplied = false;
+        var table = this.ownerTable, topIndex = this.edgeTop.index, bottomIndex = this.edgeBottom.index, col = table.getCellsForRow(topIndex, bottomIndex), rows = [], i = 0, len = 0, indexes = [], thisRowspan = this.rowSpan(), removedCells = [], selection = this.documentElement.viewport.selection, rng = selection.getRange();
+        for (i = 0, len = this.ownerTable.childNodes.length; i < len; i++) {
+            rows.push(this.ownerTable.childNodes[i]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            indexes.push([col[i].edgeTop.index, col[i].edgeBottom.index]);
+        }
+        for (i = 0, len = col.length; i < len; i++) {
+            if (indexes[i][0] < topIndex || indexes[i][1] > bottomIndex) {
+                col[i].rowSpan(col[i].rowSpan() - thisRowspan);
+            }
+            else {
+                col[i].remove();
+                removedCells.push(col[i]);
+            }
+        }
+        for (i = 0, len = rows.length; i < len; i++) {
+            if (rows[i].childNodes.length == 0) {
+                rows[i].remove();
+            }
+        }
+        if (this.ownerTable.childNodes.length == 0) {
+            this.ownerTable.remove();
+        }
+        if (this.ownerTable.parentNode)
+            selection.anchorTo(new TRange_Target(this.ownerTable, this.ownerTable.FRAGMENT_START));
+        else
+            selection.anchorTo(new TRange_Target(this.documentElement));
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -9167,6 +9332,8 @@ var Clipboard = (function (_super) {
         //protected data          : TClipboardItem   = null;
         this.trap = document.createElement('textarea');
         this.activeElement = null; // will point to an instance of a viewport.canvas
+        this.docScrollTop = null;
+        this.docScrollLeft = null;
         (function (me) {
             me.on('cut', function (evt) {
                 if (!me.trap.parentNode || me.trap != document['activeElement']) {
@@ -9281,6 +9448,8 @@ var Clipboard = (function (_super) {
         if (typeof document.activeElement['onclipboardtrap'] == 'undefined') {
             return;
         }
+        this.docScrollTop = document.body.scrollTop;
+        this.docScrollLeft = document.body.scrollLeft;
         this.activeElement = document.activeElement;
         this.trap.style.top = document.body.scrollTop + "px";
         this.trap.style.left = document.body.scrollLeft + "px";
@@ -9296,6 +9465,8 @@ var Clipboard = (function (_super) {
         if (this.activeElement) {
             this.activeElement.focus();
         }
+        document.body.scrollTop = this.docScrollTop;
+        document.body.scrollLeft = this.docScrollLeft;
         //console.log( 'trap uninstalled' );
     };
     Clipboard.$instance = null;
@@ -11782,12 +11953,12 @@ var UI_Resources = (function () {
     UI_Resources.gif_cursorRowSelect = "data:image/gif;base64,R0lGODlhEgAMAKEAAP///wAAAP///////yH5BAEKAAIALAAAAAASAAwAAAIllI8WyRzbYgAwpknV23yDv2DfSJZPiZrdeoIWglWvMMnzM19JAQA7";
     UI_Resources.html_editLink = "<div class=\"dialog-body\">\r\n\r\n\t<fieldset>\r\n\t\t<legend>Hyperlink</legend>\r\n\r\n\t\t<label>\r\n\t\t\t<span>Link:</span>\r\n\t\t\t<input type=\"text\" class=\"i-link focus-first\" />\r\n\t\t</label>\r\n\t\t<label>\r\n\t\t\t<span>Open In:</span>\r\n\t\t\t<select class=\"s-target\">\r\n\t\t\t\t<option value=\"\">Current Window</option>\r\n\t\t\t\t<option value=\"_blank\">New Window</option>\r\n\t\t\t</select>\r\n\t\t</label>\r\n\t</fieldset>\r\n\r\n</div>";
     UI_Resources.html_fileBrowser = "<div class=\"htmleditor-fs\">\r\n\r\n\t<div class=\"toolbar\">\r\n\t\t<div class=\"location\">\r\n\t\t\t<label>\r\n\t\t\t\t<span class=\"label\">Location:</span>\r\n\t\t\t\t<input type=\"text\" class=\"fs-location focus-first\" />\r\n\t\t\t</label>\r\n\t\t</div>\r\n\t\t<div class=\"buttons\">\r\n\t\t\t<div class=\"button up\" title=\"Up\"></div><div\r\n\t\t\t\t class=\"button refresh\" title=\"Refresh\"></div><div \r\n\t\t\t\t class=\"button asc\" title=\"Sort Ascending\"></div><div \r\n\t\t\t\t class=\"button desc\" title=\"Sort Descending\"></div>\r\n\t\t</div>\r\n\t</div>\r\n\t<div class=\"files\">\r\n\t</div>\r\n\r\n</div>";
-    UI_Resources.html_formattingToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button remove-formatting\" title=\"Clear Formatting\"></div>\r\n</div><div class=\"item index-2\">\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"nodeName\" type=\"text\" data-suggestions=\"normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5\" placeholder=\"Style\" value=\"\" >\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontFamily\" type=\"text\" data-suggestions value=\"\" placeholder=\"Font\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontSize\" type=\"text\" data-suggestions=\"8,9,10,12,14,16,18,20,22,24,26,28,30,32\" value=\"\" placeholder=\"Size\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n</div><div class=\"item index-5\">\r\n\t<div class=\"ui-button bold state\" title=\"Bold (Ctrl+B)\"></div><div\r\n\t\t class=\"ui-button italic\" title=\"Italic (Ctrl+I)\"></div><div\r\n\t\t class=\"ui-button underline\" title=\"Underline (Ctrl+U)\"></div><div\r\n\t\t class=\"ui-button strike\" title=\"Strike\"></div>\r\n</div><div class=\"item index-6\">\r\n\t<div class=\"ui-button subscript\"   title=\"Subscript\"></div><div\r\n\t\t class=\"ui-button superscript\" title=\"Superscript\"></div>\r\n</div><div class=\"item index-7\">\r\n\t<div class=\"ui-button left\" title=\"Left (Ctrl+L)\"></div><div\r\n\t\t class=\"ui-button center\" title=\"Center (Ctrl+E)\"></div><div\r\n\t\t class=\"ui-button right\" title=\"Right (Ctrl+R)\"></div><div\r\n\t\t class=\"ui-button justified\" title=\"Justified (Ctrl+J)\"></div>\r\n</div><div class=\"item index-8\">\r\n\t<div class=\"ui-button ol\" title=\"Ordered List\"></div><div\r\n\t\t class=\"ui-button ul\" title=\"Bulleted List\"></div><div\r\n\t\t class=\"ui-button increase\" title=\"Increase Indent (Tab)\"></div><div\r\n\t\t class=\"ui-button decrease\" title=\"Decrease Indent (Shift + Tab)\"></div>\r\n</div><div class=\"item index-9\">\r\n\t<div class=\"ui-button ui-color-button backgroundColor\" title=\"Background Color\"></div><div\r\n\t\t class=\"ui-button ui-color-button color\" title=\"Color\"></div>\r\n</div>\r\n";
+    UI_Resources.html_formattingToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button remove-formatting\" title=\"Clear Formatting\"></div>\r\n</div><div class=\"item index-2\">\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"nodeName\" type=\"text\" data-suggestions=\"normal:Normal,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5\" placeholder=\"Style\" value=\"\" >\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontFamily\" type=\"text\" data-suggestions value=\"\" placeholder=\"Font\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontSize\" type=\"text\" data-suggestions=\"8,9,10,12,14,16,18,20,22,24,26,28,30,32\" value=\"\" placeholder=\"Size\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n</div><div class=\"item index-5\">\r\n\t<div class=\"ui-button bold state\" title=\"Bold (Ctrl+B)\"></div><div\r\n\t\t class=\"ui-button italic\" title=\"Italic (Ctrl+I)\"></div><div\r\n\t\t class=\"ui-button underline\" title=\"Underline (Ctrl+U)\"></div><div\r\n\t\t class=\"ui-button strike\" title=\"Strike\"></div>\r\n</div><div class=\"item index-6\">\r\n\t<div class=\"ui-button subscript\"   title=\"Subscript\"></div><div\r\n\t\t class=\"ui-button superscript\" title=\"Superscript\"></div>\r\n</div><div class=\"item index-7\">\r\n\t<div class=\"ui-button left\" title=\"Left (Ctrl+L)\"></div><div\r\n\t\t class=\"ui-button center\" title=\"Center (Ctrl+E)\"></div><div\r\n\t\t class=\"ui-button right\" title=\"Right (Ctrl+R)\"></div><div\r\n\t\t class=\"ui-button justified\" title=\"Justified (Ctrl+J)\"></div>\r\n</div><div class=\"item index-8\">\r\n\t<div class=\"ui-button ol\" title=\"Ordered List\"></div><div\r\n\t\t class=\"ui-button ul\" title=\"Bulleted List\"></div><div\r\n\t\t class=\"ui-button increase\" title=\"Increase Indent (Tab)\"></div><div\r\n\t\t class=\"ui-button decrease\" title=\"Decrease Indent (Shift + Tab)\"></div>\r\n</div><div class=\"item index-9\">\r\n\t<div\r\n\t\t class=\"ui-button ui-color-button color\" title=\"Color\"></div>\r\n</div>\r\n";
     UI_Resources.html_insertLink = "<div class=\"dialog-body\">\r\n\r\n\t<fieldset>\r\n\t\t<legend>Hyperlink</legend>\r\n\r\n\t\t<label>\r\n\t\t\t<span>Text:</span>\r\n\t\t\t<input type=\"text\" class=\"i-text\" />\r\n\t\t</label>\r\n\t\t<label>\r\n\t\t\t<span>Link:</span>\r\n\t\t\t<input type=\"text\" class=\"i-link focus-first\" />\r\n\t\t</label>\r\n\t\t<label>\r\n\t\t\t<span>Open In:</span>\r\n\t\t\t<select class=\"s-target\">\r\n\t\t\t\t<option value=\"\">Current Window</option>\r\n\t\t\t\t<option value=\"_blank\">New Window</option>\r\n\t\t\t</select>\r\n\t\t</label>\r\n\t</fieldset>\r\n\r\n</div>";
     UI_Resources.html_insertPicture = "<div class=\"dialog-body\">\r\n\r\n\t<fieldset>\r\n\r\n\t\t<legend>Source</legend>\r\n\r\n\t\t<label class=\"two-lines\">Specify a picture source, or browse for a picture:</label>\r\n\r\n\t\t<div class=\"horizontal-flex one-kid\">\r\n\t\t\t<div class=\"cell\">\r\n\t\t\t\t<label>\r\n\t\t\t\t\t<span>Source:</span> \r\n\t\t\t\t\t<input type=\"text\" class=\"txt-src focus-first\" />\r\n\t\t\t\t\t<button class=\"browse\">...</button>\r\n\t\t\t\t</label>\r\n\t\t\t</div>\r\n\t\t</div>\r\n\r\n\t</fieldset>\r\n\t<fieldset>\r\n\t\t\r\n\t\t<legend>Settings</legend>\r\n\r\n\r\n\t\t<div class=\"horizontal-flex two-kids\">\r\n\r\n\t\t\t<div class=\"cell\">\r\n\r\n\t\t\t\t<label>\r\n\t\t\t\t\t<span>Width:</span>\r\n\t\t\t\t\t<input type=\"number\" class=\"int-width\" disabled style=\"max-width: 50px\" />\r\n\t\t\t\t</label>\r\n\t\t\t\t<label>\r\n\t\t\t\t\t<span>Height:</span>\r\n\t\t\t\t\t<input type=\"number\" class=\"int-height\" disabled style=\"max-width: 50px\" />\r\n\t\t\t\t</label>\r\n\t\t\t\t<label class=\"checkbox\">\r\n\t\t\t\t\t<span>Maintain propoportions:</span>\r\n\t\t\t\t\t<input type=\"checkbox\" class=\"bool-proportions\" disabled />\r\n\t\t\t\t</label>\r\n\t\t\t</div>\r\n\t\t\t<div class=\"cell\" style=\"text-align: right\">\r\n\t\t\t\r\n\t\t\t\t<img class=\"img-preview\" style=\"display: inline-block; margin: 10px 0px 10px 10px; max-width: 150px; max-height: 150px\" src=\"{img_insertPicture}\" />\r\n\r\n\t\t\t</div>\r\n\r\n\t\t</div>\r\n\r\n\t\t<div class=\"horizontal-flex one-kid\">\r\n\r\n\t\t\t<div class=\"cell\">\r\n\t\t\t\t<label>\r\n\t\t\t\t\t<span>Alternate text:</span>\r\n\t\t\t\t\t<input type=\"text\" class=\"txt-alt\" />\r\n\t\t\t\t</label>\r\n\t\t\t</div>\r\n\r\n\t\t</div>\r\n\r\n\r\n\t</fieldset>\r\n\r\n</div>";
     UI_Resources.img_insertPicture = "data:image/png;base64,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";
     UI_Resources.html_multimediaToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button link\" title=\"Link\"></div><div\r\n\tclass=\"ui-button picture\" title=\"Picture\"></div><div\r\n\tclass=\"ui-button video\" title=\"Video\"></div>\r\n</div>";
-    UI_Resources.html_tableToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button table\" title=\"Insert Table\"></div><div \r\n\t\tclass=\"ui-button ui-color-button borderColor\" title=\"Border Color\"></div>\r\n</div>\r\n<div class=\"item index-2\">\r\n\t<div class=\"ui-button table-insert-r-before\" title=\"Insert Row Before\"></div><div\r\n\t\t class=\"ui-button table-insert-r-after\" title=\"Insert Row After\"></div><div\r\n\t\t class=\"ui-button table-delete-r\" title=\"Delete Row\"></div><div \r\n\t\t class=\"ui-button table-insert-c-before\" title=\"Insert Column Before\"></div><div \r\n\t\t class=\"ui-button table-insert-c-after\" title=\"Insert Column After\"></div><div \r\n\t\t class=\"ui-button table-delete-c\" title=\"Delete Column\"></div>\r\n</div>";
+    UI_Resources.html_tableToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button table\" title=\"Insert Table\"></div><div \r\n\t\tclass=\"ui-button ui-color-button borderColor\" title=\"Border Color\"></div><div \r\n\t\tclass=\"ui-button ui-color-button backgroundColor\" title=\"Background Color\"></div>\r\n</div>\r\n<div class=\"item index-2\">\r\n\t<div class=\"ui-button table-insert-r-before\" title=\"Insert Row Before\"></div><div\r\n\t\t class=\"ui-button table-insert-r-after\" title=\"Insert Row After\"></div><div\r\n\t\t class=\"ui-button table-delete-r\" title=\"Delete Row\"></div><div \r\n\t\t class=\"ui-button table-insert-c-before\" title=\"Insert Column Before\"></div><div \r\n\t\t class=\"ui-button table-insert-c-after\" title=\"Insert Column After\"></div><div \r\n\t\t class=\"ui-button table-delete-c\" title=\"Delete Column\"></div>\r\n</div>";
     return UI_Resources;
 })();
 UI_Resources._init_();
@@ -11808,7 +11979,7 @@ var UI_Toolbar = (function (_super) {
             this.node.querySelector('.toolbar-row.index-2')
         ];
         this.panels.push(new UI_Toolbar_Panel_Multimedia(this, this.rows[0], 70, 0));
-        this.panels.push(new UI_Toolbar_Panel_Table(this, this.rows[0], 210, 0));
+        this.panels.push(new UI_Toolbar_Panel_Table(this, this.rows[0], 264, 0));
         this.panels.push(new UI_Toolbar_Panel_Formatting(this, this.rows[1], 1, 1));
         for (var i = 0, len = this.rows.length; i < len; i++) {
             (function (row, toolbar) {
@@ -12300,7 +12471,6 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
         this.btnOL = null;
         this.btnIndent = null;
         this.btnUnindent = null;
-        this.btnBackgroundColor = null;
         this.btnColor = null;
         DOM.addClass(this.node, 'ui-panel-style');
         this.node.innerHTML = UI_Resources.html_formattingToolbar;
@@ -12323,7 +12493,6 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
         this.btnOL = this.node.querySelector('.ui-button.ol');
         this.btnIndent = this.node.querySelector('.ui-button.increase');
         this.btnUnindent = this.node.querySelector('.ui-button.decrease');
-        this.btnBackgroundColor = this.node.querySelector('div.ui-button.backgroundColor');
         this.btnColor = this.node.querySelector('div.ui-button.color');
         (function (me) {
             me.btnClearFormatting.addEventListener('click', function (DOMEvent) {
@@ -12390,9 +12559,6 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
             me.btnUnindent.addEventListener('click', function (DOMEvent) {
                 me.toolbar.router.dispatchCommand(14 /* UNINDENT */, []);
             }, true);
-            me.makeColorDropdown(me.btnBackgroundColor, function (color) {
-                me.setBackgroundColor(color);
-            }, '');
             me.makeColorDropdown(me.btnColor, function (color) {
                 me.setColor(color);
             }, '');
@@ -12532,9 +12698,6 @@ var UI_Toolbar_Panel_Formatting = (function (_super) {
             default:
                 break;
         }
-    };
-    UI_Toolbar_Panel_Formatting.prototype.setBackgroundColor = function (color) {
-        this.toolbar.router.dispatchCommand(18 /* BGCOLOR */, [color]);
     };
     UI_Toolbar_Panel_Formatting.prototype.setColor = function (color) {
         this.toolbar.router.dispatchCommand(17 /* COLOR */, [color]);
@@ -12677,6 +12840,7 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         _super.call(this, toolbar, 'Table', appendIn, maxPercentualOrFixedWidth, panelRowIndex);
         this.btnTable = null;
         this.btnBorderColor = null;
+        this.btnBackgroundColor = null;
         this.btnInsertRowBefore = null;
         this.btnInsertRowAfter = null;
         this.btnDeleteRow = null;
@@ -12687,6 +12851,7 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         this.node.innerHTML = UI_Resources.html_tableToolbar;
         this.btnTable = this.node.querySelector('div.ui-button.table');
         this.btnBorderColor = this.node.querySelector('div.ui-button.borderColor');
+        this.btnBackgroundColor = this.node.querySelector('div.ui-button.backgroundColor');
         this.btnInsertRowBefore = this.node.querySelector('div.ui-button.table-insert-r-before');
         this.btnInsertRowAfter = this.node.querySelector('div.ui-button.table-insert-r-after');
         this.btnDeleteRow = this.node.querySelector('div.ui-button.table-delete-r');
@@ -12700,38 +12865,41 @@ var UI_Toolbar_Panel_Table = (function (_super) {
                 me.setBorderColor(color);
             }, '');
             me.btnInsertRowAfter.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnInsertRowAfter, 'state-disabled')) {
-                    console.warn('insert row after');
-                }
+                if (DOM.hasClass(me.btnInsertRowAfter, 'state-disabled'))
+                    return;
+                me.insertRowAfter();
             }, true);
             me.btnInsertRowBefore.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnInsertRowBefore, 'state-disabled')) {
-                    console.warn('insert row before');
-                }
+                if (DOM.hasClass(me.btnInsertRowBefore, 'state-disabled'))
+                    return;
+                me.insertRowBefore();
             }, true);
             me.btnDeleteRow.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnDeleteRow, 'state-disabled')) {
-                    console.warn('delete row');
-                }
+                if (DOM.hasClass(me.btnDeleteRow, 'state-disabled'))
+                    return;
+                me.deleteRow();
             }, true);
             me.btnInsertColAfter.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnInsertColAfter, 'state-disabled')) {
-                    console.warn('insert col after');
-                }
+                if (DOM.hasClass(me.btnInsertColAfter, 'state-disabled'))
+                    return;
+                me.insertColumnAfter();
             }, true);
             me.btnInsertColBefore.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnInsertColBefore, 'state-disabled')) {
-                    console.warn('insert col before');
-                }
+                if (DOM.hasClass(me.btnInsertColBefore, 'state-disabled'))
+                    return;
+                me.insertColumnBefore();
             }, true);
             me.btnDeleteCol.addEventListener('click', function (evt) {
-                if (!DOM.hasClass(me.btnDeleteCol, 'state-disabled')) {
-                    console.warn('delete col');
-                }
+                if (DOM.hasClass(me.btnDeleteCol, 'state-disabled'))
+                    return;
+                me.deleteColumn();
             }, true);
             me.createTableDropdown(me.btnTable, function (c, r) {
                 me.insertTable(c, r);
             });
+            me.makeColorDropdown(me.btnBackgroundColor, function (color) {
+                me.setBackgroundColor(color);
+            }, '');
         })(this);
         this.on_afterload();
     }
@@ -12745,6 +12913,7 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         }
         if (cellState) {
             DOM.removeClass(this.btnBorderColor, 'state-disabled');
+            DOM.removeClass(this.btnBackgroundColor, 'state-disabled');
             DOM.removeClass(this.btnInsertColAfter, 'state-disabled');
             DOM.removeClass(this.btnInsertColBefore, 'state-disabled');
             DOM.removeClass(this.btnDeleteCol, 'state-disabled');
@@ -12754,6 +12923,7 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         }
         else {
             DOM.addClass(this.btnBorderColor, 'state-disabled');
+            DOM.addClass(this.btnBackgroundColor, 'state-disabled');
             DOM.addClass(this.btnInsertColAfter, 'state-disabled');
             DOM.addClass(this.btnInsertColBefore, 'state-disabled');
             DOM.addClass(this.btnDeleteCol, 'state-disabled');
@@ -12868,6 +13038,45 @@ var UI_Toolbar_Panel_Table = (function (_super) {
         }
         out.push('</table>');
         this.toolbar.router.viewport.selection.insertHTML(out.join(''));
+    };
+    UI_Toolbar_Panel_Table.prototype.insertColumnBefore = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.insertColumn(true);
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.insertColumnAfter = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.insertColumn(false);
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.insertRowBefore = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.insertRow(true);
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.insertRowAfter = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.insertRow(false);
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.deleteColumn = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.deleteColumn();
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.deleteRow = function () {
+        var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+        if (cell) {
+            cell.deleteRow();
+        }
+    };
+    UI_Toolbar_Panel_Table.prototype.setBackgroundColor = function (color) {
+        this.toolbar.router.dispatchCommand(18 /* BGCOLOR */, [color]);
     };
     UI_Toolbar_Panel_Table.prototype.updateDocumentState = function (propertiesList) {
         var i = 0, len = propertiesList.length;

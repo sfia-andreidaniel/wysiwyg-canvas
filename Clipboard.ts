@@ -8,6 +8,8 @@ class Clipboard extends Events {
 
 	public    trap          : any = document.createElement('textarea');
 	public    activeElement : any = null; // will point to an instance of a viewport.canvas
+	public    docScrollTop  : number = null;
+	public    docScrollLeft : number = null;
 
 	protected get data(): TClipboardItem {
 		var v = window.localStorage.getItem( '_clipboard_data_' );
@@ -172,6 +174,9 @@ class Clipboard extends Events {
 			return;
 		}
 
+		this.docScrollTop = document.body.scrollTop;
+		this.docScrollLeft= document.body.scrollLeft;
+
 		this.activeElement = document.activeElement;
 
 		this.trap.style.top = document.body.scrollTop + "px";
@@ -195,6 +200,10 @@ class Clipboard extends Events {
 		if ( this.activeElement ) {
 			this.activeElement.focus();
 		}
+
+		document.body.scrollTop = this.docScrollTop;
+		document.body.scrollLeft = this.docScrollLeft;
+
 
 		//console.log( 'trap uninstalled' );
 	}

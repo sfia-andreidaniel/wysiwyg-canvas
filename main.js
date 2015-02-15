@@ -9656,7 +9656,7 @@ var Fragment_Contextual = (function () {
     Fragment_Contextual.prototype.compute = function () {
         var i = 0, currentNode = null, element = null, at, iStart = 0, iStop = 0, start = this.start, end = this.end;
         if (this.isEmpty) {
-            return;
+            return this;
         }
         this.parts = [];
         if (start < 0) {
@@ -9704,6 +9704,7 @@ var Fragment_Contextual = (function () {
             }
             currentNode = null;
         }
+        return this;
     };
     Fragment_Contextual.prototype.affectedTextNodes = function () {
         var out = [], i, len;
@@ -10047,7 +10048,7 @@ var Fragment_Contextual_MultiRange = (function (_super) {
     Fragment_Contextual_MultiRange.prototype.compute = function () {
         var i = 0, len = 0, node;
         if (this.isEmpty) {
-            return;
+            return this;
         }
         this.parts = [];
         for (var i = 0, len = this.rangeNode.childNodes.length; i < len; i++) {
@@ -10062,6 +10063,7 @@ var Fragment_Contextual_MultiRange = (function (_super) {
                     break;
             }
         }
+        return this;
     };
     Fragment_Contextual_MultiRange.prototype.affectedTextNodes = function () {
         var out = [], subNodes = [], i, len, j, k;
@@ -10699,6 +10701,9 @@ var TRange = (function (_super) {
     };
     TRange.prototype.isMultiRange = function () {
         return this._anchorNode && this._anchorNode.target.is() == 'multirange';
+    };
+    TRange.prototype.isOrphan = function () {
+        return this._anchorNode && this._anchorNode.target.isOrphanElement();
     };
     TRange.prototype.becomeTableRectRange = function () {
         if (this.isMultiRange()) {
@@ -11339,6 +11344,10 @@ var DocSelection = (function (_super) {
             }
         }
         rng.collapse(true);
+        rng.save();
+        // defragment the document
+        this.viewport.document.defragment();
+        rng.restore();
         rng.fire('changed');
     };
     DocSelection.prototype.toString = function () {
@@ -11931,7 +11940,7 @@ var UI_Resources = (function () {
     function UI_Resources() {
     }
     UI_Resources._init_ = function () {
-        var props = ["html_alert", "png_alertIcon", "gif_cursorCellSelect", "gif_cursorColSelect", "gif_cursorRowSelect", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar"];
+        var props = ["html_alert", "png_alertIcon", "html_clipboardToolbar", "gif_cursorCellSelect", "gif_cursorColSelect", "gif_cursorRowSelect", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar"];
         for (var i = 0, len = props.length; i < len; i++) {
             if (/^html_/.test(props[i])) {
                 UI_Resources._patch_(props[i]);
@@ -11948,6 +11957,7 @@ var UI_Resources = (function () {
     };
     UI_Resources.html_alert = "<div class=\"dialog-body\">\r\n\r\n\t<img src=\"{png_alertIcon}\" style=\"float: left; border: 0;\" />\r\n\r\n\t<p class=\"alert-text\" style=\"margin-left: 50px; margin-top: 7px; margin-right: 10px;\"></p>\r\n\r\n</div>";
     UI_Resources.png_alertIcon = "data:image/png;base64,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";
+    UI_Resources.html_clipboardToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button cut\" title=\"Cut (Ctrl + X)\"></div><div \r\n\t\tclass=\"ui-button copy\" title=\"Copy (Ctrl + C)\"></div><div \r\n\t\tclass=\"ui-button paste\" title=\"Paste (Ctrl + V)\"></div>\r\n</div>";
     UI_Resources.gif_cursorCellSelect = "data:image/gif;base64,R0lGODlhFAAUAKECAAAAAP7+/v///////yH5BAEKAAIALAAAAAAUABQAAAJElI8AyG0QlpswTlftTaHrLWSdtIkjaJ5XqmLe2zLKDH/r6JF3VOmuBpkJFYfegxhKPFoLic7JHA5DsafSWFRmQz7psAAAOw==";
     UI_Resources.gif_cursorColSelect = "data:image/gif;base64,R0lGODlhDAASAKEAAP///wAAAP///////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAAIALAAAAAAMABIAAAImlBUZxwiwmgkvSgrlrNpljVlN2JEgd34XOimh6z2yis1irDImeBcAOw==";
     UI_Resources.gif_cursorRowSelect = "data:image/gif;base64,R0lGODlhEgAMAKEAAP///wAAAP///////yH5BAEKAAIALAAAAAASAAwAAAIllI8WyRzbYgAwpknV23yDv2DfSJZPiZrdeoIWglWvMMnzM19JAQA7";
@@ -11978,6 +11988,7 @@ var UI_Toolbar = (function (_super) {
             this.node.querySelector('.toolbar-row.index-1'),
             this.node.querySelector('.toolbar-row.index-2')
         ];
+        this.panels.push(new UI_Toolbar_Panel_Clipboard(this, this.rows[0], 70, 0));
         this.panels.push(new UI_Toolbar_Panel_Multimedia(this, this.rows[0], 70, 0));
         this.panels.push(new UI_Toolbar_Panel_Table(this, this.rows[0], 264, 0));
         this.panels.push(new UI_Toolbar_Panel_Formatting(this, this.rows[1], 1, 1));
@@ -12449,6 +12460,94 @@ var UI_Toolbar_Panel = (function (_super) {
     };
     return UI_Toolbar_Panel;
 })(Events);
+var UI_Toolbar_Panel_Clipboard = (function (_super) {
+    __extends(UI_Toolbar_Panel_Clipboard, _super);
+    function UI_Toolbar_Panel_Clipboard(toolbar, appendIn, maxPercentualOrFixedWidth, panelRowIndex) {
+        _super.call(this, toolbar, 'Clipboard', appendIn, maxPercentualOrFixedWidth, panelRowIndex);
+        this.buttonCut = null;
+        this.buttonCopy = null;
+        this.buttonPaste = null;
+        DOM.addClass(this.node, 'ui-panel-clipboard');
+        this.node.innerHTML = UI_Resources.html_clipboardToolbar;
+        this.buttonCut = this.node.querySelector('.ui-button.cut');
+        this.buttonCopy = this.node.querySelector('.ui-button.copy');
+        this.buttonPaste = this.node.querySelector('.ui-button.paste');
+        (function (me) {
+            me.buttonCut.addEventListener('click', function () {
+                if (DOM.hasClass(me.buttonCut, 'state-disabled'))
+                    return;
+                me.cut();
+            }, false);
+            me.buttonCopy.addEventListener('click', function () {
+                if (DOM.hasClass(me.buttonCopy, 'state-disabled'))
+                    return;
+                me.copy();
+            }, false);
+            me.buttonPaste.addEventListener('click', function () {
+                if (DOM.hasClass(me.buttonPaste, 'state-disabled'))
+                    return;
+                me.paste();
+            }, false);
+        })(this);
+        this.on_afterload();
+        (function (me) {
+            me.toolbar.router.viewport.selection.on('changed', function () {
+                me.updateState();
+            });
+        })(this);
+    }
+    UI_Toolbar_Panel_Clipboard.prototype.focus = function (element) {
+        var saveLeft = document.body.scrollLeft, saveTop = document.body.scrollTop;
+        element.focus();
+        document.body.scrollLeft = saveLeft;
+        document.body.scrollTop = saveTop;
+    };
+    UI_Toolbar_Panel_Clipboard.prototype.cut = function () {
+        this.toolbar.router.dispatchCommand(11 /* CUT */, []);
+        this.focus(this.toolbar.router.viewport.canvas);
+    };
+    UI_Toolbar_Panel_Clipboard.prototype.copy = function () {
+        this.toolbar.router.dispatchCommand(10 /* COPY */, []);
+        this.focus(this.toolbar.router.viewport.canvas);
+    };
+    UI_Toolbar_Panel_Clipboard.prototype.paste = function () {
+        this.toolbar.router.dispatchCommand(12 /* PASTE */, []);
+        this.focus(this.toolbar.router.viewport.canvas);
+    };
+    UI_Toolbar_Panel_Clipboard.prototype.updateState = function () {
+        var selection = this.toolbar.router.viewport.selection, rng = selection.getRange(), len = rng.length();
+        switch (len) {
+            case null:
+                if (rng.isMultiRange()) {
+                    DOM.removeClass(this.buttonCopy, 'state-disabled');
+                    DOM.addClass(this.buttonCut, 'state-disabled');
+                    DOM.removeClass(this.buttonPaste, 'state-disabled');
+                }
+                else {
+                    DOM.removeClass(this.buttonCopy, 'state-disabled');
+                    DOM.removeClass(this.buttonCut, 'state-disabled');
+                    if (rng.isOrphan()) {
+                        DOM.removeClass(this.buttonPaste, 'state-disabled');
+                    }
+                    else {
+                        DOM.addClass(this.buttonPaste, 'state-disabled');
+                    }
+                }
+                break;
+            case 0:
+                DOM.addClass(this.buttonCopy, 'state-disabled');
+                DOM.addClass(this.buttonCut, 'state-disabled');
+                DOM.removeClass(this.buttonPaste, 'state-disabled');
+                break;
+            default:
+                DOM.removeClass(this.buttonCopy, 'state-disabled');
+                DOM.removeClass(this.buttonCut, 'state-disabled');
+                DOM.removeClass(this.buttonPaste, 'state-disabled');
+                break;
+        }
+    };
+    return UI_Toolbar_Panel_Clipboard;
+})(UI_Toolbar_Panel);
 var UI_Toolbar_Panel_Formatting = (function (_super) {
     __extends(UI_Toolbar_Panel_Formatting, _super);
     function UI_Toolbar_Panel_Formatting(toolbar, appendIn, maxPercentualOrFixedWidth, panelRowIndex) {

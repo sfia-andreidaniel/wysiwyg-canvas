@@ -372,6 +372,11 @@ class DocSelection extends Events {
 
 		rng.collapse( true );
 
+		rng.save();
+		// defragment the document
+		this.viewport.document.defragment();
+		rng.restore();
+
 		rng.fire( 'changed' );
 
 	}

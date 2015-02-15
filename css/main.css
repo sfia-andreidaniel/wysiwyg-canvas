@@ -492,6 +492,16 @@ div.html-editor .ui-panel-style .ui-button.color > .icon {
 	background-position: -21px -21px !important;
 }
 
+div.html-editor .ui-panel-clipboard .ui-button.cut {
+	background-position: 0px -201px !important;
+}
+div.html-editor .ui-panel-clipboard .ui-button.copy {
+	background-position: -21px -201px !important;
+}
+div.html-editor .ui-panel-clipboard .ui-button.paste {
+	background-position: -41px -201px !important;
+}
+
 div.html-editor .ui-panel-multimedia .ui-button.link {
 	background-position: -62px -21px !important;
 }

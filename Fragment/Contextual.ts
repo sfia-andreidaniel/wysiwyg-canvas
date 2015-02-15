@@ -19,7 +19,7 @@ class Fragment_Contextual {
 	}
 
 	// compute the parts of the contextual fragment.
-	public compute() {
+	public compute(): Fragment_Contextual {
 		var i: number = 0,
 		    currentNode: TNode_Text = null,
 		    element: TNode_Element = null,
@@ -30,7 +30,7 @@ class Fragment_Contextual {
 		    end: number = this.end;
 
 		if ( this.isEmpty ) {
-			return;
+			return this;
 		}
 
 		this.parts = [];
@@ -84,6 +84,8 @@ class Fragment_Contextual {
 			}
 			currentNode = null;	
 		}
+
+		return this;
 	}
 
 	public affectedTextNodes(): TNode_Text[] {

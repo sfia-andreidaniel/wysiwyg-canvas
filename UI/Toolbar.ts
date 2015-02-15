@@ -26,6 +26,8 @@ class UI_Toolbar extends Events {
 			<HTMLDivElement>this.node.querySelector( '.toolbar-row.index-1' ),
 			<HTMLDivElement>this.node.querySelector( '.toolbar-row.index-2' )
 		];
+		
+		this.panels.push( new UI_Toolbar_Panel_Clipboard  ( this, this.rows[0], 70, 0 ) );
 		this.panels.push( new UI_Toolbar_Panel_Multimedia ( this, this.rows[0], 70, 0 ) );
 		this.panels.push( new UI_Toolbar_Panel_Table      ( this, this.rows[0], 264, 0 ) );
 		this.panels.push( new UI_Toolbar_Panel_Formatting ( this, this.rows[1],  1, 1 ) );

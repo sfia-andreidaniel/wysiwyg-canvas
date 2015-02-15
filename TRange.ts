@@ -432,6 +432,10 @@ class TRange extends Events {
 		return this._anchorNode && this._anchorNode.target.is() == 'multirange';
 	}
 
+	public isOrphan(): boolean {
+		return this._anchorNode && this._anchorNode.target.isOrphanElement();
+	}
+
 	public becomeTableRectRange(): boolean {
 		if ( this.isMultiRange() ) {
 

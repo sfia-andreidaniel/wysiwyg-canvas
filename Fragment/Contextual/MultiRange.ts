@@ -4,14 +4,14 @@ class Fragment_Contextual_MultiRange extends Fragment_Contextual {
 		super( fragment, 0, 0, isEmpty );
 	}
 
-	public compute() {
+	public compute(): Fragment_Contextual {
 		
 		var i: number = 0,
 			len: number = 0,
 			node: TNode;
 
 		if ( this.isEmpty ) {
-			return;
+			return this;
 		}
 
 		this.parts = [];
@@ -31,6 +31,8 @@ class Fragment_Contextual_MultiRange extends Fragment_Contextual {
 			}
 
 		}
+
+		return this;
 
 	}
 

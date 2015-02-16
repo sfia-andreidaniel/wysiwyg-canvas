@@ -279,7 +279,7 @@ class Viewport_CommandRouter extends Events {
 
 		if ( !focus && range.anchorNode().target.isOrphanElement() ) {
 
-			focus.target.documentElement.undoManager().createUndoEntry( 'Write' );
+			range.anchorNode().target.documentElement.undoManager().createUndoEntry( 'Write' );
 
 			textNode = range.anchorNode().target.documentElement.createTextNode( str );
 			(<TNode_Element>range.anchorNode().target).appendChild( textNode );

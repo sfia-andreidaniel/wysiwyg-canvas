@@ -128,7 +128,7 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 		    rng       = selection.getRange(),
 		    picture: HTML_Image = null;
 
-		if ( !rng.focusNode() ) {
+		if ( !rng.focusNode() && !rng.isOrphan() ) {
 			if ( rng.anchorNode().target.is() != 'img' ) {
 				UI_Dialog_Manager.alert( 'The editor is not in a state which allows inserting pictures. Try selecting a picture or a text first.', function() {
 					selection.viewport.canvas.focus();

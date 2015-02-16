@@ -105,4 +105,101 @@ class HTML_MultiRange_TableRect extends HTML_MultiRange {
 		return null;
 	}
 
+	public mergeCells() {
+
+		var affectedRows: HTML_TableRow[] = [],
+		    i: number = 0,
+		    len: number = this.childNodes.length,
+		    cellTopLeft: HTML_TableCell = null,
+		    c: HTML_TableCell,
+
+		    minEdgeTop: number = null,
+		    minEdgeLeft: number = null,
+		    maxEdgeRight: number = null,
+		    maxEdgeBottom: number = null,
+
+		    finalColSpan: number = null,
+		    finalRowSpan: number = null;
+
+		if ( len < 2 ) {
+			return;
+		}
+
+		for ( i=0; i<len; i++ ) {
+			c = (<HTML_TableCell>this.childNodes[i]);
+			
+			if ( cellTopLeft === null ) {
+				cellTopLeft = c;
+			} else {
+				if ( cellTopLeft.edgeLeft.index >= c.edgeLeft.index && cellTopLeft.edgeTop.index >= c.edgeTop.index ) {
+					cellTopLeft = c;
+				}
+			}
+
+			if ( minEdgeTop === null ) {
+				minEdgeTop = c.edgeTop.index;
+				minEdgeLeft = c.edgeLeft.index;
+				maxEdgeRight = c.edgeRight.index;
+				maxEdgeBottom = c.edgeBottom.index;
+			} else {
+				minEdgeTop = Math.min( c.edgeTop.index, minEdgeTop );
+				minEdgeLeft = Math.min( c.edgeLeft.index, minEdgeLeft );
+				maxEdgeRight = Math.max( c.edgeRight.index, maxEdgeRight );
+				maxEdgeBottom = Math.max( c.edgeBottom.index, maxEdgeBottom );
+			}
+
+			if ( affectedRows.indexOf( <HTML_TableRow>c.parentNode ) == -1 ) {
+				affectedRows.push( <HTML_TableRow>c.parentNode );
+			}
+
+		}
+
+		finalColSpan = maxEdgeRight - minEdgeLeft + 1;
+		finalRowSpan = maxEdgeBottom - minEdgeTop + 1;
+
+		// grab the contents of the cells and put it in the
+		// cellTopLeft cell
+
+		for ( i=0; i<len; i++ ) {
+			
+			c = (<HTML_TableCell>this.childNodes[i]);
+			
+			if ( c == cellTopLeft )
+				continue;
+			
+			if ( c.childNodes.length ) {
+				
+				if ( c.childNodes[0].is() == '#text' ) {
+					cellTopLeft.appendChild( cellTopLeft.documentElement.createElement( 'br' ) );
+				}
+				
+				cellTopLeft.appendCollection( new TNode_Collection( c.childNodes ) );
+			}
+
+			c.remove();
+		}
+
+		cellTopLeft.colSpan( finalColSpan );
+		cellTopLeft.rowSpan( finalRowSpan );
+
+		for ( i=0, len = affectedRows.length; i<len; i++ ) {
+			if ( affectedRows[i].childNodes.length == 0 ) {
+				affectedRows[i].remove();
+			}
+		}
+
+		this.focus = cellTopLeft;
+		this.anchor = cellTopLeft;
+
+		this.childNodes = [ cellTopLeft ];
+
+		cellTopLeft.ownerTable.compile( true );
+
+		this.anchor.documentElement.viewport.selection.getRange().fire( 'changed' );
+		this.anchor.documentElement.viewport.selection.editorState.fire( 'changed', [ 'cell', 'table' ] );
+
+		// recompute document state
+
+	}
+
 }

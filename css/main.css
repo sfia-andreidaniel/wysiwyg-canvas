@@ -588,6 +588,13 @@ div.html-editor .ui-panel-table .ui-button.table-delete-c {
 	background-position: -21px -181px !important;
 }
 
+div.html-editor .ui-panel-table .ui-button.table-split-cells {
+	background-position: -61px -181px !important;
+}
+div.html-editor .ui-panel-table .ui-button.table-merge-cells {
+	background-position: -41px -181px !important;
+}
+
 
 /* UI_Dialog */
 

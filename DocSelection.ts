@@ -3,7 +3,7 @@ class DocSelection extends Events {
 	private   range         : TRange   = null;	             // the selection range. user can obtain the range via the getRange() method
 	public    viewport      : Viewport = null;               // viewport for which this selection is applied
 
-	protected stateComputer : Throttler = null;              // a throttler that computes the editor state when the selection is changed
+	protected stateComputer  : Throttler = null;              // a throttler that computes the editor state when the selection is changed
 	protected changeThrottler: Throttler = null;
 	public    editorState    : Selection_EditorState = null;
 

@@ -13,6 +13,9 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 	public btnInsertColAfter  : HTMLDivElement     = null;
 	public btnDeleteCol       : HTMLDivElement     = null;
 
+	public btnSplitCells      : HTMLDivElement     = null;
+	public btnMergeCells      : HTMLDivElement     = null;
+
 	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
 		
 		super( toolbar, 'Table', appendIn, maxPercentualOrFixedWidth, panelRowIndex );
@@ -34,6 +37,8 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		this.btnInsertColAfter  = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-insert-c-after' );
 		this.btnDeleteCol       = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-delete-c' );
 
+		this.btnSplitCells      = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-split-cells' );
+		this.btnMergeCells      = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-merge-cells' );
 
 		( function( me ) {
 
@@ -82,6 +87,18 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 				me.deleteColumn();
 			}, true );
 
+			me.btnMergeCells.addEventListener( 'click', function( evt ) {
+				if ( DOM.hasClass( me.btnMergeCells, 'state-disabled' ) )
+					return;
+				me.mergeCells();
+			}, true );
+
+			me.btnSplitCells.addEventListener( 'click', function( evt ) {
+				if ( DOM.hasClass( me.btnSplitCells, 'state-disabled' ) )
+					return;
+				me.splitCells();
+			}, true );
+
 			me.createTableDropdown( me.btnTable, function( c: number, r: number ) {
 				me.insertTable( c, r );
 			} );
@@ -101,7 +118,9 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 	private updatePanelState() {
 
 		var tableState: boolean = !!this.toolbar.state.state.table,
-		    cellState : boolean = !!this.toolbar.state.state.cell;
+		    cellState : HTML_TableCell = this.toolbar.state.state.cell,
+		    selection = this.toolbar.router.viewport.selection,
+		    rng       = selection.getRange();
 
 		if ( tableState ) {
 			DOM.removeClass( this.btnTable, 'state-disabled' );
@@ -118,6 +137,23 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			DOM.removeClass( this.btnInsertRowAfter,  'state-disabled' );
 			DOM.removeClass( this.btnInsertRowBefore, 'state-disabled' );
 			DOM.removeClass( this.btnDeleteRow,       'state-disabled' );
+
+			/* Split cells is possible only if the cell has colspan or rowspan > 1.
+			   Merge cells is possible only if selection is of type multirange,
+			   and contains more than 1 cell.
+			 */
+			if ( ( cellState.colSpan() > 1 || cellState.rowSpan() > 1 ) && !rng.isMultiRange() ) {
+				DOM.removeClass( this.btnSplitCells, 'state-disabled' );
+			} else {
+				DOM.addClass( this.btnSplitCells, 'state-disabled' );
+			}
+
+			if ( cellState && rng.isMultiRange() && cellState && (<HTML_MultiRange>rng.anchorNode().target).childNodes.length > 1 ) {
+				DOM.removeClass( this.btnMergeCells, 'state-disabled' );
+			} else {
+				DOM.addClass( this.btnMergeCells, 'state-disabled' );
+			}
+
 		} else {
 			DOM.addClass( this.btnBorderColor,        'state-disabled' );
 			DOM.addClass( this.btnBackgroundColor,    'state-disabled' );
@@ -127,6 +163,9 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			DOM.addClass( this.btnInsertRowAfter,     'state-disabled' );
 			DOM.addClass( this.btnInsertRowBefore,    'state-disabled' );
 			DOM.addClass( this.btnDeleteRow,          'state-disabled' );
+
+			DOM.addClass( this.btnSplitCells,         'state-disabled' );
+			DOM.addClass( this.btnMergeCells,         'state-disabled' );
 		}
 
 	}
@@ -352,6 +391,29 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 
 	private setBackgroundColor( color: string ) {
 		this.toolbar.router.dispatchCommand( EditorCommand.BGCOLOR, [ color ] );
+	}
+
+	private splitCells() {
+
+	}
+
+	private mergeCells() {
+
+		var selection = this.toolbar.router.viewport.selection,
+		    rng       = selection.getRange();
+
+		if ( !rng.isMultiRange() ) {
+			return;
+		}
+
+		/* Transform the range into a HTML_MultiRange_TableRect range */
+		if ( !rng.becomeTableRectRange() )
+			return;
+
+		(<HTML_MultiRange_TableRect>rng.anchorNode().target).mergeCells();
+
+		DOM.removeClass( this.btnSplitCells, 'state-disabled' );
+
 	}
 
 	public updateDocumentState( propertiesList: string [] ) {

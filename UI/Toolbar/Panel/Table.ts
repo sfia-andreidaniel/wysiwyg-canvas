@@ -13,7 +13,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 	public btnInsertColAfter  : HTMLDivElement     = null;
 	public btnDeleteCol       : HTMLDivElement     = null;
 
-	public btnSplitCells      : HTMLDivElement     = null;
+	public btnSplitCell       : HTMLDivElement     = null;
 	public btnMergeCells      : HTMLDivElement     = null;
 
 	constructor( toolbar: UI_Toolbar, appendIn: HTMLDivElement, maxPercentualOrFixedWidth: number, panelRowIndex: number ) {
@@ -37,7 +37,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		this.btnInsertColAfter  = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-insert-c-after' );
 		this.btnDeleteCol       = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-delete-c' );
 
-		this.btnSplitCells      = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-split-cells' );
+		this.btnSplitCell       = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-split-cells' );
 		this.btnMergeCells      = <HTMLDivElement>  this.node.querySelector( 'div.ui-button.table-merge-cells' );
 
 		( function( me ) {
@@ -93,10 +93,10 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 				me.mergeCells();
 			}, true );
 
-			me.btnSplitCells.addEventListener( 'click', function( evt ) {
-				if ( DOM.hasClass( me.btnSplitCells, 'state-disabled' ) )
+			me.btnSplitCell.addEventListener( 'click', function( evt ) {
+				if ( DOM.hasClass( me.btnSplitCell, 'state-disabled' ) )
 					return;
-				me.splitCells();
+				me.splitCell();
 			}, true );
 
 			me.createTableDropdown( me.btnTable, function( c: number, r: number ) {
@@ -143,9 +143,9 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			   and contains more than 1 cell.
 			 */
 			if ( ( cellState.colSpan() > 1 || cellState.rowSpan() > 1 ) && !rng.isMultiRange() ) {
-				DOM.removeClass( this.btnSplitCells, 'state-disabled' );
+				DOM.removeClass( this.btnSplitCell, 'state-disabled' );
 			} else {
-				DOM.addClass( this.btnSplitCells, 'state-disabled' );
+				DOM.addClass( this.btnSplitCell, 'state-disabled' );
 			}
 
 			if ( cellState && rng.isMultiRange() && cellState && (<HTML_MultiRange>rng.anchorNode().target).childNodes.length > 1 ) {
@@ -164,7 +164,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			DOM.addClass( this.btnInsertRowBefore,    'state-disabled' );
 			DOM.addClass( this.btnDeleteRow,          'state-disabled' );
 
-			DOM.addClass( this.btnSplitCells,         'state-disabled' );
+			DOM.addClass( this.btnSplitCell,          'state-disabled' );
 			DOM.addClass( this.btnMergeCells,         'state-disabled' );
 		}
 
@@ -393,8 +393,12 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		this.toolbar.router.dispatchCommand( EditorCommand.BGCOLOR, [ color ] );
 	}
 
-	private splitCells() {
-
+	private splitCell() {
+		var cell = this.toolbar.router.viewport.selection.editorState.state.cell;
+		
+		if ( cell ) {
+			cell.splitCell();
+		}
 	}
 
 	private mergeCells() {
@@ -407,12 +411,14 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 		}
 
 		/* Transform the range into a HTML_MultiRange_TableRect range */
-		if ( !rng.becomeTableRectRange() )
+		if ( !rng.becomeTableRectRange() ) {
+			console.warn('failed to become tablerectrange' );
 			return;
+		}
 
 		(<HTML_MultiRange_TableRect>rng.anchorNode().target).mergeCells();
 
-		DOM.removeClass( this.btnSplitCells, 'state-disabled' );
+		DOM.removeClass( this.btnSplitCell, 'state-disabled' );
 
 	}
 

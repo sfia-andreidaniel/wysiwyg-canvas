@@ -67,6 +67,9 @@ class HTML_MultiRange_TableRow extends HTML_MultiRange {
 		if ( this.childNodes.length ) {
 			var become = new HTML_MultiRange_TableRect( this.childNodes[0].documentElement, this.parentNode );
 			become.anchorTo( <HTML_TableCell>this.childNodes[0] );
+			for ( var i=1, len = this.childNodes.length; i<len; i++ ) {
+				become.appendChild( this.childNodes[i] );
+			}
 			return become;
 		} else {
 			return null;

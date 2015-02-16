@@ -513,5 +513,109 @@ class HTML_TableCell extends TNode_Element {
 
 	}
 
+	/* If the cell has colspan more than 1 or rowspan more than 1,
+	   we can split it.
+	 */
+	public splitCell() {
+		
+		if ( this.colSpan() == 1 && this.rowSpan() == 1 ) {
+			return;
+		}
+
+		this.documentElement.lockTables();
+
+		var affectedRows: HTML_TableRow[] = [ <HTML_TableRow>this.parentNode ],
+		    i: number = 0,
+		    len: number = 0,
+		    j: number = 0,
+		    n: number = 0,
+		    needRowsAfter: number = 0,
+		    rowspan: number = this.rowSpan(),
+		    cursor: HTML_TableRow,
+		    newRow: HTML_TableRow,
+		    saveColspan: number = this.colSpan(),
+		    saveRowspan: number = this.rowSpan(),
+		    saveEdgeLeftIndex: number = this.edgeLeft.index,
+		    insertAtPos: number = null,
+		    c: HTML_TableCell;
+
+		if ( rowspan > 1 ) {
+			
+			cursor = <HTML_TableRow>this.parentNode.nextSibling();
+
+			while ( rowspan > 1 ) {
+				if ( cursor ) {
+					affectedRows.push( <HTML_TableRow>cursor );
+				} else {
+					newRow = <HTML_TableRow>this.documentElement.createElement( 'tr' );
+					newRow.ownerTable = this.ownerTable;
+					this.ownerTable.appendChild( newRow );
+					affectedRows.push( newRow );
+					cursor = newRow;
+				}
+
+				cursor = <HTML_TableRow>cursor.nextSibling();
+				rowspan--;
+			}
+
+		}
+
+		if ( saveColspan > 1 ) {
+			
+			this.colSpan( 1 );
+
+			for ( i = 1; i< saveColspan; i++ ) {
+				
+				c = <HTML_TableCell>this.documentElement.createElement( 'td' );
+				c.ownerTable = this.ownerTable;
+
+				this.parentNode.appendChild( c, this.siblingIndex + 1 );
+
+			}
+		}
+
+		if ( saveRowspan > 1 ) {
+
+			this.rowSpan(1);
+
+			for ( i=1; i<affectedRows.length; i++ ) {
+
+				if ( affectedRows[i].childNodes.length == 0 ) {
+				
+					insertAtPos = null;
+				
+				} else {
+				
+					insertAtPos = 0;
+
+					for ( j = 0, n = affectedRows[i].childNodes.length; j<n; j++ ) {
+
+						c = ( <HTML_TableCell>affectedRows[i].childNodes[j] );
+
+						if ( c.edgeLeft && c.edgeLeft.index <= saveEdgeLeftIndex ) {
+							insertAtPos = j;
+						} else {
+							break;
+						}
+					}
+				}
+
+				for ( j=0; j<saveColspan; j++ ) {
+					c = <HTML_TableCell>this.documentElement.createElement( 'td' );
+					c.ownerTable = this.ownerTable;
+					affectedRows[i].appendChild( c, insertAtPos );
+				}
+
+			}
+
+		}
+
+		this.documentElement.unlockTables();
+		this.ownerTable.compile(true);
+
+		this.documentElement.viewport.selection.fire( 'changed' );
+
+	}
+
 
 }

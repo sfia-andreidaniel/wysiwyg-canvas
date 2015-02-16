@@ -64,7 +64,9 @@ class Viewport_KeyboardDriver extends Events {
 
 	onkeydown( DOMEvent: any ) {
 		
-		var cancelEvent: boolean = false;
+		var cancelEvent: boolean = false,
+		    nextCell: HTML_TableCell,
+		    textNodes: TNode_Text[];
 
 		switch ( DOMEvent.keyCode ) {
 
@@ -75,7 +77,53 @@ class Viewport_KeyboardDriver extends Events {
 
 			case 9: /* Tab: */
 				cancelEvent = true;
-				this.viewport.execCommand( DOMEvent.shiftKey ? EditorCommand.UNINDENT : EditorCommand.INDENT );
+				
+				if ( !this.viewport.selection.editorState.state.cell ) {
+					this.viewport.execCommand( DOMEvent.shiftKey ? EditorCommand.UNINDENT : EditorCommand.INDENT );
+				} else {
+					if ( !DOMEvent.shiftKey ) {
+
+						nextCell = this.viewport.selection.editorState.state.cell.nextCell();
+
+						if ( nextCell ) {
+
+							if ( nextCell.isOrphanElement() ) {
+								this.viewport.selection.anchorTo( new TRange_Target( nextCell, nextCell.FRAGMENT_START ) );
+							} else {
+								textNodes = nextCell.allTextNodes();
+								if ( textNodes.length ) {
+									this.viewport.selection.anchorTo( new TRange_Target( textNodes[ textNodes.length - 1 ], textNodes[ textNodes.length - 1 ].FRAGMENT_END ) )
+								} else {
+									this.viewport.selection.anchorTo( new TRange_Target( nextCell, nextCell.FRAGMENT_END ) );
+								}
+							}
+
+						} else {
+							// create a new row in the table
+							this.viewport.selection.editorState.state.cell.insertRow( false );
+
+							nextCell = this.viewport.selection.editorState.state.cell.nextCell();
+
+							if ( nextCell ) {
+
+								if ( nextCell.isOrphanElement() ) {
+									this.viewport.selection.anchorTo( new TRange_Target( nextCell, nextCell.FRAGMENT_START ) );
+								} else {
+									textNodes = nextCell.allTextNodes();
+									if ( textNodes.length ) {
+										this.viewport.selection.anchorTo( new TRange_Target( textNodes[ textNodes.length - 1 ], textNodes[ textNodes.length - 1 ].FRAGMENT_END ) )
+									} else {
+										this.viewport.selection.anchorTo( new TRange_Target( nextCell, nextCell.FRAGMENT_END ) );
+									}
+								}
+
+							}
+
+						}
+					} else {
+						// TODO: FOCUS PREVIOUS CELL
+					}
+				}
 				break;
 
 			case 66: // b

@@ -147,6 +147,8 @@ class Viewport_MouseDriver extends Events {
 
 			case 3:
 
+				/*
+
 				var target: TRange_Target = this.viewport.getTargetAtXY( point ),
 				    selection = this.viewport.selection,
 				    range = selection.getRange(),
@@ -154,10 +156,6 @@ class Viewport_MouseDriver extends Events {
 				    i: number = 0,
 				    len: number = 0;
 				
-				/* Find if the target is contained in the selection. If the target
-				   is contained in the selection, we do not reanchor.
-				 */
-
 				if ( range.length() && target.target ) {
 					blocks = range.affectedBlockNodes();
 					for ( i=0, len = blocks.length; i<len; i++ ) {
@@ -175,6 +173,8 @@ class Viewport_MouseDriver extends Events {
 
 					this.fire( 'refocus' );
 				}
+
+				*/
 
 
 				break;

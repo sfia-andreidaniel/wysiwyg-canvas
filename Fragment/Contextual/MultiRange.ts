@@ -185,7 +185,15 @@ class Fragment_Contextual_MultiRange extends Fragment_Contextual {
 	}
 
 	public remove() {
-		console.warn( "ERR_NOT_IMPLEMENTED" );
+		this.compute();
+
+		var blocks: TNode_Element[] = this.affectedBlockNodes(),
+		    i: number = 0,
+		    len: number = 0;
+
+		for ( i=0, len = blocks.length; i<len; i++ ) {
+			blocks[i].removeAllChildNodes();
+		}
 	}
 
 	public toString( format: string = 'text/html', closeTags: boolean = false ) {

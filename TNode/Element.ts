@@ -138,6 +138,10 @@ class TNode_Element extends TNode {
 				
 				this.requestRelayout();
 				
+				if ( this.childNodes.length == 0 && this.style.display() == 'inline' ) {
+					this.remove();
+				}
+
 				return node;
 			}
 		}

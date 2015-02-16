@@ -1,6 +1,5 @@
 class HTML_TableRow extends TNode_Element {
 	
-	public ownerTable: HTML_Table = null;
 	public isMergeable : boolean = false;
 
 	constructor() {
@@ -46,6 +45,12 @@ class HTML_TableRow extends TNode_Element {
 	// table rows don't have tabstops
 	public tabStop( value: number = null ): number {
 		return 0;
+	}
+
+	get ownerTable(): HTML_Table {
+		return this.parentNode && this.parentNode.is() == 'table'
+			? <HTML_Table>this.parentNode
+			: null;
 	}
 
 

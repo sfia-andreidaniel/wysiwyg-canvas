@@ -879,6 +879,9 @@ var TNode_Element = (function (_super) {
                     this.childNodes[j].siblingIndex = j;
                 }
                 this.requestRelayout();
+                if (this.childNodes.length == 0 && this.style.display() == 'inline') {
+                    this.remove();
+                }
                 return node;
             }
         }
@@ -4065,6 +4068,7 @@ var HTML_Table = (function (_super) {
     HTML_Table.prototype.createVirtualColumnNode = function (colStart, colEnd, includeExact) {
         if (includeExact === void 0) { includeExact = false; }
         var i = 0, j = 0, len = 0, lem = 0, cell, out = new HTML_MultiRange_TableColumn(this.documentElement, this);
+        console.warn(colStart, colEnd);
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
             for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
                 cell = this.childNodes[i].childNodes[j];
@@ -4075,7 +4079,7 @@ var HTML_Table = (function (_super) {
                     }
                 }
                 else {
-                    if (colStart >= cell.edgeLeft.index && colEnd <= cell.edgeRight.index) {
+                    if (colStart <= cell.edgeLeft.index && colEnd >= cell.edgeRight.index) {
                         out.appendChild(cell);
                         break;
                     }
@@ -4096,7 +4100,7 @@ var HTML_Table = (function (_super) {
                     }
                 }
                 else {
-                    if (rowStart >= cell.edgeTop.index && rowEnd <= cell.edgeBottom.index) {
+                    if (rowStart <= cell.edgeTop.index && rowEnd >= cell.edgeBottom.index) {
                         out.appendChild(cell);
                     }
                 }
@@ -4131,7 +4135,7 @@ var HTML_Table = (function (_super) {
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
             for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
                 cell = this.childNodes[i].childNodes[j];
-                if (rowMinIndex >= cell.edgeTop.index && rowMaxIndex <= cell.edgeBottom.index) {
+                if (rowMinIndex <= cell.edgeTop.index && rowMaxIndex >= cell.edgeBottom.index) {
                     out.push(cell);
                 }
             }
@@ -4143,7 +4147,7 @@ var HTML_Table = (function (_super) {
         for (var i = 0, len = this.childNodes.length; i < len; i++) {
             for (j = 0, lem = this.childNodes[i].childNodes.length; j < lem; j++) {
                 cell = this.childNodes[i].childNodes[j];
-                if (colMinIndex >= cell.edgeLeft.index && colMaxIndex <= cell.edgeRight.index) {
+                if (colMinIndex <= cell.edgeLeft.index && colMaxIndex >= cell.edgeRight.index) {
                     out.push(cell);
                     break;
                 }
@@ -4415,7 +4419,6 @@ var HTML_TableRow = (function (_super) {
     __extends(HTML_TableRow, _super);
     function HTML_TableRow() {
         _super.call(this);
-        this.ownerTable = null;
         this.isMergeable = false;
         this.nodeName = 'tr';
         this.style.display('block');
@@ -4450,13 +4453,19 @@ var HTML_TableRow = (function (_super) {
         if (value === void 0) { value = null; }
         return 0;
     };
+    Object.defineProperty(HTML_TableRow.prototype, "ownerTable", {
+        get: function () {
+            return this.parentNode && this.parentNode.is() == 'table' ? this.parentNode : null;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return HTML_TableRow;
 })(TNode_Element);
 var HTML_TableCell = (function (_super) {
     __extends(HTML_TableCell, _super);
     function HTML_TableCell() {
         _super.call(this, true);
-        this.ownerTable = null;
         this.tableIndex = 0; // the index of the cell in it's table
         this.rowIndex = 0; // the index of the cell in it's row
         this._colSpan = 1;
@@ -4647,6 +4656,9 @@ var HTML_TableCell = (function (_super) {
         anchor.anchorTo(this);
         return anchor;
     };
+    /* On the cell, the removeOrphan nodes it is canceled, because the cell
+       can be orphan
+     */
     HTML_TableCell.prototype.removeOrphanNodes = function () {
         // void, intentionally.
     };
@@ -4689,6 +4701,9 @@ var HTML_TableCell = (function (_super) {
             }
         }
     };
+    /* Inserts a row in the table populated with cells.
+       It attempts to keep the same layout of the current visual row
+       of the cell */
     HTML_TableCell.prototype.insertRow = function (before) {
         if (before === void 0) { before = true; }
         this.ownerTable._xEdgesApplied = false;
@@ -4734,6 +4749,7 @@ var HTML_TableCell = (function (_super) {
             }
         }
     };
+    /* Deletes the visual column of the cell */
     HTML_TableCell.prototype.deleteColumn = function () {
         this.ownerTable._xEdgesApplied = false;
         var table = this.ownerTable, leftIndex = this.edgeLeft.index, rightIndex = this.edgeRight.index, col = table.getCellsForColumn(leftIndex, rightIndex), rows = [], i = 0, len = 0, indexes = [], thisColspan = this.colSpan(), removedCells = [], selection = this.documentElement.viewport.selection, rng = selection.getRange();
@@ -4765,6 +4781,8 @@ var HTML_TableCell = (function (_super) {
         else
             selection.anchorTo(new TRange_Target(this.documentElement));
     };
+    /* Deletes the "visual" (not the TR) row of the cell from the table.
+     */
     HTML_TableCell.prototype.deleteRow = function () {
         this.ownerTable._xEdgesApplied = false;
         var table = this.ownerTable, topIndex = this.edgeTop.index, bottomIndex = this.edgeBottom.index, col = table.getCellsForRow(topIndex, bottomIndex), rows = [], i = 0, len = 0, indexes = [], thisRowspan = this.rowSpan(), removedCells = [], selection = this.documentElement.viewport.selection, rng = selection.getRange();
@@ -4858,6 +4876,31 @@ var HTML_TableCell = (function (_super) {
         this.documentElement.unlockTables();
         this.ownerTable.compile(true);
         this.documentElement.viewport.selection.fire('changed');
+    };
+    Object.defineProperty(HTML_TableCell.prototype, "ownerTable", {
+        /* Returns the direct table which holds this cell */
+        get: function () {
+            return this.parentNode && this.parentNode.is() == 'tr' ? this.parentNode.ownerTable : null;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    /* Returns the next cell in the ownertable of the current cell.
+       The cell is physically layouted visually in the table, and it has
+       nothing to do with the DOM node order of the cells in the table */
+    HTML_TableCell.prototype.nextCell = function () {
+        if (this.nextSibling()) {
+            return this.nextSibling();
+        }
+        else {
+            for (var i = this.parentNode.siblingIndex + 1; i < this.parentNode.parentNode.childNodes.length; i++) {
+                if (this.parentNode.parentNode.childNodes[i].childNodes[0]) {
+                    return this.parentNode.parentNode.childNodes[i].childNodes[0];
+                }
+            }
+        }
+        return null;
+        return null;
     };
     return HTML_TableCell;
 })(TNode_Element);
@@ -7891,23 +7934,6 @@ var Viewport_MouseDriver = (function (_super) {
                 }
                 break;
             case 3:
-                var target = this.viewport.getTargetAtXY(point), selection = this.viewport.selection, range = selection.getRange(), blocks, i = 0, len = 0;
-                /* Find if the target is contained in the selection. If the target
-                   is contained in the selection, we do not reanchor.
-                 */
-                if (range.length() && target.target) {
-                    blocks = range.affectedBlockNodes();
-                    for (i = 0, len = blocks.length; i < len; i++) {
-                        if (blocks[i] == target.target || blocks[i].containsNode(target.target)) {
-                            return;
-                        }
-                    }
-                }
-                if (target) {
-                    window['$1'] = target.target;
-                    this.viewport.selection.anchorTo(target);
-                    this.fire('refocus');
-                }
                 break;
             default:
                 DOMEvent.preventDefault();
@@ -8268,7 +8294,7 @@ var Viewport_KeyboardDriver = (function (_super) {
         }
     };
     Viewport_KeyboardDriver.prototype.onkeydown = function (DOMEvent) {
-        var cancelEvent = false;
+        var cancelEvent = false, nextCell, textNodes;
         switch (DOMEvent.keyCode) {
             case 32:
                 this.viewport.execCommand(0 /* INSERT_TEXT */, ' ');
@@ -8276,7 +8302,49 @@ var Viewport_KeyboardDriver = (function (_super) {
                 break;
             case 9:
                 cancelEvent = true;
-                this.viewport.execCommand(DOMEvent.shiftKey ? 14 /* UNINDENT */ : 13 /* INDENT */);
+                if (!this.viewport.selection.editorState.state.cell) {
+                    this.viewport.execCommand(DOMEvent.shiftKey ? 14 /* UNINDENT */ : 13 /* INDENT */);
+                }
+                else {
+                    if (!DOMEvent.shiftKey) {
+                        nextCell = this.viewport.selection.editorState.state.cell.nextCell();
+                        if (nextCell) {
+                            if (nextCell.isOrphanElement()) {
+                                this.viewport.selection.anchorTo(new TRange_Target(nextCell, nextCell.FRAGMENT_START));
+                            }
+                            else {
+                                textNodes = nextCell.allTextNodes();
+                                if (textNodes.length) {
+                                    this.viewport.selection.anchorTo(new TRange_Target(textNodes[textNodes.length - 1], textNodes[textNodes.length - 1].FRAGMENT_END));
+                                }
+                                else {
+                                    this.viewport.selection.anchorTo(new TRange_Target(nextCell, nextCell.FRAGMENT_END));
+                                }
+                            }
+                        }
+                        else {
+                            // create a new row in the table
+                            this.viewport.selection.editorState.state.cell.insertRow(false);
+                            nextCell = this.viewport.selection.editorState.state.cell.nextCell();
+                            if (nextCell) {
+                                if (nextCell.isOrphanElement()) {
+                                    this.viewport.selection.anchorTo(new TRange_Target(nextCell, nextCell.FRAGMENT_START));
+                                }
+                                else {
+                                    textNodes = nextCell.allTextNodes();
+                                    if (textNodes.length) {
+                                        this.viewport.selection.anchorTo(new TRange_Target(textNodes[textNodes.length - 1], textNodes[textNodes.length - 1].FRAGMENT_END));
+                                    }
+                                    else {
+                                        this.viewport.selection.anchorTo(new TRange_Target(nextCell, nextCell.FRAGMENT_END));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else {
+                    }
+                }
                 break;
             case 66:
                 if (DOMEvent.ctrlKey && !DOMEvent.shiftKey) {
@@ -8777,6 +8845,10 @@ var Viewport_CommandRouter = (function (_super) {
         }
         var document = this.viewport.document, selection = this.viewport.selection, rng = selection.getRange(), focus = rng.focusNode(), anchor = rng.anchorNode(), cursorPosition = 0, newCursorPosition = 0, fragment = this.viewport.document.fragment, at = null, i = 0, j = 0, n = 0, added = false, increment = 0, atMax = fragment.length(), traversedTextNodes = [], node = null, lock = null, chars = 0, sourceBlockElement, destinationBlockElement, mergeOrder, mergePosition = 0, collection = null;
         if (rng.isMultiRange()) {
+            this.viewport.selection.removeContents();
+            return;
+        }
+        if (amount == -1 && rng.isOrphan() && rng.anchorNode().target.is() == 'td') {
             return;
         }
         if (rng.length()) {
@@ -8981,7 +9053,7 @@ var Viewport_CommandRouter = (function (_super) {
         if (range.isMultiRange()) {
             return;
         }
-        if (range.length() == null || !focus) {
+        if (range.length() == null || !focus && !range.isOrphan()) {
             return;
         }
         else {
@@ -9035,15 +9107,17 @@ var Viewport_CommandRouter = (function (_super) {
                         td = focus.target.ownerBlockElement();
                         if (amount == -1 && td.isTheFirstCell() && !td.parentNode.parentNode.previousSibling()) {
                             p = td.documentElement.createElement('p');
-                            p.appendChild(td.documentElement.createTextNode(' '));
                             td.parentNode.parentNode.parentNode.appendChild(p, 0);
                             td.documentElement.relayout(true);
+                            this.viewport.selection.anchorTo(new TRange_Target(p, p.FRAGMENT_START));
+                            return;
                         }
                         else if (amount == 1 && td.isTheLastCell() && !td.parentNode.parentNode.nextSibling()) {
                             p = td.documentElement.createElement('p');
-                            p.appendChild(td.documentElement.createTextNode(' '));
                             td.parentNode.parentNode.parentNode.appendChild(p);
                             td.documentElement.relayout(true);
+                            this.viewport.selection.anchorTo(new TRange_Target(p, p.FRAGMENT_START));
+                            return;
                         }
                     }
                     lineIndex = focus.getLineIndex();
@@ -10285,7 +10359,11 @@ var Fragment_Contextual_MultiRange = (function (_super) {
         return returnValue;
     };
     Fragment_Contextual_MultiRange.prototype.remove = function () {
-        console.warn("ERR_NOT_IMPLEMENTED");
+        this.compute();
+        var blocks = this.affectedBlockNodes(), i = 0, len = 0;
+        for (i = 0, len = blocks.length; i < len; i++) {
+            blocks[i].removeAllChildNodes();
+        }
     };
     Fragment_Contextual_MultiRange.prototype.toString = function (format, closeTags) {
         if (format === void 0) { format = 'text/html'; }

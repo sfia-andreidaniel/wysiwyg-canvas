@@ -1,7 +1,5 @@
 class HTML_TableCell extends TNode_Element {
 	
-	public ownerTable                : HTML_Table      = null;
-	
 	public tableIndex                : number          = 0; // the index of the cell in it's table
 	public rowIndex                  : number          = 0; // the index of the cell in it's row
 
@@ -278,6 +276,10 @@ class HTML_TableCell extends TNode_Element {
 		return anchor;
 	}
 
+
+	/* On the cell, the removeOrphan nodes it is canceled, because the cell
+	   can be orphan
+	 */
 	public removeOrphanNodes() {
 		// void, intentionally.
 	}
@@ -340,6 +342,10 @@ class HTML_TableCell extends TNode_Element {
 
 		}
 	}
+
+	/* Inserts a row in the table populated with cells.
+	   It attempts to keep the same layout of the current visual row
+	   of the cell */
 
 	public insertRow( before: boolean = true ) {
 
@@ -409,6 +415,8 @@ class HTML_TableCell extends TNode_Element {
 
 	}
 
+	/* Deletes the visual column of the cell */
+
 	public deleteColumn() {
 
 		this.ownerTable._xEdgesApplied = false;
@@ -460,6 +468,10 @@ class HTML_TableCell extends TNode_Element {
 			selection.anchorTo( new TRange_Target( this.documentElement ) );
 
 	}
+
+
+	/* Deletes the "visual" (not the TR) row of the cell from the table.
+	 */
 
 	public deleteRow() {
 
@@ -614,6 +626,37 @@ class HTML_TableCell extends TNode_Element {
 		this.ownerTable.compile(true);
 
 		this.documentElement.viewport.selection.fire( 'changed' );
+
+	}
+
+	/* Returns the direct table which holds this cell */
+
+	get ownerTable(): HTML_Table {
+		return this.parentNode && this.parentNode.is() == 'tr'
+			? (<HTML_TableRow>this.parentNode).ownerTable
+			: null;
+	}
+
+
+	/* Returns the next cell in the ownertable of the current cell.
+	   The cell is physically layouted visually in the table, and it has
+	   nothing to do with the DOM node order of the cells in the table */
+
+	public nextCell(): HTML_TableCell {
+
+		if ( this.nextSibling() ) {
+			return <HTML_TableCell>this.nextSibling();
+		} else {
+			for ( var i = (<HTML_TableRow>this.parentNode).siblingIndex + 1; i < (<HTML_Table>this.parentNode.parentNode).childNodes.length; i++ ) {
+				if ( (<HTML_TableRow>(<HTML_Table>this.parentNode.parentNode).childNodes[i]).childNodes[0] ) {
+					return <HTML_TableCell>(<HTML_TableRow>this.parentNode.parentNode.childNodes[i]).childNodes[0];
+				}
+			}
+		}
+
+		return null;
+
+		return null;
 
 	}
 

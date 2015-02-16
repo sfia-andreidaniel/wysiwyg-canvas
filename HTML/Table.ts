@@ -241,6 +241,8 @@ class HTML_Table extends TNode_Element {
 		    cell: HTML_TableCell,
 		    out: HTML_MultiRange_TableColumn = new HTML_MultiRange_TableColumn( this.documentElement, this );
 
+		console.warn( colStart, colEnd );
+
 		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
 			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
 
@@ -255,7 +257,7 @@ class HTML_Table extends TNode_Element {
 				
 				} else {
 
-					if ( colStart >= cell.edgeLeft.index && colEnd <= cell.edgeRight.index ) {
+					if ( colStart <= cell.edgeLeft.index && colEnd >= cell.edgeRight.index ) {
 						out.appendChild( cell );
 						break;
 					}
@@ -290,7 +292,7 @@ class HTML_Table extends TNode_Element {
 				
 				} else {
 
-					if ( rowStart >= cell.edgeTop.index && rowEnd <= cell.edgeBottom.index ) {
+					if ( rowStart <= cell.edgeTop.index && rowEnd >= cell.edgeBottom.index ) {
 						out.appendChild( cell );
 					}
 
@@ -347,7 +349,7 @@ class HTML_Table extends TNode_Element {
 
 				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
 
-				if ( rowMinIndex >= cell.edgeTop.index && rowMaxIndex <= cell.edgeBottom.index ) {
+				if ( rowMinIndex <= cell.edgeTop.index && rowMaxIndex >= cell.edgeBottom.index ) {
 					out.push( cell );
 				}
 
@@ -372,7 +374,7 @@ class HTML_Table extends TNode_Element {
 
 				cell = (<HTML_TableCell>(<HTML_TableRow>this.childNodes[i]).childNodes[j]);
 
-				if ( colMinIndex >= cell.edgeLeft.index && colMaxIndex <= cell.edgeRight.index ) {
+				if ( colMinIndex <= cell.edgeLeft.index && colMaxIndex >= cell.edgeRight.index ) {
 					out.push( cell );
 					break;
 				}

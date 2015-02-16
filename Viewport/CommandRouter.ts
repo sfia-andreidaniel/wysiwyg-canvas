@@ -352,6 +352,11 @@ class Viewport_CommandRouter extends Events {
 		    collection              : TNode_Collection = null; 
 
 		if ( rng.isMultiRange() ) {
+			this.viewport.selection.removeContents();
+			return;
+		}
+
+		if ( amount == -1 && rng.isOrphan() && rng.anchorNode().target.is() == 'td' ) {
 			return;
 		}
 
@@ -654,7 +659,7 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
-		if ( range.length() == null || !focus ) {
+		if ( range.length() == null || !focus && !range.isOrphan() ) {
 			return;
 		} else {
 			if ( !expandSelection ) {
@@ -719,15 +724,17 @@ class Viewport_CommandRouter extends Events {
 					td = <HTML_TableCell>focus.target.ownerBlockElement();
 					if ( amount == -1 && td.isTheFirstCell() && !td.parentNode.parentNode.previousSibling() ) {
 						p = td.documentElement.createElement('p');
-						p.appendChild( td.documentElement.createTextNode( ' ' ) );
 						td.parentNode.parentNode.parentNode.appendChild( p, 0 );
 						td.documentElement.relayout( true );
+						this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
+						return;
 					} else
 					if ( amount == 1 && td.isTheLastCell() && !td.parentNode.parentNode.nextSibling() ) {
 						p = td.documentElement.createElement('p');
-						p.appendChild( td.documentElement.createTextNode( ' ' ) );
 						td.parentNode.parentNode.parentNode.appendChild( p );
 						td.documentElement.relayout( true );
+						this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
+						return;
 					}
 				}
 

@@ -589,5 +589,16 @@ class UI_Toolbar_Panel extends Events {
 
 	}
 
+	protected focus( element ) {
+		var saveLeft: number = document.body.scrollLeft,
+		    saveTop : number = document.body.scrollTop;
+		
+		element.focus();
+		
+		document.body.scrollLeft = saveLeft;
+		document.body.scrollTop  = saveTop;
+	}
+
+
 
 }

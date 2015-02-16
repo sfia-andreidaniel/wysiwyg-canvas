@@ -50,16 +50,6 @@ class UI_Toolbar_Panel_Clipboard extends UI_Toolbar_Panel {
 		
 	}
 
-	private focus( element ) {
-		var saveLeft: number = document.body.scrollLeft,
-		    saveTop : number = document.body.scrollTop;
-		
-		element.focus();
-		
-		document.body.scrollLeft = saveLeft;
-		document.body.scrollTop  = saveTop;
-	}
-
 	private cut() {
 		this.toolbar.router.dispatchCommand( EditorCommand.CUT, [] );
 		this.focus( this.toolbar.router.viewport.canvas );

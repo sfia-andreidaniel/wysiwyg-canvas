@@ -78,6 +78,7 @@
 /// <reference path="./Viewport/CommandRouter.ts" />
 
 /// <reference path="Clipboard.ts" />
+/// <reference path="UndoManager.ts" />
 
 /// <reference path="Fragment.ts" />
 /// <reference path="./Fragment/Contextual.ts" />
@@ -102,6 +103,7 @@
 /// <reference path="./UI/Toolbar.ts" />
 
 /// <reference path="./UI/Toolbar/Panel.ts" />
+/// <reference path="./UI/Toolbar/Panel/UndoManager.ts" />
 /// <reference path="./UI/Toolbar/Panel/Clipboard.ts" />
 /// <reference path="./UI/Toolbar/Panel/Formatting.ts" />
 /// <reference path="./UI/Toolbar/Panel/Multimedia.ts" />

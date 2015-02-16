@@ -14,7 +14,8 @@ class HTML_Body extends TNode_Element {
 
 	private _tabSize         : number = 20;
 
-	public _tablesLocked      : boolean = false; // when tables are locked, all tables and tr's won't support the appendChild / removeChild feature.
+	public  _tablesLocked      : boolean = false; // when tables are locked, all tables and tr's won't support the appendChild / removeChild feature.
+	private _orphanEnabled     : boolean = true;  // weather when the document contains no child nodes, an orphan paragraph is automatically inserted.
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
@@ -551,6 +552,14 @@ class HTML_Body extends TNode_Element {
 		this._tablesLocked = false;
 	}
 
+	public lockOrphan() {
+		this._orphanEnabled = false;
+	}
+
+	public unlockOrphan() {
+		this._orphanEnabled = true;
+	}
+
 	public findNodeAtIndex( index: number ): TNode {
 		if ( index < 0 || index >= this.fragment.length() ) {
 			return this;
@@ -559,7 +568,8 @@ class HTML_Body extends TNode_Element {
 
 	public removeChild( node: TNode ): TNode {
 		var result: TNode = super.removeChild( node );
-		if ( this.childNodes.length == 0 ) {
+		
+		if ( this.childNodes.length == 0 && this._orphanEnabled ) {
 			( function( me ) {
 				setTimeout( function() {
 					var p = me.createElement('p');
@@ -569,7 +579,14 @@ class HTML_Body extends TNode_Element {
 				}, 1 )
 			} )( this );
 		}
+
 		return result;
 	}
+
+	public undoManager(): UndoManager {
+		return this.viewport.undo;
+	}
+
+	
 
 }

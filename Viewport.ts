@@ -14,6 +14,7 @@ class Viewport extends Events {
 	public  document       : HTML_Body               = null;
 	public  painter        : Throttler               = null;
 	public  selection      : DocSelection            = null;
+	public  undo           : UndoManager             = null;
 
 	public  mouseDriver    : Viewport_MouseDriver    = null;
 	public  keyboardDriver : Viewport_KeyboardDriver = null;
@@ -58,8 +59,9 @@ class Viewport extends Events {
 		
 
 
-		this.document = new HTML_Body( this );
+		this.document  = new HTML_Body( this );
 		this.selection = new DocSelection( this );
+		this.undo      = new UndoManager( this );
 
 		this.width( _width === null ? this._width : _width );
 		this.height( _height === null ? this._height : _height );
@@ -206,6 +208,7 @@ class Viewport extends Events {
 			this.document.relayout( true );
 			this.selection.anchorTo( this.document.fragment.createTargetAt( FragmentPos.DOC_BEGIN ) );
 			this.selection.editorState.compute();
+			this.undo.reset();
 		}
 	}
 

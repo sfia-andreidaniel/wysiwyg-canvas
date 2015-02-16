@@ -278,6 +278,9 @@ class Viewport_CommandRouter extends Events {
 		}
 
 		if ( !focus && range.anchorNode().target.isOrphanElement() ) {
+
+			focus.target.documentElement.undoManager().createUndoEntry( 'Write' );
+
 			textNode = range.anchorNode().target.documentElement.createTextNode( str );
 			(<TNode_Element>range.anchorNode().target).appendChild( textNode );
 			this.viewport.document.relayout(true);
@@ -288,6 +291,8 @@ class Viewport_CommandRouter extends Events {
 		if ( !focus ) {
 			return;
 		}
+
+		focus.target.documentElement.undoManager().createUndoEntry( 'Write' );
 
 		//console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
 

@@ -428,6 +428,25 @@ div.html-editor > div.toolbar div.ui-panel input.fontSize {
 	width: 25px;
 }
 
+
+div.html-editor .ui-panel-undomanager .ui-button.undo {
+	background-position: 0px 0px !important;
+}
+div.html-editor .ui-panel-undomanager .ui-button.redo {
+	background-position: -21px 0px !important;
+}
+
+div.html-editor .ui-panel-clipboard .ui-button.cut {
+	background-position: 0px -201px !important;
+}
+div.html-editor .ui-panel-clipboard .ui-button.copy {
+	background-position: -21px -201px !important;
+}
+div.html-editor .ui-panel-clipboard .ui-button.paste {
+	background-position: -41px -201px !important;
+}
+
+
 div.html-editor .ui-panel-style .ui-button.remove-formatting {
 	background-position: -1px -119px !important;
 }
@@ -490,16 +509,6 @@ div.html-editor .ui-panel-style .ui-button.decrease {
 
 div.html-editor .ui-panel-style .ui-button.color > .icon {
 	background-position: -21px -21px !important;
-}
-
-div.html-editor .ui-panel-clipboard .ui-button.cut {
-	background-position: 0px -201px !important;
-}
-div.html-editor .ui-panel-clipboard .ui-button.copy {
-	background-position: -21px -201px !important;
-}
-div.html-editor .ui-panel-clipboard .ui-button.paste {
-	background-position: -41px -201px !important;
 }
 
 div.html-editor .ui-panel-multimedia .ui-button.link {

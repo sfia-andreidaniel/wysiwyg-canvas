@@ -245,3 +245,16 @@ interface FS_Entry {
 	thumb? : string;
 
 }
+
+interface UndoEntry {
+	document    : string;
+	anchor      : number;
+	focus       : number;
+	description : string;
+	multiRange  : boolean;
+}
+
+interface UndoSummary {
+	index: number;
+	description: string;
+}

@@ -16,8 +16,7 @@ class TNode_Text extends TNode {
 	static $SpecialChars = {
 		'<': '&lt;',
 		'>': '&gt;',
-		'"': '&quot;',
-		' ': '&nbsp;'
+		'"': '&quot;'
 	}
 
 	constructor( textContents: string ) {
@@ -46,7 +45,8 @@ class TNode_Text extends TNode {
 	public escape(): string {
 		var out: string = '',
 		    i: number = 0,
-		    len: number = this._text.length;
+		    len: number = this._text.length,
+		    matches: string[];
 
 		for ( i=0; i<len; i++ ) {
 			if ( TNode_Text.$SpecialChars[this._text[i]] ) {
@@ -54,6 +54,14 @@ class TNode_Text extends TNode {
 			} else {
 				out += this._text[i];
 			}
+		}
+
+		while ( out.indexOf( '  ' ) >= 0 ) {
+			out = out.replace( '  ', ' &nbsp;' );
+		}
+
+		while ( out.indexOf( '&nbsp; ' ) >= 0 ) {
+			out = out.replace( '&nbsp; ', '&nbsp;&nbsp;' );
 		}
 
 		return out;

@@ -166,12 +166,15 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 	private updateBlockLevel() {
 		var level: string = String( this.toolbar.state.state.blockLevel || '' ),
 		    strs = {
-		    	"normal": "Normal",
-		    	"h1": "Heading 1",
-		    	"h2": "Heading 2",
-		    	"h3": "Heading 3",
-		    	"h4": "Heading 4",
-		    	"h5": "Heading 5"
+		    	"normal"     : "Normal",
+		    	"blockquote" : "Quotation",
+		    	"h1"		 : "Heading 1",
+		    	"h2"		 : "Heading 2",
+		    	"h3"		 : "Heading 3",
+		    	"h4"		 : "Heading 4",
+		    	"h5"		 : "Heading 5",
+		    	"h6"		 : "Heading 6"
+
 		    };
 		this.blockLevel.value = strs[ level ] || '';
 	}

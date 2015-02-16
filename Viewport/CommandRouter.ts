@@ -613,9 +613,9 @@ class Viewport_CommandRouter extends Events {
 			jumpPosition = targetNode.createSurgery( 
 				index, 
 				true, 
-				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].indexOf( targetNode.nodeName ) >= 0
+				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote' ].indexOf( targetNode.is() ) >= 0
 					? 'p'
-					: targetNode.nodeName
+					: targetNode.is()
 			);
 
 			target.target = this.viewport.document.findNodeAtIndex( jumpPosition );
@@ -1185,7 +1185,7 @@ class Viewport_CommandRouter extends Events {
 
 	// sets the affected block nodes to be "normal", or "h1".."h6"
 	public blockLevel( blockType: string ) {
-		if ( [ "normal", "h1", "h2", "h3", "h4", "h5", "h6", "h7" ].indexOf( blockType ) == -1 ) {
+		if ( [ "normal", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6" ].indexOf( blockType ) == -1 ) {
 			throw "Invalid block type!";
 		}
 
@@ -1208,13 +1208,13 @@ class Viewport_CommandRouter extends Events {
 						nodes[i].becomeElement( 'p' );
 					}
 					break;
+				case 'blockquote':
 				case 'h1':
 				case 'h2':
 				case 'h3':
 				case 'h4':
 				case 'h5':
 				case 'h6':
-				case 'h7':
 					if ( nodes[i].nodeName != blockType ) {
 						nodes[i].becomeElement( blockType );
 					}

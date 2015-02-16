@@ -52,6 +52,7 @@ class HTML_Body extends TNode_Element {
 	*/
 	public static IMPLEMENTED_NODES: string[] = [
 		'p',
+		'blockquote',
 		'br',
 		'img',
 		'h1',
@@ -59,6 +60,7 @@ class HTML_Body extends TNode_Element {
 		'h3',
 		'h4',
 		'h5',
+		'h6',
 		'b',
 		'strong',
 		'i',
@@ -157,6 +159,12 @@ class HTML_Body extends TNode_Element {
 				break;
 			case 'h5':
 				node = new HTML_Heading5();
+				break;
+			case 'h6':
+				node = new HTML_Heading6();
+				break;
+			case 'blockquote':
+				node = new HTML_BlockQuote();
 				break;
 			case 'b':
 			case 'strong':

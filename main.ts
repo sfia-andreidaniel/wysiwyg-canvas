@@ -15,6 +15,7 @@
 
 /// <reference path="./HTML/Body.ts" />
 /// <reference path="./HTML/Paragraph.ts" />
+/// <reference path="./HTML/BlockQuote.ts" />
 /// <reference path="./HTML/BreakElement.ts" />
 /// <reference path="./HTML/Image.ts" />
 /// <reference path="./HTML/Heading1.ts" />
@@ -22,6 +23,7 @@
 /// <reference path="./HTML/Heading3.ts" />
 /// <reference path="./HTML/Heading4.ts" />
 /// <reference path="./HTML/Heading5.ts" />
+/// <reference path="./HTML/Heading6.ts" />
 /// <reference path="./HTML/Bold.ts" />
 /// <reference path="./HTML/Italic.ts" />
 /// <reference path="./HTML/Underline.ts" />

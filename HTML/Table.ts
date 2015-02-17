@@ -48,7 +48,6 @@ class HTML_Table extends TNode_Element {
 		if ( node.nodeType == TNode_Type.ELEMENT && (<TNode_Element>node).nodeName == 'tr' ) {
 			
 			returnValue = <HTML_TableRow>( super.appendChild( node, index ) );
-			returnValue.ownerTable = this;
 
 			this.requestCompile();
 

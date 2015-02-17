@@ -272,8 +272,22 @@ class Viewport_KeyboardDriver extends Events {
 				}
 				break;
 
+			case 90: // z
+				if ( DOMEvent.ctrlKey ) {
+					this.viewport.execCommand( EditorCommand.UNDO );
+					cancelEvent = true;
+				}
+				break;
+
+			case 89: // y
+				if ( DOMEvent.ctrlKey ) {
+					this.viewport.execCommand( EditorCommand.REDO );
+					cancelEvent = true;
+				}
+				break;
+
 			default:
-			//console.log( DOMEvent.keyCode );
+				//console.log( DOMEvent.keyCode );
 				break;
 
 		}

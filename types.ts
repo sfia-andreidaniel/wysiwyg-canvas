@@ -90,7 +90,10 @@ enum EditorCommand {
 	LIST,  			// sets the list level of the elements ( UL or LI )
 
 	INSERT_LINK,
-	REMOVE_LINK
+	REMOVE_LINK,
+
+	UNDO,
+	REDO
 
 }
 
@@ -252,6 +255,7 @@ interface UndoEntry {
 	focus       : number;
 	description : string;
 	multiRange  : boolean;
+	time        : number;
 }
 
 interface UndoSummary {

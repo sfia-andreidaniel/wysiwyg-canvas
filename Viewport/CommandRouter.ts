@@ -42,6 +42,8 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.CLEAR_FORMATTING: return 'clearFormatting'; break;
 			case EditorCommand.INSERT_LINK: return 'link';       break;
 			case EditorCommand.REMOVE_LINK: return 'unlink';     break;
+			case EditorCommand.UNDO:        return 'undo';       break;
+			case EditorCommand.REDO:        return 'redo';       break;
 			default:
 				throw "ERR_UNKNOWN_COMMAND";
 				break;
@@ -243,9 +245,22 @@ class Viewport_CommandRouter extends Events {
 					this.unlink();
 				}
 				break;
-
+			case EditorCommand.UNDO:
+				if ( !this.ensureArgs( args, 0, 0 ) ){ 
+					throw "Command: " + commandName + " requires no arguments.";
+				} else {
+					this.undo();
+				}
+				break;
+			case EditorCommand.REDO:
+				if ( !this.ensureArgs( args, 0, 0 ) ) {
+					throw "Command: " + commandName + " requires no arguments.";
+				} else {
+					this.redo();
+				}
+				break;
 			default:
-				throw "ERR_UNKNOWN_COMMAND";
+				throw "ERR_UNIMPLEMENTED_COMMAND";
 				break;
 		}
 	}
@@ -279,12 +294,13 @@ class Viewport_CommandRouter extends Events {
 
 		if ( !focus && range.anchorNode().target.isOrphanElement() ) {
 
-			range.anchorNode().target.documentElement.undoManager().createUndoEntry( 'Write' );
+			this.viewport.undo.createUndoEntry( 'Write' );
 
 			textNode = range.anchorNode().target.documentElement.createTextNode( str );
 			(<TNode_Element>range.anchorNode().target).appendChild( textNode );
 			this.viewport.document.relayout(true);
 			this.viewport.selection.anchorTo( new TRange_Target( textNode, textNode.FRAGMENT_END ) );
+
 			return;
 		}
 
@@ -292,7 +308,7 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
-		focus.target.documentElement.undoManager().createUndoEntry( 'Write' );
+		this.viewport.undo.createUndoEntry( 'Write' );
 
 		//console.log( 'before: ' + focus.fragPos + ' => ' + JSON.stringify( this.viewport.document.fragment.sliceDebug( ( nowPos = focus.fragPos - 10 ), 20, focus.fragPos ) ) );
 
@@ -357,6 +373,7 @@ class Viewport_CommandRouter extends Events {
 		    collection              : TNode_Collection = null; 
 
 		if ( rng.isMultiRange() ) {
+			this.viewport.undo.createUndoEntry( 'Delete Text' );
 			this.viewport.selection.removeContents();
 			return;
 		}
@@ -365,11 +382,14 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Delete Text' );
+
 		if ( rng.length() ) {
 			this.viewport.selection.removeContents();
 			this.viewport.scrollToCaret();
 			return;
 		} else {
+
 			if ( rng.length() === null ) {
 				
 				if ( anchor.target && anchor.target.nodeType == TNode_Type.ELEMENT ) {
@@ -562,6 +582,8 @@ class Viewport_CommandRouter extends Events {
 		if ( this.viewport.selection.getRange().isMultiRange() ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'New Line' );
 
 		if ( this.viewport.selection.getRange() ) {
 			this.viewport.selection.removeContents();
@@ -795,6 +817,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Bold' );
+
 		if ( state === null ) { //toggle state
 			state = !( this.viewport.selection.editorState.state.bold );
 		}
@@ -826,6 +850,8 @@ class Viewport_CommandRouter extends Events {
 		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'Strike' );
 
 		if ( state === null ) { //toggle state
 			state = !( this.viewport.selection.editorState.state.strike );
@@ -859,6 +885,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Italic' );
+
 		if ( state === null ) { //toggle state
 			state = !( this.viewport.selection.editorState.state.italic );
 		}
@@ -891,6 +919,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Underline' );
+
 		if ( state === null ) { //toggle state
 			state = !( this.viewport.selection.editorState.state.underline );
 		}
@@ -918,9 +948,12 @@ class Viewport_CommandRouter extends Events {
 	public align( alignment: string = 'left' ) {
 		
 		if ( this.viewport.selection.getRange().anchorNode().target.is() == 'body' &&
-		     !this.viewport.selection.getRange().focusNode() ) {
+		     ( !this.viewport.selection.getRange().focusNode() && !this.viewport.selection.getRange().isOrphan() ) ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'Align' );
+
 
 		if ( ['img','table'].indexOf( this.viewport.selection.getRange().anchorNode().target.is() ) >= 0 && !this.viewport.selection.getRange().focusNode() ) {
 
@@ -981,6 +1014,9 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Cut' );
+
+
 		if ( setClipboard ) {
 			Clipboard.singleton().setContents( contents, 'text/html', TClipboardEffect.CUT );
 		}
@@ -1017,6 +1053,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Paste' );
+
 		if ( [ 'text/plain', 'text/html' ].indexOf( contentType ) == -1 ) {
 			throw "ERR_BAD_CONTENT_TYPE!";
 		}
@@ -1035,6 +1073,10 @@ class Viewport_CommandRouter extends Events {
 		        i: number,
 		      len: number;
 
+		if ( nodes.length ) {
+			this.viewport.undo.createUndoEntry( 'Indent' );
+		}
+
 		for ( i=0, len = nodes.length; i<len; i++ ) {
 			nodes[i].tabStop( nodes[i].tabStop() + 1 );
 		}
@@ -1046,7 +1088,11 @@ class Viewport_CommandRouter extends Events {
 		var nodes: TNode_Element[] = this.viewport.selection.getRange().affectedBlockNodes(),
 		        i: number,
 		      len: number;
-		      
+		
+		if ( nodes.length ) {
+			this.viewport.undo.createUndoEntry( 'Unindent' );
+		}
+
 		for ( i=0, len = nodes.length; i<len; i++ ) {
 			nodes[i].tabStop( nodes[i].tabStop() - 1 );
 		}
@@ -1070,6 +1116,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Subscript / Superscript' );
+
 		rng.affectedRanges().unwrapFromElement( 'sub' ).unwrapFromElement('sup').wrapInElement( verticalAlignmentType, null, null, function() {
 			return verticalAlignmentType == 'sup' || verticalAlignmentType == 'sub';
 		} ).end();
@@ -1088,6 +1136,8 @@ class Viewport_CommandRouter extends Events {
 		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'Font' );
 
 		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'font' ).wrapInElement( 'font', 'name', fontFamily, function() {
 			return fontFamily ? this.style.fontFamily() != fontFamily : false;
@@ -1108,6 +1158,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Color' );
+
 		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'color' ).wrapInElement( 'color', 'name', colorName, function() {
 			return colorName ? this.style.color() != colorName : false;
 		} ).end();
@@ -1127,11 +1179,17 @@ class Viewport_CommandRouter extends Events {
 		    i: number = 0,
 		    len: number = nodes.length;
 
-		for ( i=0; i<len; i++ ) {
-			nodes[i].setAttribute( 'bgcolor', colorName );
-		}
+		if ( nodes.length ) {
 
-		this.viewport.selection.editorState.compute();
+			this.viewport.undo.createUndoEntry( 'Background Color' );
+
+			for ( i=0; i<len; i++ ) {
+				nodes[i].setAttribute( 'bgcolor', colorName );
+			}
+
+			this.viewport.selection.editorState.compute();
+
+		}
 
 	}
 
@@ -1146,6 +1204,8 @@ class Viewport_CommandRouter extends Events {
 		if ( !len && !rng.isMultiRange() ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'Font Size' );
 
 		this.viewport.selection.getRange().affectedRanges().unwrapFromElement( 'size' ).wrapInElement( 'size', 'value', fontSize, function() {
 			return fontSize ? String( this.style.fontSize() ) != fontSize : false;
@@ -1167,6 +1227,8 @@ class Viewport_CommandRouter extends Events {
 		if ( rng.isMultiRange() ) {
 			return;
 		}
+
+		this.viewport.undo.createUndoEntry( 'List' );
 
 		if ( on !== null ) {
 			become = on ? listType : 'p';
@@ -1204,6 +1266,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Set Block Name' );
+
 		rng.save();
 
 		for ( i=0; i<len; i++ ) {
@@ -1240,6 +1304,8 @@ class Viewport_CommandRouter extends Events {
 			return;
 		}
 
+		this.viewport.undo.createUndoEntry( 'Clear Formatting' );
+
 		this.viewport.selection.getRange().affectedRanges()
 			.unwrapFromElement( 'size' )
 			.unwrapFromElement( 'font' )
@@ -1260,6 +1326,8 @@ class Viewport_CommandRouter extends Events {
 	}
 
 	public link( href: string, text: string = null, target: string = null ) {
+
+		this.viewport.undo.createUndoEntry( 'Link' );
 		
 		/* If text is NULL, we create a batch, unwrap it from A, and wrap it in a[href=href][target=target]
 		   Otherwise we insert HTML string @cursor position */
@@ -1306,6 +1374,8 @@ class Viewport_CommandRouter extends Events {
 		    node: TNode,
 		    block: TNode_Element;
 
+		this.viewport.undo.createUndoEntry( 'Unlink' );
+
 		rng.save();
 
 		if ( rng.length() || rng.isMultiRange() ) {
@@ -1340,6 +1410,18 @@ class Viewport_CommandRouter extends Events {
 		this.viewport.selection.editorState.compute();
 
 		rng.restore();
+	}
+
+	public undo() {
+		if ( this.viewport.undo.canUndo() ) {
+			this.viewport.undo.undo();
+		}
+	}
+
+	public redo() {
+		if ( this.viewport.undo.canRedo() ) {
+			this.viewport.undo.redo();
+		}
 	}
 
 }

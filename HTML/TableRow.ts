@@ -16,7 +16,6 @@ class HTML_TableRow extends TNode_Element {
 		if ( node.nodeType == TNode_Type.ELEMENT && (<TNode_Element>node).nodeName == 'td' ) {
 
 			returnValue = <HTML_TableCell>( super.appendChild( node, index ) );
-			returnValue.ownerTable = this.ownerTable;
 			
 			if ( this.ownerTable ) {
 				this.ownerTable.requestCompile();
@@ -52,6 +51,11 @@ class HTML_TableRow extends TNode_Element {
 			? <HTML_Table>this.parentNode
 			: null;
 	}
+
+	set ownerTable( table: HTML_Table ) {
+		console.error( "The ownerTable property of a TR is read-only" );
+	}
+
 
 
 }

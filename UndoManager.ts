@@ -25,6 +25,8 @@ class UndoManager extends Events {
 		this.index = 0;
 		this.prevOp = null;
 
+		this.createUndoEntry( 'Document Load' );
+
 		// console.info( 'The undo manager has been reseted!' );
 	}
 
@@ -34,14 +36,32 @@ class UndoManager extends Events {
 
 		var selection = this.viewport.selection,
 		    rng       = selection.getRange(),
+		    numEntries: number = this.entries.length,
 
 			entry = {
 				"description": description || "modification",
 				"document": this.viewport.document.innerHTML(),
 				"multiRange": rng.isMultiRange(),
 				"focus": rng.focusNode() ? rng.focusNode().fragPos : null,
-				"anchor": rng.anchorNode() ? rng.anchorNode().fragPos : null
+				"anchor": rng.anchorNode() ? rng.anchorNode().fragPos : null,
+				"time": Date.now()
 			};
+
+		if ( numEntries && this.index == numEntries && this.entries[ numEntries - 1 ].description == entry.description && ( entry.time - this.entries[ numEntries - 1 ].time ) < 5000 ) {
+
+			switch ( this.entries[ numEntries - 1 ].description ) {
+				case 'Delete Text':
+				case 'Write':
+				case 'New Line':
+					console.info( 'Replace undo', numEntries, this.index );
+					this.entries[ numEntries - 1 ] = entry; //replace entry
+					return;
+					break;
+			}
+
+		}
+
+		console.warn('Add undo' );
 
 		this.truncate();
 

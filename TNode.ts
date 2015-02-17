@@ -42,7 +42,7 @@ class TNode extends Events {
 
 	public elementsBeforeMyself( includingMe: boolean ): TNode[] {
 		if ( !this.parentNode ) {
-			throw "Node not attached!";
+			throw "Node " + this.is() + " is not attached!";
 		} else {
 			return this.parentNode.childNodes.slice( 0, includingMe ? this.siblingIndex + 1 : this.siblingIndex );
 		}
@@ -50,7 +50,7 @@ class TNode extends Events {
 
 	public elementsAfterMyself( includingMe: boolean ): TNode[] {
 		if ( !this.parentNode ) {
-			throw "Node not attached!";
+			throw "Node " + this.is() + " not attached!";
 		} else {
 			return this.parentNode.childNodes.slice( includingMe ? this.siblingIndex : this.siblingIndex + 1 );
 		}

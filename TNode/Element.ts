@@ -78,6 +78,7 @@ class TNode_Element extends TNode {
 				node.remove();
 				this.childNodes.splice( index, 0, node );
 			}
+			
 			node.parentNode = this;
 
 			for ( var i=index, len = this.childNodes.length; i<len; i++ ) {

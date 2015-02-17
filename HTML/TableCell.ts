@@ -321,7 +321,6 @@ class HTML_TableCell extends TNode_Element {
 				} else {
 
 					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
-					cell.ownerTable = this.ownerTable;
 					cell.rowSpan( col[i].rowSpan() );
 					col[i].parentNode.appendChild( cell, col[i].siblingIndex );
 
@@ -333,7 +332,6 @@ class HTML_TableCell extends TNode_Element {
 					col[i].colSpan( col[i].colSpan() + 1 );
 				} else {
 					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
-					cell.ownerTable = this.ownerTable;
 					cell.rowSpan( col[i].rowSpan() );
 					col[i].parentNode.appendChild( cell, col[i].siblingIndex + 1 );
 				}
@@ -377,7 +375,6 @@ class HTML_TableCell extends TNode_Element {
 				} else {
 
 					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
-					cell.ownerTable = this.ownerTable;
 					cell.colSpan( col[i].colSpan() );
 					row.push( cell );
 
@@ -389,7 +386,6 @@ class HTML_TableCell extends TNode_Element {
 					col[i].rowSpan( col[i].rowSpan() + 1 );
 				} else {
 					cell = <HTML_TableCell>this.documentElement.createElement( 'td' );
-					cell.ownerTable = this.ownerTable;
 					cell.colSpan( col[i].colSpan() );
 					row.push( cell );
 				}
@@ -400,7 +396,6 @@ class HTML_TableCell extends TNode_Element {
 
 		if ( row.length ) {
 			tr = <HTML_TableRow>this.documentElement.createElement( 'tr' );
-			tr.ownerTable = this.ownerTable;
 			
 			for ( i=0, len = row.length; i<len; i++ ) {
 				tr.appendChild( row[i] );
@@ -579,7 +574,6 @@ class HTML_TableCell extends TNode_Element {
 			for ( i = 1; i< saveColspan; i++ ) {
 				
 				c = <HTML_TableCell>this.documentElement.createElement( 'td' );
-				c.ownerTable = this.ownerTable;
 
 				this.parentNode.appendChild( c, this.siblingIndex + 1 );
 
@@ -614,7 +608,6 @@ class HTML_TableCell extends TNode_Element {
 
 				for ( j=0; j<saveColspan; j++ ) {
 					c = <HTML_TableCell>this.documentElement.createElement( 'td' );
-					c.ownerTable = this.ownerTable;
 					affectedRows[i].appendChild( c, insertAtPos );
 				}
 
@@ -635,6 +628,10 @@ class HTML_TableCell extends TNode_Element {
 		return this.parentNode && this.parentNode.is() == 'tr'
 			? (<HTML_TableRow>this.parentNode).ownerTable
 			: null;
+	}
+
+	set ownerTable( table: HTML_Table ) {
+		console.error( "The ownerTable property of a TD is read-only" );
 	}
 
 

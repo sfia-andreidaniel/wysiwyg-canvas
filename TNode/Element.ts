@@ -140,7 +140,12 @@ class TNode_Element extends TNode {
 				this.requestRelayout();
 				
 				if ( this.childNodes.length == 0 && this.style.display() == 'inline' ) {
-					this.remove();
+					(function( me ) {
+						setTimeout( function() {
+							Helper.warn( "WATCH: removing orphan inline element: " + me.is() + ". If any bugs in 10ms, check this line of code!" );
+							me.remove();
+						}, 10 );
+					} )( this );
 				}
 
 				return node;

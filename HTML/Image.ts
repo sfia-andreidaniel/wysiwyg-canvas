@@ -6,6 +6,8 @@ class HTML_Image extends TNode_Element {
 
 	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
 	public  isResizable: boolean = true;
+	public  isSelfClosingTag: boolean = true;
+
 
 	protected _alt: string = null;
 

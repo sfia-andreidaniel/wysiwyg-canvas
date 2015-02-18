@@ -181,8 +181,8 @@ function HTMLEditor( value: string, config: TEditorInputConfig = null ): Node {
 		"get": function() {
 			return viewport.document.innerHTML();
 		},
-		"set": function( html: string = ' ' ) {
-			viewport.value( html || ' ' );
+		"set": function( html: string = '' ) {
+			viewport.value( html || '<p></p>' );
 		}
 	});
 

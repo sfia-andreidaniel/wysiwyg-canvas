@@ -21,10 +21,12 @@ class TNode_Element extends TNode {
 	public isDefragmentable          : boolean        = false; // Two neighbour siblings like <b>...</b><b>...</b> should be defragmented in a single <b>......</b>
 	public isNegation                : boolean        = false; // Wether the node is a negation node ( for a "b" node, it's negation is a "!b" node ).
 	public isSelectionPaintingDisabled: boolean       = false; // The node is not painted as selected as a whole, if it is included inside a text range, by any circumstances,  by the paint method ( but it's text can be if it's selected )
+	public isSelfClosingTag          : boolean        = false;
 
 	public layout                    : Layout         = null;
 
 	private _tabStop                 : number         = 0;
+
 
 	/* @postStyleInit: weather to initialize the style property on this constructor,
 	                   or if that style property will be initialized in ancestor classes 
@@ -142,9 +144,13 @@ class TNode_Element extends TNode {
 				if ( this.childNodes.length == 0 && this.style.display() == 'inline' ) {
 					(function( me ) {
 						setTimeout( function() {
-							Helper.warn( "WATCH: removing orphan inline element: " + me.is() + ". If any bugs in 10ms, check this line of code!" );
-							me.remove();
-						}, 10 );
+							
+							if ( me.childNodes.length == 0 ) {
+								Helper.warn( "WATCH: removing orphan inline element: " + me.is() + ". If any bugs in 10ms, check this line of code!" );
+								me.remove();
+							}
+
+						}, 100 );
 					} )( this );
 				}
 
@@ -451,14 +457,14 @@ class TNode_Element extends TNode {
 		
 		var attrs: string = this.xmlAttributes();
 
-		return '<' + this.nodeName + ( attrs ? ' ' + attrs : '' ) + ( this.childNodes.length ? '' : '/' ) + '>';
+		return '<' + this.nodeName + ( attrs ? ' ' + attrs : '' ) + ( this.isSelfClosingTag ? '/' : '' ) + '>';
 	}
 
 	/* Returns the element footer as a string ( for example for a "<p>asda</p>", it returns the "</p>" part )
 	 */
 
 	public xmlEnding(): string {
-		if ( !this.childNodes.length ) {
+		if ( this.isSelfClosingTag ) {
 			return '';
 		} else {
 			return '</' + this.nodeName + '>';

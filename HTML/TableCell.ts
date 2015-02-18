@@ -292,6 +292,8 @@ class HTML_TableCell extends TNode_Element {
 
 		this.ownerTable._xEdgesApplied = false;
 
+		this.documentElement.undoManager().createUndoEntry( 'Insert Column' );
+
 		var table: HTML_Table = this.ownerTable,
 		    leftIndex: number = this.edgeLeft.index,
 		    rightIndex: number = this.edgeRight.index,
@@ -348,6 +350,8 @@ class HTML_TableCell extends TNode_Element {
 	public insertRow( before: boolean = true ) {
 
 		this.ownerTable._xEdgesApplied = false;
+
+		this.documentElement.undoManager().createUndoEntry( 'Insert Row' );
 
 		var table: HTML_Table = this.ownerTable,
 		    topIndex: number = this.edgeTop.index,
@@ -416,6 +420,8 @@ class HTML_TableCell extends TNode_Element {
 
 		this.ownerTable._xEdgesApplied = false;
 
+		this.documentElement.undoManager().createUndoEntry( 'Delete Column' );
+
 		var table: HTML_Table = this.ownerTable,
 		    leftIndex: number = this.edgeLeft.index,
 		    rightIndex: number = this.edgeRight.index,
@@ -471,6 +477,8 @@ class HTML_TableCell extends TNode_Element {
 	public deleteRow() {
 
 		this.ownerTable._xEdgesApplied = false;
+
+		this.documentElement.undoManager().createUndoEntry( 'Delete Row' );
 
 		var table: HTML_Table = this.ownerTable,
 		    topIndex: number = this.edgeTop.index,
@@ -528,6 +536,8 @@ class HTML_TableCell extends TNode_Element {
 		if ( this.colSpan() == 1 && this.rowSpan() == 1 ) {
 			return;
 		}
+
+		this.documentElement.undoManager().createUndoEntry( 'Split Cell' );
 
 		this.documentElement.lockTables();
 
@@ -650,8 +660,6 @@ class HTML_TableCell extends TNode_Element {
 				}
 			}
 		}
-
-		return null;
 
 		return null;
 

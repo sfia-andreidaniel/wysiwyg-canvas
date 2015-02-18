@@ -41,7 +41,7 @@ class UndoManager extends Events {
 			entry = {
 				"description": description || "modification",
 				"document": this.viewport.document.innerHTML(),
-				"multiRange": rng.isMultiRange(),
+				"multiRange": rng.isMultiRange() ? (<HTML_MultiRange>rng.anchorNode().target).serialize() : null,
 				"focus": rng.focusNode() ? rng.focusNode().fragPos : null,
 				"anchor": rng.anchorNode() ? rng.anchorNode().fragPos : null,
 				"time": Date.now()
@@ -61,7 +61,7 @@ class UndoManager extends Events {
 
 		}
 
-		console.warn('Add undo' );
+		//console.warn('Add undo' );
 
 		this.truncate();
 
@@ -117,6 +117,10 @@ class UndoManager extends Events {
 
 			// Set the caret @ anchor position.
 			// TODO: Fully restore multirange selections
+
+			var multiRange = HTML_MultiRange.unserialize( this.viewport.document, entry.multiRange );
+
+			selection.anchorTo( new TRange_Target( multiRange, multiRange.FRAGMENT_START ) );
 
 		}
 

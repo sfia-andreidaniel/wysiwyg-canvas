@@ -202,4 +202,25 @@ class HTML_MultiRange_TableRect extends HTML_MultiRange {
 
 	}
 
+	public serialize(): MultiRangeSerializedData {
+		var out: MultiRangeSerializedData = super.serialize();
+
+		out.type = 'table-rect';
+
+		if ( this.focus ) {
+			out.focus = this.focus.FRAGMENT_START;
+		} else {
+			out.focus = null;
+		}
+
+		if ( this.anchor ) {
+			out.anchor = this.anchor.FRAGMENT_START;
+		} else {
+			out.anchor = null;
+		}
+
+		return out;
+
+	}
+
 }

@@ -19,7 +19,6 @@ class HTML_Body extends TNode_Element {
 
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
-		'canvas',
 		'input',
 		'hr',
 		'img'

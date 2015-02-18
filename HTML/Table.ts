@@ -240,8 +240,6 @@ class HTML_Table extends TNode_Element {
 		    cell: HTML_TableCell,
 		    out: HTML_MultiRange_TableColumn = new HTML_MultiRange_TableColumn( this.documentElement, this );
 
-		console.warn( colStart, colEnd );
-
 		for ( var i=0, len = this.childNodes.length; i<len; i++ ) {
 			for ( j=0, lem = (<HTML_TableRow>this.childNodes[i]).childNodes.length; j<lem; j++ ) {
 

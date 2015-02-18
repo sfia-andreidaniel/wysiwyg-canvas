@@ -177,4 +177,10 @@ class HTML_MultiRange_TableColumn extends HTML_MultiRange {
 		}
 	}
 
+	public serialize(): MultiRangeSerializedData {
+		var out: MultiRangeSerializedData = super.serialize();
+		out.type = 'table-column';
+		return out;
+	}
+
 }

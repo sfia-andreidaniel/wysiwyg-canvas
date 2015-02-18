@@ -553,6 +553,8 @@ class Viewport_MouseDriver extends Events {
 
 	public lockTargetForResizing( target: TNode_Element, resizeType: TResizer, initialEventPoint: TPoint ) {
 		
+		this.viewport.undo.createUndoEntry( 'Resize Element' );
+
 		this.resizingMethod = resizeType;
 		this.resizingLockTarget = target;
 		

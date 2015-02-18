@@ -76,5 +76,10 @@ class HTML_MultiRange_TableRow extends HTML_MultiRange {
 		}
 	}
 
+	public serialize(): MultiRangeSerializedData {
+		var out: MultiRangeSerializedData = super.serialize();
+		out.type = 'table-row';
+		return out;
+	}
 
 }

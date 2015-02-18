@@ -1,5 +1,8 @@
 class HTML_BreakElement extends TNode_Element {
 	
+	public isSelfClosingTag: boolean = true;
+
+
 	constructor() {
 		super();
 		this.nodeName = 'br';

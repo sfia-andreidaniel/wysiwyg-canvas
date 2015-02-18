@@ -177,6 +177,8 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 			return;
 		}
 
+		this.toolbar.router.viewport.undo.createUndoEntry( 'Set Border Color' );
+
 		cell.ownerTable.style.borderColor( color );
 
 		if ( !color ) {

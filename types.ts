@@ -249,12 +249,20 @@ interface FS_Entry {
 
 }
 
+interface MultiRangeSerializedData {
+	nodes: number[];
+	type: string;
+	parent: number;
+	focus?: number;
+	anchor?: number;
+}
+
 interface UndoEntry {
 	document    : string;
 	anchor      : number;
 	focus       : number;
 	description : string;
-	multiRange  : boolean;
+	multiRange  : MultiRangeSerializedData;
 	time        : number;
 }
 

@@ -135,4 +135,67 @@ class HTML_MultiRange extends TNode_Element {
 		return new TRange_Target( this );
 	}
 
+	public serialize(): MultiRangeSerializedData {
+		var out = {
+			"nodes": [],
+			"type": "multirange",
+			"parent": this.parentNode ? this.parentNode.FRAGMENT_START : null
+		},
+		i: number = 0,
+		len: number = this.childNodes.length;
+
+		for ( i=0; i<len; i++ ) {
+			out.nodes.push( this.childNodes[i].FRAGMENT_START );
+		}
+
+		return out;
+	}
+
+	public static unserialize( document: HTML_Body, data: MultiRangeSerializedData ): HTML_MultiRange {
+
+		var out: HTML_MultiRange,
+		    i: number = 0,
+		    len: number = data.nodes.length;
+
+		switch ( data.type ) {
+			case 'multirange':
+				out = new HTML_MultiRange( document, <TNode_Element>document.findNodeAtIndex( data.parent ), 'multirange' );
+				break;
+			case 'table-rect':
+				
+				out = new HTML_MultiRange_TableRect( document, <TNode_Element>document.findNodeAtIndex( data.parent ) );
+				
+				if ( data.focus ) {
+					(<HTML_MultiRange_TableRect>out).focus = <HTML_TableCell>document.findNodeAtIndex( data.focus );
+				} else {
+					(<HTML_MultiRange_TableRect>out).focus = null;
+				}
+
+				if ( data.anchor ) {
+					(<HTML_MultiRange_TableRect>out).anchor = <HTML_TableCell>document.findNodeAtIndex( data.anchor );
+				} else {
+					(<HTML_MultiRange_TableRect>out).anchor = null;
+				}
+
+				break;
+			case 'table-row':
+				out = new HTML_MultiRange_TableRow( document, <TNode_Element>document.findNodeAtIndex( data.parent ) );
+				break;
+			case 'table-column':
+				out = new HTML_MultiRange_TableColumn( document, <TNode_Element>document.findNodeAtIndex( data.parent ) );
+				break;
+
+			default:
+				throw "UNSERIALIZATION FAILED.";
+				break;
+		}
+
+		for ( i=0; i<len; i++ ) {
+			out.childNodes.push( document.findNodeAtIndex( data.nodes[i] ) );
+		}
+
+		return out;
+
+	}
+
 }

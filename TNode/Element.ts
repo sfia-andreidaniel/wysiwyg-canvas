@@ -1456,15 +1456,19 @@ class TNode_Element extends TNode {
 		      k: number = 0;
 		if ( this.childNodes && this.childNodes.length ) {
 			
-			if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
-				out.push( <TNode_Text> this.childNodes[i] );
-			} else {
-				sub = ( <TNode_Element>this.childNodes[i] ).allTextNodes();
-				if ( k = sub.length ) {
-					for ( j=0; j<k; j++ ) {
-						out.push( sub[j] );
+			for ( i=0, len = this.childNodes.length; i<len; i++ ) {
+
+				if ( this.childNodes[i].nodeType == TNode_Type.TEXT ) {
+					out.push( <TNode_Text> this.childNodes[i] );
+				} else {
+					sub = ( <TNode_Element>this.childNodes[i] ).allTextNodes();
+					if ( k = sub.length ) {
+						for ( j=0; j<k; j++ ) {
+							out.push( sub[j] );
+						}
 					}
 				}
+
 			}
 
 			return out;
@@ -1498,6 +1502,21 @@ class TNode_Element extends TNode {
 
 		} else {
 			return [];
+		}
+	}
+
+	public createCaretTarget( atEnd: boolean = false ): TRange_Target {
+		if ( !this.childNodes || !this.childNodes.length ) {
+			return null;
+		}
+		var textNodes = this.allTextNodes();
+		if ( !textNodes.length ) {
+			return null;
+		}
+		if ( atEnd ) {
+			return new TRange_Target( textNodes[ textNodes.length - 1 ], textNodes[ textNodes.length - 1 ].FRAGMENT_END );
+		} else {
+			return new TRange_Target( textNodes[0], textNodes[0].FRAGMENT_START );
 		}
 	}
 

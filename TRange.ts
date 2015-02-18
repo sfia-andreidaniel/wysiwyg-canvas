@@ -65,7 +65,7 @@ class TRange extends Events {
 	}
 
 	// set selection to focusNode (atEnd = true) or anchorNode (atEnd = false).
-	public collapse( atEnd: boolean = false ) {
+	public collapse( atEnd: boolean = false ): TRange {
 		if ( atEnd ) {
 
 			if ( this._focusNode ) {
@@ -81,6 +81,8 @@ class TRange extends Events {
 		}
 		
 		this.fire('changed');
+
+		return this;
 		
 	}
 

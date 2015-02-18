@@ -48,6 +48,8 @@ class Layout_Block extends Layout {
 			if ( !offsetLeftComputed )
 				this.offsetLeft += this.node.style.marginLeft();
 
+			this.node.documentElement.setMaxRightEdgeUsingLayout( this );
+
 		} else {
 		
 			throw "Unhandled scenario while computing widths!";

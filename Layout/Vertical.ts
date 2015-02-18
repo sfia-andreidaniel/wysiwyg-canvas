@@ -115,6 +115,10 @@ class Layout_Vertical extends Layout {
 
 		}
 
+		if ( this.node ) {
+			this.node.documentElement.setMaxRightEdgeUsingLayout( this );
+		}
+
 	}
 
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {

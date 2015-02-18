@@ -130,7 +130,28 @@ class Viewport extends Events {
 		if ( value === null ) {
 			return this._scrollLeft;
 		} else {
-			// throw "not implemented scrollLeft";
+
+			if ( this.document && this.document._layout ) {
+
+				if ( ( value + this._width - this._scrollbarSize ) > this.document._maxRightEdge ) {
+					value = this.document._maxRightEdge - this._width + this._scrollbarSize;
+				}
+
+				if ( value < 0 ) {
+					value = 0;
+				}
+
+				value = Math.round( value );
+
+				if ( value != this._scrollLeft ) {
+					this._scrollLeft = value;
+					this.document.requestRepaint();
+				}
+
+
+			}
+
+			return this._scrollLeft;
 		}
 	}
 
@@ -170,17 +191,20 @@ class Viewport extends Events {
 
 		var physScrollHeight: number = 0,
 		    physScrollWidth : number = 0,
-		    docWidth        : number = 0,
+		    docWidth        : number = this.document._maxRightEdge,
 		    docHeight       : number = this.document._layout.offsetHeight + this.document._layout.offsetTop,
 		    physScrollXShoe : number = 0,
 		    physScrollYShoe : number = 0,
-		    yScale          : number = 0;
+		    yScale          : number = 0,
+		    xScale          : number = 0;
 
 		this.context.fillStyle = '#ddd';
 		this.context.fillRect( physScrollWidth = ( this._width - this._scrollbarSize ), 0, this._scrollbarSize, this._height - this._scrollbarSize + 1 );
 		this.context.fillRect( 0, physScrollHeight = ( this._height - this._scrollbarSize ), this._width - this._scrollbarSize, this._scrollbarSize );
 
-		docWidth = physScrollWidth;
+		if ( docWidth < this._width - this._scrollbarSize ) {
+			docWidth = this._width - this._scrollbarSize;
+		}
 
 		physScrollYShoe = yScale = physScrollHeight / docHeight;
 
@@ -196,6 +220,20 @@ class Viewport extends Events {
 
 		if ( physScrollYShoe ) {
 			this.context.fillRect( this._width - this._scrollbarSize, ( this._scrollTop * yScale ), this._scrollbarSize, physScrollYShoe );
+		}
+
+		physScrollXShoe = xScale = physScrollWidth / docWidth;
+
+		physScrollXShoe = physScrollXShoe <= 1
+			? physScrollWidth * physScrollXShoe
+			: 0;
+
+		if ( physScrollXShoe != 0 ) {
+			physScrollXShoe = ~~physScrollXShoe;
+		}
+
+		if ( physScrollXShoe ) {
+			this.context.fillRect( ( this._scrollLeft * xScale ), this._height - this._scrollbarSize, physScrollXShoe, this._scrollbarSize );
 		}
 
 	}

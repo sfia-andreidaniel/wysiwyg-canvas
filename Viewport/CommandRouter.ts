@@ -37,7 +37,7 @@ class Viewport_CommandRouter extends Events {
 			case EditorCommand.COLOR:		return 'setColor';   break;
 			case EditorCommand.BGCOLOR:     return 'setBgColor'; break;
 			case EditorCommand.SIZE:		return 'setSize';	 break;
-			case EditorCommand.BLOCK_LEVEL: return 'setBlockLevel'; break;
+			case EditorCommand.BLOCK_LEVEL: return 'blockLevel'; break;
 			case EditorCommand.LIST:        return 'list';       break;
 			case EditorCommand.CLEAR_FORMATTING: return 'clearFormatting'; break;
 			case EditorCommand.INSERT_LINK: return 'link';       break;
@@ -579,7 +579,7 @@ class Viewport_CommandRouter extends Events {
 	// a <br> tag will be inserted instead of creating a new paragraph.
 	public newLine( alternateMethod: boolean = null ) {
 		
-		if ( this.viewport.selection.getRange().isMultiRange() ) {
+		if ( this.viewport.selection.getRange().isMultiRange() || this.viewport.selection.getRange().isOrphan() ) {
 			return;
 		}
 
@@ -680,13 +680,17 @@ class Viewport_CommandRouter extends Events {
 		    focus: TRange_Target = range.focusNode(),
 		    lineIndex: number,
 		    lines: Character_LinesCollection,
-		    line: Character_Line;
+		    line: Character_Line,
+		    saveFragPos: number,
+		    altMovement: boolean,
+		    cell: HTML_TableCell,
+		    caretTarget: TRange_Target;
 
 		if ( range.isMultiRange() ) {
 			return;
 		}
 
-		if ( range.length() == null || !focus && !range.isOrphan() ) {
+		if ( range.length() == null && ( !focus && !range.isOrphan() ) ) {
 			return;
 		} else {
 			if ( !expandSelection ) {
@@ -700,12 +704,75 @@ class Viewport_CommandRouter extends Events {
 
 		switch ( movementType ) {
 			case CaretPos.CHARACTER:
-				focus.moveByCharacters( amount );
-				if ( !expandSelection ) {
-					range.collapse( true );
+				
+				if ( focus ) {
+					
+					saveFragPos = focus.fragPos;
+
+					try {
+
+						focus.moveByCharacters( amount );
+
+						if ( !expandSelection ) {
+							range.collapse( true );
+						}
+
+						if ( saveFragPos == focus.fragPos ) {
+							// no movement has been made.
+							altMovement = true;
+						}
+
+					} catch (Exception) {
+
+						altMovement = true;
+
+					}
+
+				} else {
+
+					altMovement = true;
+
 				}
+
+				if ( altMovement ) {
+
+					if ( cell = this.viewport.selection.editorState.state.cell ) {
+
+						if ( amount == 1 && cell.nextCell() ) {
+							cell = cell.nextCell();
+
+							caretTarget = cell.createCaretTarget( false );
+
+							if ( caretTarget ) {
+								this.viewport.selection.anchorTo( caretTarget );
+								this.viewport.selection.focusTo( caretTarget );
+							} else {
+								this.viewport.selection.anchorTo( new TRange_Target( cell, cell.FRAGMENT_START ) );
+							}
+
+						}
+
+						if ( amount == -1 && cell.previousCell() ) {
+							
+							cell = cell.previousCell();
+
+							caretTarget = cell.createCaretTarget( true );
+
+							if ( caretTarget ) {
+								this.viewport.selection.anchorTo( caretTarget );
+								this.viewport.selection.focusTo( caretTarget );
+							} else {
+								this.viewport.selection.anchorTo( new TRange_Target( cell, cell.FRAGMENT_END ) );
+							}
+						}
+
+					}
+
+				}
+
 				this.viewport.scrollToCaret();
 				this.viewport.document.requestRepaint();
+
 				break;
 			case CaretPos.WORD:
 				focus.moveByWords( amount );
@@ -747,50 +814,135 @@ class Viewport_CommandRouter extends Events {
 					throw "Allowed values are -1 or 1.";
 				}
 
-				if ( focus.target.ownerBlockElement().is() == 'td' && !expandSelection ) {
-					td = <HTML_TableCell>focus.target.ownerBlockElement();
-					if ( amount == -1 && td.isTheFirstCell() && !td.parentNode.parentNode.previousSibling() ) {
-						p = td.documentElement.createElement('p');
-						td.parentNode.parentNode.parentNode.appendChild( p, 0 );
-						td.documentElement.relayout( true );
-						this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
-						return;
-					} else
-					if ( amount == 1 && td.isTheLastCell() && !td.parentNode.parentNode.nextSibling() ) {
-						p = td.documentElement.createElement('p');
-						td.parentNode.parentNode.parentNode.appendChild( p );
-						td.documentElement.relayout( true );
-						this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
-						return;
-					}
-				}
+				if ( focus ) {
 
-				lineIndex = focus.getLineIndex();
-
-				if ( lineIndex !== null ) {
-
-					lines = this.viewport.document.lines;
-					
-					line  = lines.at( lineIndex );
-
-					if ( this.caretX === null ) {
-						this.caretX = focus.details().paintAbsolute.x;
+					if ( focus.target.ownerBlockElement().is() == 'td' && !expandSelection ) {
+						td = <HTML_TableCell>focus.target.ownerBlockElement();
+						if ( amount == -1 && td.isTheFirstCell() && !td.parentNode.parentNode.previousSibling() ) {
+							p = td.documentElement.createElement('p');
+							td.parentNode.parentNode.parentNode.appendChild( p, 0 );
+							td.documentElement.relayout( true );
+							this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
+							return;
+						} else
+						if ( amount == 1 && td.isTheLastCell() && !td.parentNode.parentNode.nextSibling() ) {
+							p = td.documentElement.createElement('p');
+							td.parentNode.parentNode.parentNode.appendChild( p );
+							td.documentElement.relayout( true );
+							this.viewport.selection.anchorTo( new TRange_Target( p, p.FRAGMENT_START ) );
+							return;
+						}
 					}
 
-					try {
-						line = lines.at( lineIndex + amount );
-					} catch ( jumpException ) {
-						//console.warn( 'jumpException' );
-						return;
+					lineIndex = focus.getLineIndex();
+
+					if ( lineIndex !== null ) {
+
+						lines = this.viewport.document.lines;
+						
+						line  = lines.at( lineIndex );
+
+						if ( this.caretX === null ) {
+							this.caretX = focus.details().paintAbsolute.x;
+						}
+
+						try {
+							line = lines.at( lineIndex + amount );
+						} catch ( jumpException ) {
+							altMovement = true;
+						}
+
+
+						if ( !altMovement ) {
+							
+							saveFragPos = focus.fragPos;
+
+							focus.fragPos = line.getFragmentPositionByAbsoluteX( this.caretX );
+							focus.target = this.viewport.document.findNodeAtIndex( focus.fragPos );
+							if ( !expandSelection ){
+								range.collapse( true );
+							}
+
+							if ( saveFragPos == focus.fragPos ) {
+								altMovement = true;
+							}
+
+						}
+
+						if ( altMovement ) {
+
+							if ( cell = this.viewport.selection.editorState.state.cell ) {
+								
+								if ( amount == -1 && cell.upperNeighbourCell() ) {
+									cell = cell.upperNeighbourCell();
+									
+									caretTarget = cell.createCaretTarget( true );
+
+									if ( caretTarget ) {
+										this.viewport.selection.anchorTo( caretTarget );
+										this.viewport.selection.focusTo( caretTarget );
+									} else {
+										this.viewport.selection.anchorTo( new TRange_Target( cell, cell.isOrphanElement() ? cell.FRAGMENT_START : cell.FRAGMENT_START + 1 ) );
+									}
+								}
+
+								if ( amount == 1 && cell.bottomNeighbourCell() ) {
+									cell = cell.bottomNeighbourCell();
+
+									caretTarget = cell.createCaretTarget( false );
+
+									if ( caretTarget ) {
+										this.viewport.selection.anchorTo( caretTarget );
+										this.viewport.selection.focusTo( caretTarget );
+									} else {
+										this.viewport.selection.anchorTo( new TRange_Target( cell, cell.isOrphanElement() ? cell.FRAGMENT_START : cell.FRAGMENT_START + 1 ) );
+									}
+								}
+
+							}
+
+
+
+						}
+
+						this.viewport.scrollToCaret();
+						this.viewport.document.requestRepaint();
+
 					}
 
-					focus.fragPos = line.getFragmentPositionByAbsoluteX( this.caretX );
-					focus.target = this.viewport.document.findNodeAtIndex( focus.fragPos );
-					if ( !expandSelection ){
-						range.collapse( true );
+				} else {
+
+					this.viewport.selection.editorState.compute();
+
+					if ( cell = this.viewport.selection.editorState.state.cell ) {
+						
+						if ( amount == -1 && cell.upperNeighbourCell() ) {
+							cell = cell.upperNeighbourCell();
+							
+							caretTarget = cell.createCaretTarget( true );
+
+							if ( caretTarget ) {
+								this.viewport.selection.anchorTo( caretTarget );
+								this.viewport.selection.focusTo( caretTarget );
+							} else {
+								this.viewport.selection.anchorTo( new TRange_Target( cell, cell.isOrphanElement() ? cell.FRAGMENT_START : cell.FRAGMENT_START + 1 ) );
+							}
+						}
+
+						if ( amount == 1 && cell.bottomNeighbourCell() ) {
+							cell = cell.bottomNeighbourCell();
+
+							caretTarget = cell.createCaretTarget( false );
+
+							if ( caretTarget ) {
+								this.viewport.selection.anchorTo( caretTarget );
+								this.viewport.selection.focusTo( caretTarget );
+							} else {
+								this.viewport.selection.anchorTo( new TRange_Target( cell, cell.isOrphanElement() ? cell.FRAGMENT_START : cell.FRAGMENT_START + 1 ) );
+							}
+						}
+
 					}
-					this.viewport.scrollToCaret();
-					this.viewport.document.requestRepaint();
 
 				}
 
@@ -799,6 +951,7 @@ class Viewport_CommandRouter extends Events {
 
 		} catch ( moveError ) {
 			// :( suppress it.
+			//console.warn( 'info: ', moveError + '' );
 		}
 
 		range.setEventingState( true );
@@ -1033,6 +1186,10 @@ class Viewport_CommandRouter extends Events {
 		var data: TClipboardItem,
 		    selection = this.viewport.selection,
 		    rng = selection.getRange();
+
+		if ( !rng.focusNode() && rng.anchorNode().target.is() == 'body' ) {
+			return;// Cannot paste if selection don't have a focus.
+		}
 
 		if ( rng.isMultiRange() ) {
 			console.warn( "TO IMPLEMENT PASTE IN MULTIRANGE!" );

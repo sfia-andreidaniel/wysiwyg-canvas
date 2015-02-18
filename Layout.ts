@@ -85,6 +85,8 @@ class Layout {
 	}
 
 	public computeWidths( offsetLeftComputed: boolean = false ) {
+		// This is abstract.
+		// DO NOT FORGET TO SET THE BODY _maxRightEdge
 	}
 
 	/* @input: top placement position

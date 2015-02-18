@@ -39,7 +39,9 @@ class Layout_BlockChar extends Layout {
 		    n: number = 0,
 		    w: Character_Word,
 		    c: Character,
-		    chIndex: number = 0;
+		    chIndex: number = 0,
+		    size: number[],
+		    mwords: any[];
 
 		for ( i=0; i<len; i++ ) {
 			if ( contentsWithWords[i] == contents[j] ) {
@@ -65,6 +67,18 @@ class Layout_BlockChar extends Layout {
 
 		if ( word.length ) {
 			words.push( new Character_Word( word ) );
+		}
+
+		/* Process the words, and if there is any word that has the width greater than lineWidthInPixels,
+		   split the respective word in words */
+
+		for ( len = words.length - 1, i = len; i >= 0; i-- ) {
+			size = words[i].computeSize();
+			if ( size[0] > lineWidthInPixels ) {
+				mwords = words[i].splitWordToFit( lineWidthInPixels );
+				mwords.splice( 0, 0, i, 1 );
+				Array.prototype.splice.apply( words, mwords );
+			}
 		}
 
 		this.lines = [];

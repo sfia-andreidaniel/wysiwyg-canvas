@@ -47,13 +47,13 @@ class UndoManager extends Events {
 				"time": Date.now()
 			};
 
-		if ( numEntries && this.index == numEntries && this.entries[ numEntries - 1 ].description == entry.description && ( entry.time - this.entries[ numEntries - 1 ].time ) < 5000 ) {
+		if ( numEntries && this.index == numEntries && this.entries[ numEntries - 1 ].description == entry.description && ( entry.time - this.entries[ numEntries - 1 ].time ) < 1000 ) {
 
 			switch ( this.entries[ numEntries - 1 ].description ) {
 				case 'Delete Text':
 				case 'Write':
 				case 'New Line':
-					console.info( 'Replace undo', numEntries, this.index );
+					//console.info( 'Replace undo', numEntries, this.index );
 					this.entries[ numEntries - 1 ] = entry; //replace entry
 					return;
 					break;

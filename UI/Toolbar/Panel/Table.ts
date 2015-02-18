@@ -48,6 +48,7 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 					return;
 
 				me.setBorderColor( color );
+				me.focusCanvas();
 
 			}, '' );
 
@@ -55,56 +56,66 @@ class UI_Toolbar_Panel_Table extends UI_Toolbar_Panel {
 				if ( DOM.hasClass( me.btnInsertRowAfter, 'state-disabled' ) )
 					return;
 				me.insertRowAfter();
+				me.focusCanvas();
 			}, true );
 
 			me.btnInsertRowBefore.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnInsertRowBefore, 'state-disabled' ) )
 					return;
 				me.insertRowBefore();
+				me.focusCanvas();
 			}, true );
 
 			me.btnDeleteRow.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnDeleteRow, 'state-disabled' ) )
 					return;
 				me.deleteRow();
+				me.focusCanvas();
 			}, true );
 
 			me.btnInsertColAfter.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnInsertColAfter, 'state-disabled' ) ) 
 					return;
 				me.insertColumnAfter();
+				me.focusCanvas();
 			}, true );
 
 			me.btnInsertColBefore.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnInsertColBefore, 'state-disabled' ) )
 					return;
 				me.insertColumnBefore();
+				me.focusCanvas();
 			}, true );
 
 			me.btnDeleteCol.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnDeleteCol, 'state-disabled' ) )
 					return;
 				me.deleteColumn();
+				me.focusCanvas();
 			}, true );
 
 			me.btnMergeCells.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnMergeCells, 'state-disabled' ) )
 					return;
 				me.mergeCells();
+				me.focusCanvas();
 			}, true );
 
 			me.btnSplitCell.addEventListener( 'click', function( evt ) {
 				if ( DOM.hasClass( me.btnSplitCell, 'state-disabled' ) )
 					return;
 				me.splitCell();
+				me.focusCanvas();
 			}, true );
 
 			me.createTableDropdown( me.btnTable, function( c: number, r: number ) {
 				me.insertTable( c, r );
+				me.focusCanvas();
 			} );
 
 			me.makeColorDropdown( me.btnBackgroundColor, function( color: string ) {
 				me.setBackgroundColor( color );
+				me.focusCanvas();
 			}, '' );
 
 

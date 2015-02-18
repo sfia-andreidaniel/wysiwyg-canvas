@@ -20,12 +20,14 @@ class UI_Toolbar_Panel_UndoManager extends UI_Toolbar_Panel {
 				if ( DOM.hasClass( me.buttonUndo, 'state-disabled' ) )
 					return;
 				me.undo();
+				me.focusCanvas();
 			}, false );
 
 			me.buttonRedo.addEventListener( 'click', function() {
 				if ( DOM.hasClass( me.buttonRedo, 'state-disabled' ) )
 					return;
 				me.redo();
+				me.focusCanvas();
 			}, false );
 
 			me.toolbar.router.viewport.undo.on( 'changed', function() {

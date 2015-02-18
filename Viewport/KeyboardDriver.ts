@@ -66,7 +66,8 @@ class Viewport_KeyboardDriver extends Events {
 		
 		var cancelEvent: boolean = false,
 		    nextCell: HTML_TableCell,
-		    textNodes: TNode_Text[];
+		    textNodes: TNode_Text[],
+		    iTemp: number;
 
 		switch ( DOMEvent.keyCode ) {
 
@@ -283,6 +284,20 @@ class Viewport_KeyboardDriver extends Events {
 				if ( DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.REDO );
 					cancelEvent = true;
+				}
+				break;
+
+			case 48: // 0
+			case 49: // 1
+			case 50: // 2
+			case 51: // 3
+			case 52: // 4
+			case 53: // 5
+			case 54: // 6
+				if ( DOMEvent.ctrlKey ) {
+					cancelEvent = true;
+					iTemp = DOMEvent.keyCode - 48;
+					this.viewport.execCommand( EditorCommand.BLOCK_LEVEL, iTemp == 0 ? 'normal' : 'h' + iTemp )
 				}
 				break;
 

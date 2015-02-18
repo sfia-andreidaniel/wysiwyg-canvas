@@ -63,34 +63,42 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 
 			me.btnClearFormatting.addEventListener( 'click', function(DOMEvent) {
 				me.toolbar.router.dispatchCommand( EditorCommand.CLEAR_FORMATTING, [] );
+				me.focusCanvas();
 			}, true );
 
 			me.dropdownize( me.blockLevel , function( v: string ) {
 				me.setBlockLevel( v );
+				me.focusCanvas();
 			}, true );
 			
 			me.dropdownize( me.fontFamily , function( v: string ) {
 				me.setFontFamily( v );
+				me.focusCanvas();
 			}, false );
 			
 			me.dropdownize( me.fontSize , function( v: string ) {
 				me.setFontSize( v );
+				me.focusCanvas();
 			}, false );
 
 			me.btnBold.addEventListener( 'click', function() {
 				me.toolbar.router.dispatchCommand( EditorCommand.BOLD, [] );
+				me.focusCanvas();
 			}, true );
 			
 			me.btnItalic.addEventListener( 'click', function() {
 				me.toolbar.router.dispatchCommand( EditorCommand.ITALIC, [] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnUnderline.addEventListener( 'click', function() {
 				me.toolbar.router.dispatchCommand( EditorCommand.UNDERLINE, [] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnStrike.addEventListener( 'click', function() {
 				me.toolbar.router.dispatchCommand( EditorCommand.STRIKE, [] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnSubscript.addEventListener( 'click', function( DOMEvent ) {
@@ -99,6 +107,7 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 				} else {
 					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sub' ] );
 				}
+				me.focusCanvas();
 			}, true );
 			
 			me.btnSuperscript.addEventListener( 'click', function( DOMEvent ) {
@@ -107,42 +116,52 @@ class UI_Toolbar_Panel_Formatting extends UI_Toolbar_Panel {
 				} else {
 					me.toolbar.router.dispatchCommand( EditorCommand.VALIGN, [ 'sup' ] );
 				}
+				me.focusCanvas();
 			}, true );
 
 			me.btnLeft.addEventListener( 'click', function(DOMEvent) {
 				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'left' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnRight.addEventListener( 'click', function(DOMEvent) {
 				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'right' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnCenter.addEventListener( 'click', function(DOMEvent) {
 				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'center' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnJustified.addEventListener( 'click', function(DOMEvent) {
 				me.toolbar.router.dispatchCommand( EditorCommand.ALIGN, [ 'justified' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnUL.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ul' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnOL.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.LIST, [ 'ol' ] );
+				me.focusCanvas();
 			}, true );
 
 			me.btnIndent.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.INDENT, [] );
+				me.focusCanvas();
 			}, true );
 			
 			me.btnUnindent.addEventListener( 'click', function( DOMEvent ) {
 				me.toolbar.router.dispatchCommand( EditorCommand.UNINDENT, [] );
+				me.focusCanvas();
 			}, true );
 
 			me.makeColorDropdown( me.btnColor, function( color: string ) {
 				me.setColor( color );
+				me.focusCanvas();
 			}, '');
 
 		})( this );

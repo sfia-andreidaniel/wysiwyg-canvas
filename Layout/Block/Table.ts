@@ -73,6 +73,10 @@ class Layout_Block_Table extends Layout_Block {
 
 		}
 
+		if ( this.node ) {
+			this.node.documentElement.setMaxRightEdgeUsingLayout( this );
+		}
+
 	}
 
 	public computeHeights( topPlacement: number, indent: number = 0 ): number {

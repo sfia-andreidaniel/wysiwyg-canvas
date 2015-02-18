@@ -599,6 +599,9 @@ class UI_Toolbar_Panel extends Events {
 		document.body.scrollTop  = saveTop;
 	}
 
+	protected focusCanvas() {
+		this.focus( this.toolbar.router.viewport.canvas );
+	}
 
 
 }

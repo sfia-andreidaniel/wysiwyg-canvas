@@ -42,4 +42,46 @@ class Character_Word {
 		return out;
 	}
 
+	public splitWordToFit( lineWidth: number ): Character_Word[] {
+		
+		var chars: Character[] = [],
+			ch: Character,
+		    i: number = 0,
+		    len: number = this.characters.length,
+		    out: Character_Word[] = [],
+		    sum: number = 0,
+		    size: number[] = [];
+
+		if ( this.characters.length <= 1 ) {
+			return [ this ];
+		} else {
+			for ( i=0; i<len; i++ ) { 
+
+				ch = this.characters[i];
+				size = ch.computeSize();
+
+				if ( chars.length == 0 ) {
+					chars.push( ch );
+					sum += size[0];
+				} else {
+					if ( sum + size[0] <= lineWidth ) {
+						chars.push( ch );
+						sum += size[0];
+					} else {
+						out.push( new Character_Word( chars ) );
+						chars = [ ch ];
+						sum = size[0];
+					}
+				}
+
+			}
+		}
+
+		if ( chars.length ) {
+			out.push( new Character_Word( chars ) );
+		}
+
+		return out;
+	}
+
 }

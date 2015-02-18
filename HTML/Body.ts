@@ -17,6 +17,8 @@ class HTML_Body extends TNode_Element {
 	public  _tablesLocked      : boolean = false; // when tables are locked, all tables and tr's won't support the appendChild / removeChild feature.
 	private _orphanEnabled     : boolean = true;  // weather when the document contains no child nodes, an orphan paragraph is automatically inserted.
 
+	public _maxRightEdge  : number = 0; // the maximum scrolling edge position after relayout.
+
 	public static AUTOCLOSE_TAGS: string[] = [
 		'br',
 		'input',
@@ -279,6 +281,16 @@ class HTML_Body extends TNode_Element {
 		this.viewport.painter.run();
 	}
 
+	/* This is used to determine the scrollWidth of the viewport,
+	   and should be executed by the layout after it computes it's width */
+
+	public setMaxRightEdgeUsingLayout( layout: Layout ) {
+		var mre = layout.offsetLeftOuter + layout.offsetWidthOuter;
+		if ( mre > this._maxRightEdge ) {
+			this._maxRightEdge = mre;
+		}
+	}
+
 	public repaint( ) {
 
 		if ( !this.canRelayout ) {
@@ -337,6 +349,7 @@ class HTML_Body extends TNode_Element {
 			return;
 		}
 
+		this._maxRightEdge = 0;
 		this._layout = this.createLayout();
 		this.lines.reset();
 
@@ -358,10 +371,19 @@ class HTML_Body extends TNode_Element {
 			this._layout.increaseHeightBy( this.viewport.height() - this.viewport._scrollbarSize - this._layout.offsetHeightOuter );
 		}
 
-		this.viewport._clientWidth = this._layout.offsetWidth + this._layout.offsetHeight;
+		if ( this._layout.offsetLeft + this._layout.offsetWidth < this._maxRightEdge ) {
+			// force expand layout of body.
+			diff = this._maxRightEdge - this._layout.offsetLeft - this._layout.offsetWidth;
+			this._layout.offsetWidth += diff;
+			this._layout.innerWidth += diff;
+			this._layout.offsetWidthOuter += diff;
+		}
+
+		this.viewport._clientWidth = this._maxRightEdge;
 		this.viewport._clientHeight = this._layout.offsetHeight + this._layout.offsetTop;
 		
 		this.viewport.scrollTop( this.viewport.scrollTop() );
+		this.viewport.scrollLeft( this.viewport.scrollLeft() );
 
 		//console.log( this._layout.serialize() );
 

@@ -22,18 +22,21 @@ class UI_Toolbar_Panel_Clipboard extends UI_Toolbar_Panel {
 				if ( DOM.hasClass( me.buttonCut, 'state-disabled' ) )
 					return;
 				me.cut();
+				me.focusCanvas();
 			}, false );
 
 			me.buttonCopy.addEventListener( 'click', function() {
 				if ( DOM.hasClass( me.buttonCopy, 'state-disabled' ) )
 					return;
 				me.copy();
+				me.focusCanvas();
 			}, false );
 
 			me.buttonPaste.addEventListener( 'click', function() {
 				if ( DOM.hasClass( me.buttonPaste, 'state-disabled' ) )
 					return;
 				me.paste();
+				me.focusCanvas();
 			}, false );
 
 		} )( this );

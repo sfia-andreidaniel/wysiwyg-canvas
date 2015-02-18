@@ -459,12 +459,12 @@ class HTML_TableCell extends TNode_Element {
 			}
 		}
 
-		if ( this.ownerTable.childNodes.length == 0 ) {
-			this.ownerTable.remove();
+		if ( table.childNodes.length == 0 ) {
+			table.remove();
 		}
 
-		if ( this.ownerTable.parentNode )
-			selection.anchorTo( new TRange_Target( this.ownerTable, this.ownerTable.FRAGMENT_START ) );
+		if ( table.parentNode )
+			selection.anchorTo( new TRange_Target( table, table.FRAGMENT_START ) );
 		else
 			selection.anchorTo( new TRange_Target( this.documentElement ) );
 
@@ -517,12 +517,12 @@ class HTML_TableCell extends TNode_Element {
 			}
 		}
 
-		if ( this.ownerTable.childNodes.length == 0 ) {
-			this.ownerTable.remove();
+		if ( table.childNodes.length == 0 ) {
+			table.remove();
 		}
 
-		if ( this.ownerTable.parentNode )
-			selection.anchorTo( new TRange_Target( this.ownerTable, this.ownerTable.FRAGMENT_START ) );
+		if ( table.parentNode )
+			selection.anchorTo( new TRange_Target( table, table.FRAGMENT_START ) );
 		else
 			selection.anchorTo( new TRange_Target( this.documentElement ) );
 
@@ -662,6 +662,63 @@ class HTML_TableCell extends TNode_Element {
 		}
 
 		return null;
+
+	}
+
+	/* Returns the pervious cell in the ownertable of the current cell.
+	   The cell is physically layouted visually in the table, and it has
+	   nothing to do with the DOM node order of the cells in the table */
+
+	public previousCell(): HTML_TableCell {
+
+		var row: HTML_TableRow;
+
+		if ( this.previousSibling() ) {
+			return <HTML_TableCell>this.previousSibling();
+		} else {
+			for ( var i = (<HTML_TableRow>this.parentNode).siblingIndex - 1; i >= 0 ; i-- ) {
+
+				row = (<HTML_TableRow>(<HTML_Table>this.parentNode.parentNode).childNodes[i]);
+
+				if ( row.childNodes[ row.childNodes.length - 1 ] ) {
+					return <HTML_TableCell>(row.childNodes[ row.childNodes.length - 1 ] );
+				}
+			}
+		}
+
+		return null;
+
+	}
+
+	public upperNeighbourCell(): HTML_TableCell {
+		var cells: HTML_TableCell[] = this.ownerTable.getCellsForColumn( this.edgeLeft.index, this.edgeRight.index ),
+		    index: number = -1,
+		    i: number = 0,
+		    len: number = cells.length;
+
+		index = cells.indexOf( this );
+
+		if ( index > 0 ) {
+			return cells[ index - 1 ];
+		} else {
+			return null;
+		}
+
+	}
+
+	public bottomNeighbourCell(): HTML_TableCell {
+		var cells: HTML_TableCell[] = this.ownerTable.getCellsForColumn( this.edgeLeft.index, this.edgeRight.index ),
+		    index: number = -1,
+		    i: number = 0,
+		    len: number = cells.length;
+
+		index = cells.indexOf( this );
+
+		if ( index < cells.length - 1 && index >= 0 ) {
+			return cells[ index + 1 ];
+		} else {
+			return null;
+		}
 
 	}
 

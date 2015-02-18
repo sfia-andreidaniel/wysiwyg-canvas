@@ -15,6 +15,10 @@ class Viewport_MouseDriver extends Events {
 	public  resizingDelta           : TPoint        = null;
 	public  resizingLastPoint       : TPoint        = null;
 	
+	protected mouseDownCombo        : number        = 0;
+	protected prevTimestampCombo    : number        = Date.now();
+	protected mousePoint            : TPoint        = { "x": 0, "y": 0 };
+
 	constructor( viewport: Viewport ) {
 	    
 	    super();
@@ -38,20 +42,67 @@ class Viewport_MouseDriver extends Events {
 	    	}
 
    			me.viewport.canvas.addEventListener( typeof me.viewport.canvas.onmousewheel !== 'undefined' ? 'mousewheel' : 'wheel', function( DOMEvent ) {
-				me.viewport.scrollTop( me.viewport.scrollTop() + ( ( DOMEvent.wheelDelta || -DOMEvent.deltaY ) < 0 ? 40 : -40 ) );
+				if ( !DOMEvent.shiftKey ) {
+					me.viewport.scrollTop( me.viewport.scrollTop() + ( ( DOMEvent.wheelDelta || -DOMEvent.deltaY ) < 0 ? 40 : -40 ) );
+				} else {
+					me.viewport.scrollLeft( me.viewport.scrollLeft() + ( ( DOMEvent.wheelDelta || -DOMEvent.deltaY ) < 0 ? 40 : -40 ) );
+				}
 				DOMEvent.preventDefault();
 				DOMEvent.stopPropagation();
 			}, true );
 
 			me.viewport.canvas.addEventListener( 'mousedown',  function( DOMEvent ) {
-				me.onmousedown( DOMEvent );
-				document.body.addEventListener( 'mousemove', globalMouseMove, true );
-				document.body.addEventListener( 'mouseup', globalMouseUp, true );
 				
-				me.mouseIsGlobal = true;
+				me.mousePoint.x = DOMEvent.offsetX;
+				me.mousePoint.y = DOMEvent.offsetY;
+
+				var ts: number = Date.now();
+
+				if ( ( ts - me.prevTimestampCombo ) > 200 ) {
+					me.mouseDownCombo = 1;
+				} else {
+					me.mouseDownCombo++;
+				}
+
+				me.prevTimestampCombo = ts;
+
+				if ( me.mouseDownCombo == 1 ) {
+
+					me.onmousedown( DOMEvent );
+
+					document.body.addEventListener( 'mousemove', globalMouseMove, true );
+					document.body.addEventListener( 'mouseup', globalMouseUp, true );
+
+					me.mouseIsGlobal = true;
+
+				} else {
+
+					me.onmousedown( DOMEvent );
+
+					if ( me.mouseDownCombo == 2 ) {
+						me.onmousedblclick( DOMEvent );
+					} else if ( me.mouseDownCombo > 2 ) {
+						me.onmousetripleclick( DOMEvent );
+						me.prevTimestampCombo = 0;
+					}
+
+
+					document.body.addEventListener( 'mousemove', globalMouseMove, true );
+					document.body.addEventListener( 'mouseup', globalMouseUp, true );
+
+					me.mouseIsGlobal = true;
+				}
+				
 			}, true);
 
 			me.viewport.canvas.addEventListener( 'mousemove',  function( DOMEvent ) {
+
+				if ( me.mousePoint.x == DOMEvent.offsetX && me.mousePoint.y == DOMEvent.offsetY ) {
+					// no movement
+				} else {
+					me.prevTimestampCombo = 0;
+				}
+
 				if ( !me.mouseIsGlobal ) {
 					me.onmousemove( DOMEvent );
 				}
@@ -67,9 +118,11 @@ class Viewport_MouseDriver extends Events {
 				me.onmouseclick( DOMEvent );
 			}, true);
 
+			/*
 			me.viewport.canvas.addEventListener( 'dblclick',   function( DOMEvent ) {
 				me.onmousedblclick( DOMEvent );
 			}, true );
+			*/
 
 			me.viewport.canvas.oncontextmenu = function ( DOMEvent ) {
 
@@ -322,7 +375,64 @@ class Viewport_MouseDriver extends Events {
 	public onmouseclick( DOMEvent ) {
 	}
 
+	public onmousetripleclick( DOMEvent ) {
+		
+		var sel = this.viewport.selection,
+		    rng = sel.getRange().collapse(),
+		    focus = rng.focusNode(),
+		    anchor= rng.anchorNode(),
+		    targetStart: TRange_Target,
+		    targetEnd: TRange_Target,
+		    ownerBlock: TNode_Element;
+
+		if ( !focus ) {
+			return;
+		}
+
+		ownerBlock = focus.target.ownerBlockElement();
+
+		targetStart = ownerBlock.createCaretTarget( false );
+		targetEnd   = ownerBlock.createCaretTarget( true );
+
+		if ( !targetStart || !targetEnd ) {
+			return;
+		}
+
+		sel.anchorTo( targetStart );
+		sel.focusTo( targetEnd );
+
+	}
+
+
 	public onmousedblclick( DOMEvent ) {
+		var sel = this.viewport.selection,
+		    rng = sel.getRange().collapse(),
+		    focus = rng.focusNode(),
+		    anchor= rng.anchorNode(),
+		    at: FragmentItem;
+
+		if ( !focus ) {
+			return;
+		}
+
+		at = this.viewport.document.fragment.at( focus.fragPos );
+
+		try {
+
+			if ( at != FragmentItem.WHITE_SPACE && at != FragmentItem.EOL ) {
+
+				anchor.moveByWords( -1 );
+				focus.moveByWords( 1 );
+
+			} else {
+
+				anchor.moveByWords( -1 );
+
+			}
+
+		} catch (Error) {
+			console.error( Error );
+		}
 
 	}
 

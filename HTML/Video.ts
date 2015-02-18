@@ -1,5 +1,8 @@
 class HTML_Video extends TNode_Element {
 
+	static  buttonFullScreen = document.createElement( 'img' );
+	static  buttonPlay = document.createElement( 'img' );
+
 	public  isSelectable: boolean = true; // when the user clicks on this element, it is selectable
 	public  isResizable: boolean = true;
 
@@ -12,8 +15,6 @@ class HTML_Video extends TNode_Element {
 		super();
 		this.nodeName = 'video';
 		this.style.display('block');
-		this.style.width('10');
-		this.style.height('10');
 
 		( function( me ) {
 
@@ -27,7 +28,30 @@ class HTML_Video extends TNode_Element {
 				me.requestRepaint();
 			}, true );
 
+			me.style.on( 'changed', function( stylePropertyName: string ) {
+
+
+				if ( stylePropertyName == 'width' || stylePropertyName == 'height' ) {
+
+					var hasWidth: boolean = me.style._width.isSet,
+					    hasHeight: boolean = me.style._height.isSet;
+
+					if ( hasWidth && hasHeight ) {
+						// do not enforce an aspect ratio
+						me.style._aspectRatio.isSet = false;
+					} else {
+						// enforce an aspect ratio
+						me.style._aspectRatio.value = '1.77';
+						me.style._aspectRatio.isSet = true;
+					}
+
+				}
+
+			} );
+
 		} )( this );
+
+		this.style.width('10');
 	}
 
 	public width( value: number = null ): number {
@@ -205,7 +229,12 @@ class HTML_Video extends TNode_Element {
 		    backgroundColor: string,
 		    selection = this.documentElement.viewport.selection,
 		    range = selection.getRange(),
-		    isSelected: boolean = false;
+		    isSelected: boolean = false,
+
+		    left: number = 0,
+		    top: number = 0,
+		    width: number = 0,
+		    height: number = 0;
 
 		if ( ( range.equalsNode( this ) && this.isSelectable ) || ( range.contains( this.FRAGMENT_START + 1 ) && range.contains( this.FRAGMENT_END - 1 ) && !this.isSelectionPaintingDisabled ) ) {
 			
@@ -231,59 +260,105 @@ class HTML_Video extends TNode_Element {
 				ctx.closePath();
 			}
 
-			if ( this.isOrphanElement() && !range.focusNode() && range.anchorNode().target == this ) {
-				// paint a caret inside this element
-				ctx.fillStyle = '#000';
-				ctx.fillRect( layout.innerLeft - scrollLeft + ( this.style.textAlign() == 'center' ? ( this.layout.innerWidth / 2 ) : ( this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0 ) ), layout.innerTop  - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight() );
-
-			}
-
-		} else {
-
-			if ( this.isOrphanElement() ) {
-				ctx.strokeStyle = '#ddd';
-				ctx.lineWidth = 1;
-
-				ctx.save();
-
-				if ( ctx.setLineDash ) {
-					ctx.setLineDash([1,2]);
-				}
-
-				ctx.beginPath();
-				ctx.strokeRect( layout.offsetLeft + .5 - scrollLeft, layout.offsetTop + .5 - scrollTop, layout.offsetWidth - 1, layout.offsetHeight - 1 );
-				ctx.closePath();
-
-
-				ctx.restore();
-
-				if ( !range.focusNode() && range.anchorNode().target == this ) {
-					// paint a caret inside this element
-					ctx.fillStyle = '#000';
-					ctx.fillRect( layout.innerLeft - scrollLeft + ( this.style.textAlign() == 'center' ? ( this.layout.innerWidth / 2 ) : ( this.style.textAlign() == 'right' ? this.layout.innerWidth - 2 : 0 ) ), layout.innerTop  - scrollTop + 1, 2, this.style.fontSize() * this.style.lineHeight() );
-
-				}
-			}
 		}
+
+		left = layout.offsetLeft + borderWidth - scrollLeft;
+		top = layout.offsetTop + borderWidth - scrollTop;
+		width = layout.offsetWidth - 2 * borderWidth;
+		height = layout.offsetHeight - 2 * borderWidth;
 
 		if ( !isSelected ) {
 			ctx.fillStyle = 'black';
-			ctx.fillRect( layout.offsetLeft + borderWidth - scrollLeft, layout.offsetTop + borderWidth - scrollTop, layout.offsetWidth - 2 * borderWidth, layout.offsetHeight - 2 * borderWidth );
+			ctx.fillRect( left, top, width, height );
 		}
 
 		if ( this.isPaintedSelected ) {
 			this.paintResizeHandles( ctx, layout, scrollLeft, scrollTop );
 		}
 
-		if ( this.isPaintSelected ) {
+		if ( this.isPaintedSelected ) {
 			ctx.globalAlpha = .5;
 		}
 
-		if ( this.isPaintSelected ) {
+		/* Draw the video poster */
+		if ( this._posterLoaded ) {
+
+			ctx.drawImage( this._poster, left, top, width, height );
+
+		}
+
+		/* Draw the video element */
+		if ( this.controls() && width > 70 && height > 40 ) {
+			
+				// paint the controlbar
+				ctx.fillStyle = 'rgba(128,128,128,.5)';
+
+				ctx.fillRect( left + 5, top + height - 30, width - 10, 20 );
+
+				ctx.fillStyle = '#000';
+
+				ctx.fillRect ( left + 30, top + height - 22, width - 70, 5 );
+
+				try {
+
+					ctx.drawImage( HTML_Video.buttonPlay, left + 7, top + height - 28 );
+
+				} catch (e) {
+
+				}
+
+				try {
+
+					ctx.drawImage( HTML_Video.buttonFullScreen, left + width - 30, top + height - 28 );
+
+				} catch (e) {
+
+				}
+
+		}
+
+		if ( this.isPaintedSelected ) {
 			ctx.globalAlpha = 1;
 		}
 
 	}
 
+	public createLayout( useParentLayout: Layout = null ): Layout {
+
+		if ( this.documentElement ) {
+
+			return new Layout_Block( this );
+
+		} else {
+
+			return null;
+
+		}
+
+	}
+
+	public bakeIntoFragment() {
+		if ( this.documentElement ) {
+			
+			this.FRAGMENT_START = this.documentElement.fragment.length();
+			this.documentElement.fragment.add( FragmentItem.NODE_START );
+
+			this.FRAGMENT_END = this.documentElement.fragment.length();
+			this.documentElement.fragment.add( FragmentItem.NODE_END );
+		}
+	}
+
+	public findNodeAtIndex( index: number ): TNode {
+		return index >= this.FRAGMENT_START && index <= this.FRAGMENT_END
+			? this
+			: null;
+	}
+
+	public ownerBlockElement(): TNode_Element {
+		return this;
+	}
 
 }
+
+HTML_Video.buttonPlay.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAARCAYAAADUryzEAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3wISDxsq1r2NXwAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAACxElEQVQ4y32TX2tcVRTFf/vemz+TSUKmyR2CSMRiUPTRz+GTn6JKQfChFhWrIKJJpFUcpM3g1LYpjakvRbDQ6oNNkQnkQSYEkvoQmoHMncEJk87cTO85Z/swc6dKqwsOHA57r704ay9pNpuvTk1NnWk2m5+uXF/ZKV0uUW/UEVF838c5h+/7CAKAoqCKeB6eeMjBwcFr09PTlSAIFPip0Wh8cvXa1Y3LV0ocHh4iIvi+j6oiIqjq4O6JILVa7ZV8Pr+dJAmqyvDwMMCdWq32fun7Unnl+jVarUeIgO/7WGtRVUCQPsF8GIY7SZLgeR6qirWW0dFRgDvVavXD4nfF32+s3qDd7gDg+x7OuR5JFEUnwzD88/j4GM/zABARnHM458hkMgDre3t7H11cvnj3h7U1kuTxoI4oqr/gnNN2u61xHD912u22Hh0daR/3dh/svnHm7HvMvzzPiy+dRKKo/vyJE7mHcRwPFDwLqaLJyUmA9e3t7c8vfP3VLYmi+nO53FS10+n8L0GKJEkwxhCGYbeytfVmAFhrLcYYfN//z0ZVxRjD2NgYuVxurVKpvPPW6berAWCdc1hrn2pKfTfGMDQ0xMzMzF6r1Tq9uLR461JxmW63y4DAOdf71X8gJQ3D8LGIfHbzx5tfnL9wvvNwf7+3k6r8S0FK4JzDGEMulyObzd4vb5RPLX259Ed5owyA5wnWOlQhUFXrnBtINcaQyWSYnZ1t7Fer7577+NyV1bVVFRFEPFR7arWfjEBErKrS7XYZGRlhbm5O4zi+VPi2cPabQuGvVquFCIiAdQa0FygRwfOEwFrjQMnn84yPj2/9fPv2qYXFhd92H+yg2pPr1GGdpnb0p4OKEGSzWTsxMfGoUtn6YGFxqXD3118SEe3nIpWrz7TVOUdwb/2+3dzcfH25WNwx1pAakYalX/5k93nypKr8De/mtU7SkArBAAAAAElFTkSuQmCC';
+HTML_Video.buttonFullScreen.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAQCAYAAAAbBi9cAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH3wISDxwSsf6jBgAAAB1pVFh0Q29tbWVudAAAAAAAQ3JlYXRlZCB3aXRoIEdJTVBkLmUHAAABqklEQVQ4y6WUO4oyQRSFv3q07YNWEUNTcRGuwKWIe2gDAwPBdU3eGIipYCbSPrCr7KoJ/LuVHx0H5sKloKh7OOfcQwljjA+CgL+W9t5jrcVay/F4RAiBEIIsy+h2u2it8d6/HPbe45wjCAK0c45qtUqSJMRxTBRF7Pd7RqMRk8mkBBZCvASSUiKlRBeX1lqu1ytpmjIcDhmPx0gpcc4hpXzJqmCktUYLIfDeo5TifD4zHA6ZTqcopbjdbiXYO2l5nj88EkKQpimDwYA4jlFKYYxBKVU+/MkjAJFlmZdSstlsqNVq9Ho9rtcrUsqPmyoYNZtNhDHGG2PKQWvtr0AA8jzHe0+73b6b7ZzDGFNu5yc5RTnnqFQqZFkGgCx05nlenp/aWksYhqxWK47H4x2oQP9tG2NoNBp8fX2xXC4fyS60Fno/eRJFEUmSMJ/P7yb/C6oupL3LyvOa6/U66/Wa2WzG+Xym0+lgrX0wes7DOyCtNdvtlsViweVyIYqiMvHe+3uOdrsdzxH4HwRAKcXhcOB0OhGGIXmeI6Wk1WrR7/cRl8vF12q1P38j35ZbSO0VOkT6AAAAAElFTkSuQmCC';

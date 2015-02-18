@@ -78,7 +78,8 @@ class HTML_Body extends TNode_Element {
 		'table',
 		'tr',
 		'td',
-		'span'
+		'span',
+		'video'
 	];
 
 	public tabSize( size: number = null ): number {
@@ -146,6 +147,9 @@ class HTML_Body extends TNode_Element {
 				break;
 			case 'img':
 				node = new HTML_Image( String( args[0] || '' ) || null );
+				break;
+			case 'video':
+				node = new HTML_Video();
 				break;
 			case 'h1':
 				node = new HTML_Heading1();

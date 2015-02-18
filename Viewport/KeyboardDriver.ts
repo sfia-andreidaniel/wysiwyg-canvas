@@ -207,7 +207,7 @@ class Viewport_KeyboardDriver extends Events {
 				break;
 
 			case 8: // backspace
-				if ( !DOMEvent.ctrlKey && !DOMEvent.shiftKey ) {
+				if ( !DOMEvent.ctrlKey ) {
 					this.viewport.execCommand( EditorCommand.DELETE_TEXT, -1 );
 					cancelEvent = true;
 				}

@@ -18,6 +18,7 @@
 /// <reference path="./HTML/BlockQuote.ts" />
 /// <reference path="./HTML/BreakElement.ts" />
 /// <reference path="./HTML/Image.ts" />
+/// <reference path="./HTML/Video.ts" />
 /// <reference path="./HTML/Heading1.ts" />
 /// <reference path="./HTML/Heading2.ts" />
 /// <reference path="./HTML/Heading3.ts" />

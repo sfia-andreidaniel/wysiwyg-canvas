@@ -37,6 +37,7 @@ class HTML_Image extends TNode_Element {
 			}, false );
 
 		} )( this );
+		
 		if ( src !== null ) {
 			this.src( src );
 		}

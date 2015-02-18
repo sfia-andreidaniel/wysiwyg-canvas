@@ -18,7 +18,7 @@ class TNode_Collection {
 
 	public static BLOCK_NODES_LIST: string[] = [
 		"body", "ul", "li", "ol", "h1", "h2", "h3", "h4", "h5", "h6",
-		"p", "img", "table", "tr", "td", "blockquote"
+		"p", "img", "table", "tr", "td", "blockquote", "video"
 	];
 
 	constructor( addNodes: TNode[] = null ) {

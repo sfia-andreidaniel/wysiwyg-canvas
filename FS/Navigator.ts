@@ -67,7 +67,7 @@ class FS_Navigator extends Events {
 						me.path = path;
 						me.fire( 'loaded' );
 						me.fire( 'changed' );
-					}, 1000 );
+					}, 10 );
 				} )( this );
 
 				break;
@@ -108,7 +108,7 @@ class FS_Navigator extends Events {
 						me.path = path;
 						me.fire( 'loaded' );
 						me.fire( 'changed' );
-					}, 1000 );
+					}, 10 );
 				} )( this );
 
 				break;
@@ -118,7 +118,7 @@ class FS_Navigator extends Events {
 				( function( me ) {
 					setTimeout( function() {
 						me.fire( 'error', 'invalid path "' + path + '"' );
-					}, 100 );
+					}, 10 );
 				} )( this );
 
 				break;

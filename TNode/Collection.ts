@@ -13,7 +13,7 @@ class TNode_Collection {
 	public static INLINE_NODES_LIST: string[] = [
 		"#text", "a", "b", "!b", "i", "!i", "u", "!u", "strike", "!strike",
 		"sup", "!sup", "sub", "!sub", "span", "color", "font", "size",
-		"br"
+		"br", "source"
 	];
 
 	public static BLOCK_NODES_LIST: string[] = [

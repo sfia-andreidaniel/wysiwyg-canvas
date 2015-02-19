@@ -134,6 +134,7 @@ class HTML_Video extends TNode_Element {
 
 	public xmlAttributes(): string {
 		var out: string[] = [];
+		
 		if ( this.style._width.isSet ) {
 			out.push( 'width="' + this.style.width() + '"' );
 		}
@@ -141,13 +142,13 @@ class HTML_Video extends TNode_Element {
 			out.push( 'height="' + this.style.height() + '"' );
 		}
 		if ( this._controls ) {
-			out.push( 'controls="controls"' );
+			out.push( 'controls' );
 		}
 		if ( this.poster() ) {
-			out.push( 'poster="' + this.poster() + '"' );
+			out.push( 'poster="' + HTMLParser.escape( this.poster() ) + '"' );
 		}
 		if ( this.src() ) {
-			out.push( 'src="' + this.src() + '"' );
+			out.push( 'src="' + HTMLParser.escape( this.src() ) + '"' );
 		}
 		return out.join( ' ' );
 	}

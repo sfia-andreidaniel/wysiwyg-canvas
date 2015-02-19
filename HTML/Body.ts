@@ -23,7 +23,8 @@ class HTML_Body extends TNode_Element {
 		'br',
 		'input',
 		'hr',
-		'img'
+		'img',
+		'source'
 	];
 
 	public static FORCE_TEXT_NODES: string[] = [
@@ -79,7 +80,8 @@ class HTML_Body extends TNode_Element {
 		'tr',
 		'td',
 		'span',
-		'video'
+		'video',
+		'source'
 	];
 
 	public tabSize( size: number = null ): number {
@@ -150,6 +152,9 @@ class HTML_Body extends TNode_Element {
 				break;
 			case 'video':
 				node = new HTML_Video();
+				break;
+			case 'source':
+				node = new HTML_SourceElement();
 				break;
 			case 'h1':
 				node = new HTML_Heading1();

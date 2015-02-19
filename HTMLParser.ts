@@ -5,9 +5,26 @@ class HTMLParser {
 
 	constructor ( public document: HTML_Body, data?: string ) {
 		
-		if ( data )
+		if ( data ) {
 			this.parse( data, null );
+			this.removeWhiteSpaces( this.NODES );
+		}
 	
+	}
+
+	public removeWhiteSpaces( nodes: any[] ) {
+		
+		var len: number = nodes.length,
+		    i: number = 0;
+
+		for ( i=len-1; i>=0; i-- ) {
+			if ( nodes[i].type == '#text' && nodes[i].value == ' ' && nodes[i-1] && nodes[i+1] && nodes[i-1].type != '#text' && nodes[i+1].type != '#text' ) {
+				nodes.splice(i,1);
+			} else
+			if ( nodes[i].type == 'node' && nodes[i].children )
+				this.removeWhiteSpaces( nodes[i].children );
+		}
+
 	}
 
 	public static READ_TEXT( data: string ): string {
@@ -32,10 +49,10 @@ class HTMLParser {
 			},
 			matches: any;
 
-		if ( matches = /^([\s]+)?([^\"\'\=]+)(\=([^\"\'\s]+|\"[^\"]+\"|\'[^\']+')?)?([\s]+)?/.exec( data ) ) {
+		if ( matches = /^([\s]+)?([^\"\'\=\>]+)(\=([^\"\'\s>]+|\"[^\"]+\"|\'[^\']+')?)?([\s]+)?/.exec( data ) ) {
 
 				out.name = matches[2];
-				out.value = matches[4];
+				out.value = matches[4] || "";
 				out.clearBuffer = matches[0];
 
 				if ( out.value.length >= 2 && ( 

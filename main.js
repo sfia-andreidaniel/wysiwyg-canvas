@@ -2368,9 +2368,21 @@ var HTMLParser = (function () {
         this.document = document;
         this.NODES = [];
         this.loops = 0;
-        if (data)
+        if (data) {
             this.parse(data, null);
+            this.removeWhiteSpaces(this.NODES);
+        }
     }
+    HTMLParser.prototype.removeWhiteSpaces = function (nodes) {
+        var len = nodes.length, i = 0;
+        for (i = len - 1; i >= 0; i--) {
+            if (nodes[i].type == '#text' && nodes[i].value == ' ' && nodes[i - 1] && nodes[i + 1] && nodes[i - 1].type != '#text' && nodes[i + 1].type != '#text') {
+                nodes.splice(i, 1);
+            }
+            else if (nodes[i].type == 'node' && nodes[i].children)
+                this.removeWhiteSpaces(nodes[i].children);
+        }
+    };
     HTMLParser.READ_TEXT = function (data) {
         var matches = /^[^\<]+/.exec(data);
         if (matches) {
@@ -2387,9 +2399,9 @@ var HTMLParser = (function () {
             "value": null,
             "clearBuffer": null
         }, matches;
-        if (matches = /^([\s]+)?([^\"\'\=]+)(\=([^\"\'\s]+|\"[^\"]+\"|\'[^\']+')?)?([\s]+)?/.exec(data)) {
+        if (matches = /^([\s]+)?([^\"\'\=\>]+)(\=([^\"\'\s>]+|\"[^\"]+\"|\'[^\']+')?)?([\s]+)?/.exec(data)) {
             out.name = matches[2];
-            out.value = matches[4];
+            out.value = matches[4] || "";
             out.clearBuffer = matches[0];
             if (out.value.length >= 2 && ((out.value[0] == '"' && out.value[out.value.length - 1] == '"') || (out.value[0] == "'" && out.value[out.value.length - 1] == "'"))) {
                 out.value = out.value.substr(1, out.value.length - 2);
@@ -3627,7 +3639,7 @@ var HTML_Video = (function (_super) {
                 this.src(attributeValue || '');
                 break;
             case 'controls':
-                this.controls(attributeValue ? true : false);
+                this.controls(true);
                 break;
             case 'poster':
                 this.poster(attributeValue || '');
@@ -13181,7 +13193,7 @@ var UI_Resources = (function () {
     function UI_Resources() {
     }
     UI_Resources._init_ = function () {
-        var props = ["html_alert", "png_alertIcon", "html_clipboardToolbar", "gif_cursorCellSelect", "gif_cursorColSelect", "gif_cursorRowSelect", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar", "html_undoManagerToolbar"];
+        var props = ["html_alert", "png_alertIcon", "html_clipboardToolbar", "gif_cursorCellSelect", "gif_cursorColSelect", "gif_cursorRowSelect", "html_demo", "html_editLink", "html_fileBrowser", "html_formattingToolbar", "html_insertLink", "html_insertPicture", "img_insertPicture", "html_multimediaToolbar", "html_tableToolbar", "html_undoManagerToolbar"];
         for (var i = 0, len = props.length; i < len; i++) {
             if (/^html_/.test(props[i])) {
                 UI_Resources._patch_(props[i]);
@@ -13202,6 +13214,7 @@ var UI_Resources = (function () {
     UI_Resources.gif_cursorCellSelect = "data:image/gif;base64,R0lGODlhFAAUAKECAAAAAP7+/v///////yH5BAEKAAIALAAAAAAUABQAAAJElI8AyG0QlpswTlftTaHrLWSdtIkjaJ5XqmLe2zLKDH/r6JF3VOmuBpkJFYfegxhKPFoLic7JHA5DsafSWFRmQz7psAAAOw==";
     UI_Resources.gif_cursorColSelect = "data:image/gif;base64,R0lGODlhDAASAKEAAP///wAAAP///////yH+EUNyZWF0ZWQgd2l0aCBHSU1QACH5BAEKAAIALAAAAAAMABIAAAImlBUZxwiwmgkvSgrlrNpljVlN2JEgd34XOimh6z2yis1irDImeBcAOw==";
     UI_Resources.gif_cursorRowSelect = "data:image/gif;base64,R0lGODlhEgAMAKEAAP///wAAAP///////yH5BAEKAAIALAAAAAASAAwAAAIllI8WyRzbYgAwpknV23yDv2DfSJZPiZrdeoIWglWvMMnzM19JAQA7";
+    UI_Resources.html_demo = "<p>asd</p>\r\n<video width=\"200\" poster=\"./_assets/pic1.jpg\" controls>\r\n\t<source src=\"movie.mp4\" type=\"video/mp4\">\r\n\t<source src=\"movie.mp4\" type=\"video/mp4\">\r\n\tYour browser does not support the HTML VIDEO ELEMENT.\r\n</video>\r\n<p>123</p>";
     UI_Resources.html_editLink = "<div class=\"dialog-body\">\r\n\r\n\t<fieldset>\r\n\t\t<legend>Hyperlink</legend>\r\n\r\n\t\t<label>\r\n\t\t\t<span>Link:</span>\r\n\t\t\t<input type=\"text\" class=\"i-link focus-first\" />\r\n\t\t</label>\r\n\t\t<label>\r\n\t\t\t<span>Open In:</span>\r\n\t\t\t<select class=\"s-target\">\r\n\t\t\t\t<option value=\"\">Current Window</option>\r\n\t\t\t\t<option value=\"_blank\">New Window</option>\r\n\t\t\t</select>\r\n\t\t</label>\r\n\t</fieldset>\r\n\r\n</div>";
     UI_Resources.html_fileBrowser = "<div class=\"htmleditor-fs\">\r\n\r\n\t<div class=\"toolbar\">\r\n\t\t<div class=\"location\">\r\n\t\t\t<label>\r\n\t\t\t\t<span class=\"label\">Location:</span>\r\n\t\t\t\t<input type=\"text\" class=\"fs-location focus-first\" />\r\n\t\t\t</label>\r\n\t\t</div>\r\n\t\t<div class=\"buttons\">\r\n\t\t\t<div class=\"button up\" title=\"Up\"></div><div\r\n\t\t\t\t class=\"button refresh\" title=\"Refresh\"></div><div \r\n\t\t\t\t class=\"button asc\" title=\"Sort Ascending\"></div><div \r\n\t\t\t\t class=\"button desc\" title=\"Sort Descending\"></div>\r\n\t\t</div>\r\n\t</div>\r\n\t<div class=\"files\">\r\n\t</div>\r\n\r\n</div>";
     UI_Resources.html_formattingToolbar = "<div class=\"item index-1\">\r\n\t<div class=\"ui-button remove-formatting\" title=\"Clear Formatting\"></div>\r\n</div><div class=\"item index-2\">\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"nodeName\" type=\"text\" data-suggestions=\"normal:Normal,blockquote:Quotation,h1:Heading 1,h2:Heading 2,h3:Heading 3,h4:Heading 4,h5:Heading 5,h6:Heading 6\" placeholder=\"Style\" value=\"\" >\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontFamily\" type=\"text\" data-suggestions value=\"\" placeholder=\"Font\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n\t<div class=\"text-dropdown\">\r\n\t\t<input class=\"fontSize\" type=\"text\" data-suggestions=\"8,9,10,12,14,16,18,20,22,24,26,28,30,32\" value=\"\" placeholder=\"Size\" />\r\n\t\t<div class=\"expander\"></div>\r\n\t</div>\r\n</div><div class=\"item index-5\">\r\n\t<div class=\"ui-button bold state\" title=\"Bold (Ctrl+B)\"></div><div\r\n\t\t class=\"ui-button italic\" title=\"Italic (Ctrl+I)\"></div><div\r\n\t\t class=\"ui-button underline\" title=\"Underline (Ctrl+U)\"></div><div\r\n\t\t class=\"ui-button strike\" title=\"Strike\"></div>\r\n</div><div class=\"item index-6\">\r\n\t<div class=\"ui-button subscript\"   title=\"Subscript\"></div><div\r\n\t\t class=\"ui-button superscript\" title=\"Superscript\"></div>\r\n</div><div class=\"item index-7\">\r\n\t<div class=\"ui-button left\" title=\"Left (Ctrl+L)\"></div><div\r\n\t\t class=\"ui-button center\" title=\"Center (Ctrl+E)\"></div><div\r\n\t\t class=\"ui-button right\" title=\"Right (Ctrl+R)\"></div><div\r\n\t\t class=\"ui-button justified\" title=\"Justified (Ctrl+J)\"></div>\r\n</div><div class=\"item index-8\">\r\n\t<div class=\"ui-button ol\" title=\"Ordered List\"></div><div\r\n\t\t class=\"ui-button ul\" title=\"Bulleted List\"></div><div\r\n\t\t class=\"ui-button increase\" title=\"Increase Indent (Tab)\"></div><div\r\n\t\t class=\"ui-button decrease\" title=\"Decrease Indent (Shift + Tab)\"></div>\r\n</div><div class=\"item index-9\">\r\n\t<div\r\n\t\t class=\"ui-button ui-color-button color\" title=\"Color\"></div>\r\n</div>\r\n";

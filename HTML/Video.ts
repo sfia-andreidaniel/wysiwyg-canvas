@@ -120,7 +120,7 @@ class HTML_Video extends TNode_Element {
 				this.src( attributeValue || '' );
 				break;
 			case 'controls':
-				this.controls( attributeValue ? true : false );
+				this.controls( true );
 				break;
 			case 'poster':
 				this.poster( attributeValue || '' );

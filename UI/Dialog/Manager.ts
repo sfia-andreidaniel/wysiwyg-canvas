@@ -30,6 +30,11 @@ class UI_Dialog_Manager {
 				UI_Dialog_Manager.dialogs.push( add );
 				return add.dialog;
 				break;
+			case 'InsertVideo':
+				add.dialog = new UI_Dialog_InsertVideo();
+				UI_Dialog_Manager.dialogs.push( add );
+				return add.dialog;
+				break;
 			case 'InsertLink':
 				add.dialog = new UI_Dialog_InsertLink();
 				UI_Dialog_Manager.dialogs.push( add );

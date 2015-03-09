@@ -1,0 +1,119 @@
+<div class="dialog-body">
+
+	<div class="ui-tabs">
+
+		<div class="ui-tabs-header">
+			<div class="ui-tab" data-sheet-id="player">Player</div>
+			<div class="ui-tab" data-sheet-id="sources">Sources</div>
+		</div>
+
+		<div class="ui-sheet player">
+			
+			<fieldset>
+				<legend>Player settings</legend>
+				
+				<div class="horizontal-flex one-kind">
+
+					<div class="cell">
+						
+						<label>
+							<input type="number" min="10" value="10" />
+							<span>Width:</span>
+						</label>
+						<label>
+							<input type="number" min="10" value="10" />
+							<span>Height:</span>
+						</label>
+						<label>
+							<input type="text" />
+							<span>Poster Image:</span>
+							<button class="browse" style="margin-right: -16px; width: 17px">...</button>
+						</label>
+
+						<label class="checkbox">
+							<input type="checkbox" checked="checked" />
+							<span>Auto Start</span>
+						</label>
+						<label class="checkbox">
+							<input type="checkbox" checked="checked" />
+							<span>Show Controlbar</span>
+						</label>
+
+					</div>
+
+				</div>
+
+			</fieldset>
+
+		</div>
+		<div class="ui-sheet sources">
+			Sources content
+		</div>
+
+	</div>
+
+	<!--
+	<fieldset>
+
+		<legend>Source</legend>
+
+		<label class="two-lines">Specify a picture source, or browse for a picture:</label>
+
+		<div class="horizontal-flex one-kid">
+			<div class="cell">
+				<label>
+					<span>Source:</span> 
+					<input type="text" class="txt-src focus-first" />
+					<button class="browse">...</button>
+				</label>
+			</div>
+		</div>
+
+	</fieldset>
+	<fieldset>
+		
+		<legend>Settings</legend>
+
+
+		<div class="horizontal-flex two-kids">
+
+			<div class="cell">
+
+				<label>
+					<span>Width:</span>
+					<input type="number" class="int-width" disabled style="max-width: 50px" />
+				</label>
+				<label>
+					<span>Height:</span>
+					<input type="number" class="int-height" disabled style="max-width: 50px" />
+				</label>
+				<label class="checkbox">
+					<span>Maintain propoportions:</span>
+					<input type="checkbox" class="bool-proportions" disabled />
+				</label>
+			</div>
+			<div class="cell" style="text-align: right">
+			
+				<img class="img-preview" style="display: inline-block; margin: 10px 0px 10px 10px; max-width: 150px; max-height: 150px" src="{img_insertPicture}" />
+
+			</div>
+
+		</div>
+
+		<div class="horizontal-flex one-kid">
+
+			<div class="cell">
+				<label>
+					<span>Alternate text:</span>
+					<input type="text" class="txt-alt" />
+				</label>
+			</div>
+
+		</div>
+
+
+	</fieldset>
+
+	-->
+
+</div>

@@ -114,6 +114,11 @@ interface EditorState {
 
 	table         : boolean        ; // Weather if the table insert command can be execut'd or not
 	cell          : HTML_TableCell ; // The selected cell
+
+	picture       : boolean; // weather if the "insert picture" command is available
+	video         : boolean; // weather if the "insert video" command is available
+	link          : boolean; // weather if the "insert link" command is available
+	object        : boolean; // weather if the "insert object" command is available
 }
 
 interface TNameValuePair {
@@ -269,4 +274,12 @@ interface UndoEntry {
 interface UndoSummary {
 	index: number;
 	description: string;
+}
+
+
+
+interface UI_Tab {
+	tab: HTMLDivElement;
+	sheet: HTMLDivElement;
+	id: string;
 }

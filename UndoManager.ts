@@ -115,9 +115,6 @@ class UndoManager extends Events {
 
 		} else {
 
-			// Set the caret @ anchor position.
-			// TODO: Fully restore multirange selections
-
 			var multiRange = HTML_MultiRange.unserialize( this.viewport.document, entry.multiRange );
 
 			selection.anchorTo( new TRange_Target( multiRange, multiRange.FRAGMENT_START ) );

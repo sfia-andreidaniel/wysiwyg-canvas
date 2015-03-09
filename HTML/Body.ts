@@ -597,7 +597,7 @@ class HTML_Body extends TNode_Element {
 	}
 
 	public removeChild( node: TNode ): TNode {
-		var result: TNode = super.removeChild( node );
+	var result: TNode = super.removeChild( node );
 		
 		if ( this.childNodes.length == 0 && this._orphanEnabled ) {
 			( function( me ) {
@@ -612,6 +612,7 @@ class HTML_Body extends TNode_Element {
 
 		return result;
 	}
+
 
 	public undoManager(): UndoManager {
 		return this.viewport.undo;

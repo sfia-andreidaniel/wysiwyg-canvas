@@ -101,6 +101,8 @@ class UI_Dialog extends Events {
 	set width( v: number ) {
 		this.settings.width = ~~v;
 		this.outerNode.style.width = v + 4 + "px";
+
+		this.fire( 'resize' );
 	}
 
 	get height(): number {
@@ -112,6 +114,8 @@ class UI_Dialog extends Events {
 		this.outerNode.style.height = v + 30 + ( this.settings.buttons ? 50 : 0 ) + "px";
 		this.resizer.style.height = v + 30 + ( this.settings.buttons ? 50 : 0 ) + "px";
 		this.body.style.height = v + "px";
+
+		this.fire( 'resize' );
 	}
 
 	get caption(): string {

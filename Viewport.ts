@@ -28,7 +28,7 @@ class Viewport extends Events {
 		this.context = this.canvas.getContext( '2d' );
 
 		this.context.imageSmoothingEnabled =
-			this.context.webkitImageSmoothingEnabled =
+			// this.context.webkitImageSmoothingEnabled = // became deprecated in webkit
 			this.context.msImageSmoothingEnabled = 
 			this.context.mozImageSmoothingEnabled = 
 			this.context.oImageSmoothingEnabled = true;

@@ -427,6 +427,7 @@ class TNode_Element extends TNode {
 		} else {
 
 			var nodes = ( new HTMLParser( this.documentElement, setter ) ).NODES;
+
 			this.setInnerNodes( nodes );
 		}
 	}

@@ -50,4 +50,12 @@ class HTML_SourceElement extends TNode_Element {
 		}
 	}
 
+	public xmlEnding(): string {
+		return '';
+	}
+
+	public xmlBeginning(): string {
+		return '<source ' + this.xmlAttributes() + ' />';
+	}
+
 }

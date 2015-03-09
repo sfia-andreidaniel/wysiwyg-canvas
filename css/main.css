@@ -626,7 +626,7 @@ div.ui-dialog {
 	padding: 0;
 	margin: 0;
 	background-color: #ddd;
-	outline: 1px outset #bbb;
+	outline: 2px outset #bbb;
 
 	z-index: 3000;
 }
@@ -872,7 +872,6 @@ div.ui-dialog div.dialog-body  label {
 	margin-top: 5px;
 	margin-bottom: 5px;
 	cursor: default;
-	outline: 1px dashed #ddd;
 }
 
 div.ui-dialog div.dialog-body  label > span {
@@ -1119,4 +1118,52 @@ div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.audio {
 
 div.ui-dialog .htmleditor-fs > div.files > div.fs > div.icon.mime.unknown {
 	background-position: -32px 0px;
+}
+
+div.ui-dialog .ui-tabs {
+	display: block;
+	padding: 0;
+	margin: 0;
+	position: relative;
+}
+
+div.ui-dialog .ui-tabs > .ui-tabs-header {
+	display: block;
+	height: 29px;
+	padding: 0;
+	margin: 0;
+}
+
+div.ui-dialog .ui-tabs > .ui-tabs-header > .ui-tab.first {
+	margin-left: 5px;
+}
+
+div.ui-dialog .ui-tabs > .ui-tabs-header > .ui-tab {
+	display: inline-block;
+	padding: 5px 5px 0px 5px;
+	height: 22px;
+	border-width: 2px 2px 0px 2px;
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	border-style: solid;
+	border-color: #fff #333 #333 #fff;
+	cursor: default;
+}
+
+div.ui-dialog .ui-tabs > .ui-tabs-header > .ui-tab.active {
+	background-color: #ddd;
+	height: 24px;
+	outline: 1px dotted black;
+	outline-offset: -5px;
+}
+
+div.ui-dialog .ui-tabs > .ui-sheet {
+	display: block;
+	padding: 5px;
+	margin: 0;
+	border-width: 2px;
+	border-color: #fff #333 #333 #fff;
+	border-style: solid;
+	margin: 0px;
+	background-color: #ddd;
 }

@@ -20,17 +20,29 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 
 			me.buttonLink.addEventListener( 'click', function( e ) {
 
+				if ( DOM.hasClass( me.buttonLink, 'state-disabled' ) ) {
+					return;
+				}
+
 				me.insertLink();
 
 			}, true );
 
 			me.buttonPicture.addEventListener( 'click', function( e ) {
 
+				if ( DOM.hasClass( me.buttonPicture, 'state-disabled' ) ) {
+					return;
+				}
+
 				me.insertPicture();
 
 			}, true );
 
 			me.buttonVideo.addEventListener( 'click', function( e ) {
+
+				if ( DOM.hasClass( me.buttonVideo, 'state-disabled' ) ) {
+					return;
+				}
 
 				me.insertVideo();
 
@@ -130,7 +142,7 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 
 		if ( !rng.focusNode() && !rng.isOrphan() ) {
 			if ( rng.anchorNode().target.is() != 'img' ) {
-				UI_Dialog_Manager.alert( 'The editor is not in a state which allows inserting pictures. Try selecting a picture or a text first.', function() {
+				UI_Dialog_Manager.alert( 'The editor is not in a state which allows inserting pictures. Try selecting a picture or some text first.', function() {
 					selection.viewport.canvas.focus();
 				}, selection.viewport.canvas );
 				return;
@@ -146,6 +158,81 @@ class UI_Toolbar_Panel_Multimedia extends UI_Toolbar_Panel {
 	}
 
 	public insertVideo() {
+
+		var selection = this.toolbar.router.viewport.selection,
+		    rng       = selection.getRange(),
+		    video: HTML_Video = null;
+
+		if ( !rng.focusNode() && !rng.isOrphan() ) {
+			if ( rng.anchorNode().target.is() != 'video' ) {
+				UI_Dialog_Manager.alert( 'The editor is not in a state which allows inserting videos. Try selecting a video or some text first.', function() {
+					selection.viewport.canvas.focus();
+				}, selection.viewport.canvas );
+				return;
+			} else {
+				video = <HTML_Video>rng.anchorNode().target;
+			}
+		} else {
+			video = null;
+		}
+
+		UI_Dialog_Manager.singleton( 'InsertVideo' ).setup( video, this.toolbar.router.viewport.document ).centerTo( selection.viewport.canvas ).open();
+
+	}
+
+	private updatePictureState() {
+		if ( this.toolbar.state.state.picture ) {
+			DOM.removeClass( this.buttonPicture, 'state-disabled' );
+		} else {
+			DOM.addClass( this.buttonPicture, 'state-disabled' );
+		}
+	}
+
+	private updateVideoState() {
+		if ( this.toolbar.state.state.video ) {
+			DOM.removeClass( this.buttonVideo, 'state-disabled' );
+		} else {
+			DOM.addClass( this.buttonVideo, 'state-disabled' );
+		}
+	}
+
+	private updateLinkState() {
+		if ( this.toolbar.state.state.link ) {
+			DOM.removeClass( this.buttonLink, 'state-disabled' );
+		} else {
+			DOM.addClass( this.buttonLink, 'state-disabled' );
+		}
+	}
+	
+	private updateObjectState() {
+		if ( this.toolbar.state.state.object ) {
+			// DOM.removeClass( this.buttonObject, 'state-disabled' );
+		} else {
+			// DOM.addClass( this.buttonObject, 'state-disabled' );
+		}
+	}
+
+	public updateDocumentState( propertiesList: string [] ) {
+
+		var i: number = 0,
+		    len: number = propertiesList.length;
+
+		for ( i=0; i<len; i++ ) {
+			switch ( propertiesList[i] ) {
+				case 'picture':
+					this.updatePictureState();
+					break;
+				case 'video':
+					this.updateVideoState();
+					break;
+				case 'object':
+					this.updateObjectState();
+					break;
+				case 'link':
+					this.updateLinkState();
+					break;
+			}
+		}
 
 	}
 }

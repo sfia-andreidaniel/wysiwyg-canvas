@@ -37,7 +37,12 @@ class Selection_EditorState extends Events {
 			listType      : undefined,
 
 			table         : undefined,
-			cell          : undefined
+			cell          : undefined,
+
+			picture       : undefined,
+			video         : undefined,
+			link          : undefined,
+			object        : undefined
 		};
 	}
 
@@ -332,6 +337,28 @@ class Selection_EditorState extends Events {
 				state.table = false;
 
 		}
+
+		/* Compute the picture, link, video, object states */
+
+		state.link    = !!focus;
+		
+		state.picture = true;
+		state.video   = true;
+		state.object  = true;
+
+		if ( !focus && !rng.isOrphan() ) {
+			if ( anchor.target.is() != 'img' ) {
+				state.picture = false;
+			}
+			if ( anchor.target.is() != 'video' ) {
+				state.video = false;
+			}
+			if ( anchor.target.is() != 'object')  {
+				state.object = false;
+			}
+		}
+
+		/* Endof compute picture, link, video, object states */
 
 		// compute diffs.
 		for ( k in state ) {
